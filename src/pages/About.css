@@ -1,0 +1,194 @@
+.aboutPage {
+  --about-ink: #151b2b;
+  --about-gold: #987b47;
+  --about-muted: #555555;
+  --about-border: rgba(21, 27, 43, 0.12);
+  --about-card-bg: rgba(255, 255, 255, 0.45);
+  width: min(1280px, 100%);
+  margin: 0 auto;
+  padding: 8rem 4% 5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--about-ink);
+}
+
+.aboutHero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 780px;
+  margin-bottom: 3.5rem;
+}
+
+.aboutBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1.1rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(152, 123, 71, 0.35);
+  background: rgba(152, 123, 71, 0.08);
+  color: var(--about-gold);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+}
+
+.aboutBadgeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--about-gold);
+  box-shadow: 0 0 6px rgba(152, 123, 71, 0.6);
+  flex-shrink: 0;
+}
+
+.aboutTitle {
+  font-family: 'Anton', sans-serif;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+  color: var(--about-ink);
+  margin: 0 0 1.25rem 0;
+}
+
+.aboutSubtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  color: var(--about-muted);
+  line-height: 1.65;
+  margin: 0;
+  max-width: 640px;
+}
+
+.aboutNarrativeSection {
+  width: 100%;
+  margin-bottom: 4rem;
+}
+
+.aboutGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2rem;
+  width: 100%;
+}
+
+.aboutCard {
+  background: var(--about-card-bg);
+  border: 1px solid var(--about-border);
+  border-radius: 6px;
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  text-align: left;
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.aboutCard:hover {
+  transform: translateY(-4px);
+  border-color: rgba(152, 123, 71, 0.5);
+  box-shadow: 0 14px 32px rgba(21, 27, 43, 0.07);
+}
+
+.aboutCardIndex {
+  font-family: 'Anton', sans-serif;
+  font-size: 0.95rem;
+  letter-spacing: 0.15em;
+  color: var(--about-gold);
+}
+
+.aboutCardTitle {
+  font-family: 'Anton', sans-serif;
+  font-size: 1.35rem;
+  letter-spacing: 0.06em;
+  color: var(--about-ink);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.aboutCardBody {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.92rem;
+  line-height: 1.75;
+  color: var(--about-ink);
+  margin: 0.5rem 0 0 0;
+}
+
+.aboutCtaSection {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.aboutCtaButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  background-color: var(--about-ink);
+  color: #F1EBDD;
+  padding: 1rem 2.4rem;
+  min-height: 48px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: 50px;
+  border: 1px solid var(--about-ink);
+  text-decoration: none;
+  transition: background-color 0.3s ease, transform 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.aboutCtaButton:hover {
+  background-color: var(--about-gold);
+  border-color: var(--about-gold);
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 960px) {
+  .aboutGrid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .aboutPage {
+    padding: 6.5rem 1.25rem 4rem;
+  }
+
+  .aboutHero {
+    margin-bottom: 2.5rem;
+  }
+
+  .aboutGrid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .aboutCard {
+    padding: 1.8rem 1.4rem;
+  }
+
+  .aboutCtaButton {
+    width: 100%;
+    max-width: 320px;
+  }
+}
+
+@media (hover: none) {
+  .aboutCard:hover {
+    transform: none;
+  }
+
+  .aboutCtaButton:hover {
+    transform: none;
+  }
+}

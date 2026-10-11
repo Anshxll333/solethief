@@ -41,8 +41,8 @@ export default function Navbar() {
       <nav id="primary-navigation" aria-label="Main navigation" className={`headerNav ${menuOpen ? 'isOpen' : ''}`} onClick={() => setMenuOpen(false)}>
         <Link to="/" className="navLink">Home</Link>
         <Link to="/shop" className="navLink">Shop</Link>
-        <Link to="/#new-drops" className="navLink">New Drops</Link>
-        <Link to="/#about" className="navLink">About</Link>
+        <Link to="/new-drops" className="navLink">New Drops</Link>
+        <Link to="/about" className="navLink">About</Link>
         <Link to="/account" className="navLink">Account {user ? '(Active)' : ''}</Link>
         <Link to="/admin" className="navLink">Admin</Link>
       </nav>

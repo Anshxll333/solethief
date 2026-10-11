@@ -1,0 +1,332 @@
+.newDropsPage {
+    --drops-ink: #151b2b;
+    --drops-gold: #987b47;
+    --drops-crimson: #bc2828;
+    --drops-muted: #6e7687;
+    --drops-border: rgba(21, 27, 43, 0.12);
+    --drops-bg-card: #f9f7f2;
+    width: min(1400px, 100%);
+    margin: 0 auto;
+    padding: 8rem 4% 5rem;
+    flex: 1;
+    color: var(--drops-ink);
+}
+
+.dropsHero {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.dropsVaultBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--drops-gold);
+    font-weight: 700;
+}
+
+.dropsLivePulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--drops-crimson);
+    box-shadow: 0 0 0 0 rgba(188, 40, 40, 0.7);
+    animation: dropPulse 2s infinite;
+}
+
+@keyframes dropPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(188, 40, 40, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(188, 40, 40, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(188, 40, 40, 0);
+    }
+}
+
+.dropsTitle {
+    font-family: inherit;
+    font-size: clamp(2rem, 5vw, 4rem);
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    font-weight: 800;
+    margin: 0;
+}
+
+.dropsSubtitle {
+    color: var(--drops-muted);
+    font-size: clamp(0.95rem, 1.5vw, 1.15rem);
+    max-width: 680px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.dropsToolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-bottom: 2.5rem;
+}
+
+.dropsControls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-left: auto;
+}
+
+.dropsSearchWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1 1 260px;
+    max-width: 320px;
+    min-width: 200px;
+    background: rgba(21, 27, 43, 0.035);
+    border: 1px solid rgba(21, 27, 43, 0.25);
+    border-radius: 9999px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dropsSearchWrapper:hover {
+    border-color: rgba(21, 27, 43, 0.5);
+    background: rgba(21, 27, 43, 0.05);
+}
+
+.dropsSearchWrapper:focus-within {
+    border-color: var(--drops-ink);
+    background: rgba(21, 27, 43, 0.06);
+    box-shadow: 0 0 0 1px var(--drops-ink), 0 4px 18px -4px rgba(21, 27, 43, 0.08);
+}
+
+.dropsSearchIcon {
+    position: absolute;
+    left: 0.95rem;
+    color: var(--drops-muted);
+    pointer-events: none;
+    transition: color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.dropsSearchWrapper:focus-within .dropsSearchIcon {
+    color: var(--drops-ink);
+}
+
+.dropsSearchInput {
+    width: 100%;
+    height: 38px;
+    border: none;
+    background: transparent;
+    padding: 0 2.2rem 0 2.35rem;
+    font-size: 0.74rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    font-family: 'Inter', sans-serif;
+    color: var(--drops-ink);
+    outline: none;
+}
+
+.dropsSearchInput::placeholder {
+    color: rgba(21, 27, 43, 0.45);
+    font-weight: 500;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.dropsSearchInput::-webkit-search-cancel-button {
+    display: none;
+}
+
+.dropsClearSearch {
+    position: absolute;
+    right: 0.65rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(21, 27, 43, 0.06);
+    color: var(--drops-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.dropsClearSearch:hover {
+    color: #f1ebdd;
+    background: var(--drops-ink);
+}
+
+.dropsSortWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 0 1 185px;
+    min-width: 175px;
+    background: rgba(21, 27, 43, 0.035);
+    border: 1px solid rgba(21, 27, 43, 0.25);
+    border-radius: 9999px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dropsSortWrapper:hover {
+    border-color: rgba(21, 27, 43, 0.5);
+    background: rgba(21, 27, 43, 0.05);
+}
+
+.dropsSortWrapper:focus-within {
+    border-color: var(--drops-ink);
+    background: rgba(21, 27, 43, 0.06);
+    box-shadow: 0 0 0 1px var(--drops-ink), 0 4px 18px -4px rgba(21, 27, 43, 0.08);
+}
+
+.dropsSortIcon {
+    position: absolute;
+    left: 0.95rem;
+    color: var(--drops-muted);
+    pointer-events: none;
+    transition: color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.dropsSortWrapper:focus-within .dropsSortIcon {
+    color: var(--drops-ink);
+}
+
+.dropsSortChevron {
+    position: absolute;
+    right: 0.95rem;
+    color: var(--drops-muted);
+    pointer-events: none;
+    transition: color 0.2s ease, transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.dropsSortWrapper:focus-within .dropsSortChevron {
+    color: var(--drops-ink);
+    transform: rotate(180deg);
+}
+
+.dropsSortSelect {
+    width: 100%;
+    height: 38px;
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: none;
+    padding: 0 2.2rem 0 2.35rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: 'Inter', sans-serif;
+    color: var(--drops-ink);
+    cursor: pointer;
+    outline: none;
+}
+
+.dropsSortSelect option {
+    background: #f1ebdd;
+    color: var(--drops-ink);
+    padding: 0.6rem 1rem;
+    font-size: 0.74rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.dropsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: clamp(1.25rem, 2vw, 2rem);
+    margin-bottom: 4rem;
+}
+
+.dropsEmptyState {
+    text-align: center;
+    padding: 5rem 1.5rem;
+    border: 1px dashed var(--drops-border);
+    border-radius: 4px;
+    background: rgba(21, 27, 43, 0.025);
+    grid-column: 1 / -1;
+}
+
+.dropsEmptyState h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.04em;
+}
+
+.dropsEmptyState p {
+    color: var(--drops-muted);
+    font-size: 0.95rem;
+    max-width: 440px;
+    margin: 0 auto;
+    line-height: 1.5;
+}
+
+.dropsResetBtn {
+    margin-top: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.6rem;
+    background: var(--drops-ink);
+    color: #f1ebdd;
+    font-size: 0.76rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border: 1px solid var(--drops-ink);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dropsResetBtn:hover {
+    background: #252e44;
+    border-color: var(--drops-gold);
+    color: #c8a96e;
+    transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+    .newDropsPage {
+        padding-top: 6.5rem;
+    }
+
+    .dropsToolbar {
+        margin-bottom: 1.75rem;
+    }
+
+    .dropsControls {
+        flex-wrap: wrap;
+        gap: 0.65rem;
+    }
+
+    .dropsSearchWrapper {
+        flex: 1 1 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .dropsSortWrapper {
+        flex: 1 1 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+}
