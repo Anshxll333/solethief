@@ -1,0 +1,2749 @@
+.commercePage {
+    --commerce-ink: #151b2b;
+    width: min(1400px, 100%);
+    margin: 0 auto;
+    padding: 5rem 4%;
+    flex: 1;
+    color: var(--commerce-ink);
+}
+
+.commerceHeading {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.commerceHeading h1 {
+    font-size: clamp(2.5rem, 6vw, 5rem);
+}
+
+.commerceEyebrow {
+    letter-spacing: .16em;
+    font-size: .75rem;
+    margin-bottom: .75rem;
+}
+
+.commerceNotice,
+.catalogNotice {
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-size: .85rem;
+    line-height: 1.7;
+    color: #151b2b;
+}
+
+.commerceFilters {
+    display: grid;
+    grid-template-columns: 2fr repeat(5, 1fr);
+    gap: 1rem;
+    margin: 2rem 0 1rem;
+    border: 0;
+}
+
+.commerceFilters label {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    font-size: .8rem;
+    min-width: 0;
+}
+
+.commerceFilters input,
+.commerceFilters select {
+    width: 100%;
+    min-height: 46px;
+    border: 1px solid #151b2b80;
+    border-radius: 0;
+    padding: .6rem;
+    background: #f7f2e8;
+    color: #151b2b;
+    font: inherit;
+}
+
+.commerceToolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.commerceGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2rem;
+}
+
+.commerceCard {
+    min-width: 0;
+}
+
+.commerceCard>a {
+    display: block;
+}
+
+.commerceCard .commercePurchase {
+    padding: 0 1.5rem 1.5rem;
+}
+
+.commercePurchase {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .8rem;
+    margin: 1rem 0;
+}
+
+.commerceButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: .8rem 1.2rem;
+    background: #151b2b;
+    color: #f1ebdd;
+    border: 1px solid #151b2b;
+    font-size: .85rem;
+}
+
+.commerceButton:disabled {
+    background: transparent;
+    color: #55555d;
+    border-color: #777780;
+    cursor: not-allowed;
+}
+
+.commerceTextLink {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    font-size: .85rem;
+}
+
+.commerceSmall {
+    display: block;
+    width: 100%;
+    font-size: .78rem;
+    line-height: 1.6;
+}
+
+.commerceState {
+    padding: 3rem 0;
+    line-height: 1.8;
+}
+
+.commerceState h2 {
+    margin-bottom: 1rem;
+}
+
+.commerceState .commerceButton {
+    margin-top: 1rem;
+}
+
+.commerceBagLayout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+    gap: 3rem;
+    margin-top: 2rem;
+}
+
+.commerceBagList {
+    list-style: none;
+}
+
+.commerceBagItem {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    border-top: 1px solid #151b2b40;
+    padding: 1.5rem 0;
+}
+
+.commerceBagItem img {
+    width: 140px;
+    height: 130px;
+    object-fit: contain;
+}
+
+.commerceBagItem h2 {
+    font-size: 1.35rem;
+}
+
+.commerceBagItem p {
+    margin: .5rem 0;
+    line-height: 1.6;
+}
+
+.commerceSummary {
+    border: 1px solid #151b2b50;
+    padding: 1.5rem;
+    align-self: start;
+}
+
+.commerceSummary dl>div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.commerceSummary p {
+    font-size: .85rem;
+    line-height: 1.7;
+    margin: 1rem 0;
+}
+
+.commerceSummary .commerceButton {
+    width: 100%;
+}
+
+.commerceCartCount {
+    font-size: .75rem;
+    min-width: 1rem;
+}
+
+.commercePage :focus-visible,
+.commercePurchase :focus-visible,
+.commerceCard :focus-visible {
+    outline: 3px solid #735123;
+    outline-offset: 4px;
+}
+
+@media (max-width: 1000px) {
+    .commerceFilters {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .commerceGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .commercePage {
+        padding: 3rem 5%;
+    }
+
+    .commerceFilters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .commerceFilters label:first-child {
+        grid-column: 1 / -1;
+    }
+
+    .commerceGrid,
+    .commerceBagLayout {
+        grid-template-columns: 1fr;
+    }
+
+    .commerceBagItem {
+        gap: 1rem;
+    }
+
+    .commerceBagItem img {
+        width: 90px;
+        height: 100px;
+    }
+
+    .commerceToolbar {
+        flex-wrap: wrap;
+    }
+}
+
+/* ==========================================================================
+   Stage 3: Account, Authentication, Address & Wishlist Styles
+   Aesthetics: Deep indigo (#151B2B), Warm ivory (#F1EBDD), Gold accent (#C8A96E)
+   ========================================================================== */
+
+.accountPage {
+    max-width: 1200px;
+}
+
+.accountAuthContainer {
+    max-width: 640px;
+    margin: 2rem auto 4rem;
+}
+
+.accountAuthHeader {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.accountAuthHeader h1 {
+    font-family: 'Anton', sans-serif;
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: .5rem;
+}
+
+.accountAuthHeader p {
+    font-size: .95rem;
+    opacity: .85;
+}
+
+.accountPreviewNotice {
+    background: #e7dfcc;
+    border-left: 4px solid #151b2b;
+    padding: 1.25rem;
+    margin-bottom: 2rem;
+    font-size: .85rem;
+    line-height: 1.6;
+}
+
+.accountPreviewNoticeHeader {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-weight: 600;
+    margin-bottom: .5rem;
+    letter-spacing: .08em;
+}
+
+.accountMockQuickSelect {
+    margin-top: 1rem;
+    padding-top: .75rem;
+    border-top: 1px solid rgba(21, 27, 43, 0.15);
+}
+
+.accountMockQuickSelect span {
+    display: block;
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    margin-bottom: .5rem;
+    font-weight: 600;
+}
+
+.accountMockButtons {
+    display: flex;
+    gap: .6rem;
+    flex-wrap: wrap;
+}
+
+.accountMockBtn {
+    font-size: .75rem;
+    padding: .5rem .8rem;
+    min-height: 38px;
+    background: #151b2b;
+    color: #f1ebdd;
+    border: none;
+    cursor: pointer;
+}
+
+.accountAuthBox {
+    background: #eae2d1;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    padding: 2.5rem;
+}
+
+.accountAuthTabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 2px solid rgba(21, 27, 43, 0.2);
+    margin-bottom: 2rem;
+}
+
+.accountAuthTab {
+    padding: .9rem;
+    background: transparent;
+    border: none;
+    font-family: 'Anton', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: rgba(21, 27, 43, 0.6);
+    cursor: pointer;
+    position: relative;
+    transition: color .2s;
+    min-height: 44px;
+}
+
+.accountAuthTab.isActive {
+    color: #151b2b;
+}
+
+.accountAuthTab.isActive::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #151b2b;
+}
+
+.accountAuthForm {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.accountAuthForm label {
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+    font-size: .85rem;
+    font-weight: 500;
+}
+
+.accountAuthForm input {
+    width: 100%;
+    min-height: 46px;
+    padding: .75rem;
+    background: #f7f2e8;
+    border: 1px solid rgba(21, 27, 43, 0.3);
+    color: #151b2b;
+    font-family: inherit;
+    font-size: .95rem;
+}
+
+.accountAuthSubmit {
+    width: 100%;
+    margin-top: .5rem;
+    font-size: .95rem;
+    cursor: pointer;
+}
+
+.accountAuthHint {
+    text-align: center;
+    opacity: .75;
+}
+
+.accountErrorBanner {
+    padding: .75rem 1rem;
+    background: #f8d7da;
+    color: #842029;
+    border: 1px solid #f5c2c7;
+    font-size: .85rem;
+}
+
+/* Authenticated Dashboard */
+.accountDashboard {
+    margin-top: 1.5rem;
+}
+
+.accountBanner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    padding: 2rem;
+    background: #151b2b;
+    color: #f1ebdd;
+    margin-bottom: 2rem;
+}
+
+.accountBannerDetails {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.accountUserAvatar {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: #c8a96e;
+    color: #151b2b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Anton', sans-serif;
+    font-size: 1.8rem;
+    flex-shrink: 0;
+}
+
+.accountUserName {
+    font-family: 'Anton', sans-serif;
+    font-size: clamp(1.5rem, 3vw, 2.2rem);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #f1ebdd;
+    margin-bottom: .2rem;
+}
+
+.accountUserEmail {
+    font-size: .85rem;
+    opacity: .8;
+    margin-bottom: .4rem;
+}
+
+.accountBadges {
+    display: flex;
+    gap: .5rem;
+}
+
+.accountBadge {
+    display: inline-block;
+    padding: .25rem .6rem;
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-weight: 600;
+}
+
+.accountBadgePreview {
+    background: #343f56;
+    color: #c8a96e;
+    border: 1px solid #c8a96e;
+}
+
+.accountBadgeLive {
+    background: #1e3a2f;
+    color: #6ee7b7;
+}
+
+.accountLogoutBtn {
+    background: transparent;
+    color: #f1ebdd;
+    border: 1px solid rgba(241, 235, 221, 0.4);
+    gap: .5rem;
+    cursor: pointer;
+    min-height: 44px;
+}
+
+.accountLogoutBtn:hover {
+    background: rgba(241, 235, 221, 0.1);
+}
+
+.accountPreviewBar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #e2d9c5;
+    padding: .75rem 1.25rem;
+    margin-bottom: 2rem;
+    font-size: .8rem;
+    flex-wrap: wrap;
+}
+
+.accountPreviewBarButtons {
+    display: flex;
+    gap: .5rem;
+}
+
+.accountMiniBtn {
+    padding: .3rem .6rem;
+    background: #151b2b;
+    color: #f1ebdd;
+    border: none;
+    font-size: .75rem;
+    cursor: pointer;
+    min-height: 32px;
+}
+
+.accountNavTabs {
+    display: flex;
+    gap: .5rem;
+    border-bottom: 2px solid rgba(21, 27, 43, 0.2);
+    margin-bottom: 2.5rem;
+    overflow-x: auto;
+}
+
+.accountNavTab {
+    display: inline-flex;
+    align-items: center;
+    gap: .6rem;
+    padding: 1rem 1.5rem;
+    background: transparent;
+    border: none;
+    font-family: 'Anton', sans-serif;
+    font-size: 1rem;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: rgba(21, 27, 43, 0.6);
+    cursor: pointer;
+    position: relative;
+    white-space: nowrap;
+    min-height: 48px;
+}
+
+.accountNavTab.isActive {
+    color: #151b2b;
+}
+
+.accountNavTab.isActive::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #151b2b;
+}
+
+.accountSection {
+    margin-bottom: 3rem;
+}
+
+.accountSectionHeader {
+    margin-bottom: 2rem;
+}
+
+.accountSectionHeader h2 {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.8rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: .3rem;
+}
+
+.accountSectionHeader p {
+    font-size: .9rem;
+    opacity: .8;
+}
+
+.accountSectionHeaderWithAction {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+}
+
+.accountSectionHeaderWithAction h2 {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.8rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: .3rem;
+}
+
+.accountSectionHeaderWithAction p {
+    font-size: .9rem;
+    opacity: .8;
+}
+
+.accountAddAddrBtn {
+    gap: .4rem;
+    cursor: pointer;
+    min-height: 44px;
+}
+
+.accountFeedback {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    font-size: .88rem;
+}
+
+.accountFeedback.isSuccess {
+    background: #d1e7dd;
+    color: #0f5132;
+    border: 1px solid #badbcc;
+}
+
+.accountFeedback.isError {
+    background: #f8d7da;
+    color: #842029;
+    border: 1px solid #f5c2c7;
+}
+
+.accountForm {
+    max-width: 680px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.accountFormRow {
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+}
+
+.accountFormRow label {
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+    font-size: .85rem;
+    font-weight: 500;
+}
+
+.accountFormRow input,
+.accountAddressFormBox input,
+.accountAddressFormBox select {
+    width: 100%;
+    min-height: 46px;
+    padding: .75rem;
+    background: #f7f2e8;
+    border: 1px solid rgba(21, 27, 43, 0.3);
+    color: #151b2b;
+    font-family: inherit;
+    font-size: .95rem;
+}
+
+.accountDisabledInput {
+    background: #e2dbcb !important;
+    cursor: not-allowed;
+    opacity: .8;
+}
+
+.accountFieldNote {
+    font-size: .75rem;
+    opacity: .65;
+    margin-top: .2rem;
+}
+
+.accountFieldError {
+    font-size: .75rem;
+    color: #842029;
+    margin-top: .2rem;
+}
+
+.accountFormGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+
+.accountAddressFormBox {
+    background: #e7dfcc;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    padding: 2rem;
+    margin-bottom: 2.5rem;
+}
+
+.accountAddressFormBox h3 {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 1.5rem;
+}
+
+.accountAddressFormBox label {
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+    font-size: .85rem;
+    font-weight: 500;
+}
+
+.accountCheckboxLabel {
+    flex-direction: row !important;
+    align-items: center;
+    gap: .75rem !important;
+    cursor: pointer;
+}
+
+.accountCheckboxLabel input[type="checkbox"] {
+    width: 20px !important;
+    min-height: 20px !important;
+    cursor: pointer;
+}
+
+.accountFormActions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.accountCancelBtn {
+    background: transparent;
+    color: #151b2b;
+    border: 1px solid #151b2b;
+    cursor: pointer;
+}
+
+.accountAddressesGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+}
+
+.accountAddressCard {
+    background: #eae2d1;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    padding: 1.75rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.accountAddressCard.isDefault {
+    border-color: #151b2b;
+    border-width: 2px;
+}
+
+.accountAddressBadge {
+    display: inline-block;
+    align-self: flex-start;
+    padding: .2rem .5rem;
+    background: #151b2b;
+    color: #c8a96e;
+    font-size: .65rem;
+    letter-spacing: .08em;
+    font-weight: 600;
+    margin-bottom: .8rem;
+}
+
+.accountAddressRecipient {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-bottom: .5rem;
+}
+
+.accountAddressLine {
+    font-size: .9rem;
+    line-height: 1.5;
+    margin-bottom: .2rem;
+}
+
+.accountAddressCity,
+.accountAddressCountry,
+.accountAddressPhone {
+    font-size: .85rem;
+    opacity: .8;
+    margin-top: .25rem;
+}
+
+.accountAddressActions {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(21, 27, 43, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.accountTextAction {
+    background: transparent;
+    border: none;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    font-size: .8rem;
+    color: #151b2b;
+    cursor: pointer;
+    padding: 0;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.accountIconAction {
+    background: transparent;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    font-size: .8rem;
+    color: #151b2b;
+    cursor: pointer;
+    min-height: 44px;
+    padding: 0 .4rem;
+}
+
+.accountDeleteAction {
+    color: #842029;
+    margin-left: auto;
+}
+
+.accountEmptyState {
+    text-align: center;
+    padding: 3.5rem 1.5rem;
+    background: #eae2d1;
+    border: 1px dashed rgba(21, 27, 43, 0.3);
+    grid-column: 1 / -1;
+}
+
+.accountEmptyState h3 {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: .5rem;
+}
+
+.accountEmptyState p {
+    font-size: .9rem;
+    opacity: .8;
+    max-width: 450px;
+    margin: 0 auto;
+}
+
+.accountShopLink {
+    margin-top: 1.5rem;
+}
+
+.accountWishlistGrid {
+    margin-top: 1rem;
+}
+
+.accountWishlistCard {
+    display: flex;
+    flex-direction: column;
+}
+
+.accountWishlistActions {
+    padding: 0 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+}
+
+.accountMoveToBagBtn {
+    width: 100%;
+    cursor: pointer;
+    min-height: 44px;
+}
+
+.accountRemoveWishlistBtn {
+    background: transparent;
+    border: none;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    font-size: .8rem;
+    color: #842029;
+    cursor: pointer;
+    min-height: 44px;
+    text-align: center;
+}
+
+.accountMissingCard {
+    padding: 1.5rem;
+}
+
+.accountOrdersPrep {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .5rem;
+}
+
+.accountOrdersSubtext {
+    margin-top: .5rem;
+    font-size: .8rem !important;
+    opacity: .65 !important;
+}
+
+/* ==========================================================================
+   Wishlist Buttons (ShoeCard, ProductDetails)
+   ========================================================================== */
+
+.shoeWishlistBtn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 5;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(241, 235, 221, 0.9);
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #151b2b;
+    cursor: pointer;
+    transition: transform .15s, background .15s;
+    backdrop-filter: blur(4px);
+}
+
+.shoeWishlistBtn:hover {
+    transform: scale(1.08);
+    background: #f1ebdd;
+}
+
+.shoeWishlistBtn.isInWishlist {
+    background: #151b2b;
+    color: #c8a96e;
+    border-color: #151b2b;
+}
+
+.productWishlistBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .6rem;
+    min-height: 46px;
+    padding: .8rem 1.4rem;
+    background: transparent;
+    color: #151b2b;
+    border: 1px solid #151b2b;
+    font-size: .85rem;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    font-family: inherit;
+    transition: background .15s, color .15s;
+}
+
+.productWishlistBtn:hover {
+    background: rgba(21, 27, 43, 0.08);
+}
+
+.productWishlistBtn.isInWishlist {
+    background: #151b2b;
+    color: #c8a96e;
+}
+
+.productWishlistBtn.isInWishlist:hover {
+    background: #242c40;
+}
+
+.navbarAccountLink {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    min-height: 44px;
+    min-width: 44px;
+}
+
+.navbarAuthDot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #c8a96e;
+    border: 1px solid #151b2b;
+}
+
+@media (max-width: 768px) {
+    .accountFormGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .accountAuthBox {
+        padding: 1.5rem;
+    }
+
+    .accountBanner {
+        padding: 1.5rem;
+    }
+}
+
+/* ==========================================================================
+   Stage 4: Checkout, Order Confirmation & Order Tracking Styles
+   Streetwear Palette: Deep indigo (#151B2B), Warm ivory (#F1EBDD), Gold (#C8A96E)
+   ========================================================================== */
+
+.checkoutPage {
+    max-width: 1280px;
+}
+
+.checkoutLayout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(340px, 1.1fr);
+    gap: 3.5rem;
+    margin-top: 2rem;
+    align-items: start;
+}
+
+.checkoutMain {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+}
+
+.checkoutBlock {
+    background: #eae2d1;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    padding: 2rem;
+}
+
+.checkoutBlockHeader {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.15);
+}
+
+.checkoutBlockHeader h2 {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin: 0;
+}
+
+.checkoutSavedAddrSelect {
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+}
+
+.checkoutSavedAddrSelect select {
+    width: 100%;
+    min-height: 46px;
+    padding: .75rem;
+    background: #f7f2e8;
+    border: 1px solid rgba(21, 27, 43, 0.3);
+    color: #151b2b;
+    font: inherit;
+}
+
+.checkoutRadioGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.checkoutRadioOption {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: #f7f2e8;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+
+.checkoutRadioOption.isSelected {
+    border-color: #151b2b;
+    border-width: 2px;
+    background: #fbf7ee;
+}
+
+.checkoutRadioOption input[type="radio"] {
+    margin-top: .25rem;
+    width: 18px;
+    height: 18px;
+    accent-color: #151b2b;
+    cursor: pointer;
+}
+
+.checkoutRadioContent {
+    flex: 1;
+}
+
+.checkoutRadioTitleRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: .25rem;
+}
+
+.checkoutRadioTitle {
+    font-weight: 600;
+    font-size: .95rem;
+    letter-spacing: .02em;
+}
+
+.checkoutRadioPrice {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: .03em;
+}
+
+.checkoutRadioDesc {
+    font-size: .8rem;
+    opacity: .75;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.checkoutSummaryBox {
+    background: #eae2d1;
+    border: 2px solid #151b2b;
+    padding: 2rem;
+    position: sticky;
+    top: 6rem;
+}
+
+.checkoutSummaryTitle {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 1.5rem;
+    padding-bottom: .75rem;
+    border-bottom: 2px solid #151b2b;
+}
+
+.checkoutLineItemsList {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-bottom: 1.75rem;
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: .5rem;
+}
+
+.checkoutLineItem {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px dashed rgba(21, 27, 43, 0.2);
+}
+
+.checkoutLineThumb {
+    width: 64px;
+    height: 60px;
+    object-fit: contain;
+    background: #f7f2e8;
+    padding: .2rem;
+    border: 1px solid rgba(21, 27, 43, 0.15);
+}
+
+.checkoutLineDetails {
+    flex: 1;
+    min-width: 0;
+}
+
+.checkoutLineDetails h3 {
+    font-size: .9rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0 0 .2rem;
+}
+
+.checkoutLineDetails p {
+    font-size: .75rem;
+    opacity: .75;
+    margin: 0;
+}
+
+.checkoutLinePrice {
+    font-weight: 600;
+    font-size: .9rem;
+    white-space: nowrap;
+}
+
+.checkoutBreakdown {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    margin-bottom: 1.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(21, 27, 43, 0.2);
+}
+
+.checkoutBreakdownRow {
+    display: flex;
+    justify-content: space-between;
+    font-size: .88rem;
+}
+
+.checkoutBreakdownRow.isTotal {
+    font-size: 1.15rem;
+    font-weight: 700;
+    padding-top: .75rem;
+    margin-top: .25rem;
+    border-top: 2px solid #151b2b;
+}
+
+.checkoutBreakdownRow.isTotal span:last-child {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: .04em;
+}
+
+.checkoutPlaceOrderBtn {
+    width: 100%;
+    min-height: 52px;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    background: #151b2b;
+    color: #f1ebdd;
+    border: 2px solid #151b2b;
+    transition: background .15s, color .15s;
+}
+
+.checkoutPlaceOrderBtn:hover:not(:disabled) {
+    background: #252f47;
+}
+
+.checkoutPlaceOrderBtn:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+.checkoutGuaranteeNotice {
+    margin-top: 1.25rem;
+    font-size: .75rem;
+    line-height: 1.5;
+    opacity: .75;
+    text-align: center;
+}
+
+/* Order Confirmation & Receipt */
+.confirmPage {
+    max-width: 960px;
+}
+
+.confirmReceiptBox {
+    background: #eae2d1;
+    border: 2px solid #151b2b;
+    padding: 3rem 2.5rem;
+    margin: 2rem 0;
+    position: relative;
+}
+
+.confirmReceiptHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 2px solid #151b2b;
+}
+
+.confirmStatusBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .35rem .75rem;
+    background: #151b2b;
+    color: #c8a96e;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: .75rem;
+}
+
+.confirmOrderIdTitle {
+    font-family: 'Anton', sans-serif;
+    font-size: clamp(2rem, 4vw, 3rem);
+    letter-spacing: .04em;
+    margin: 0 0 .4rem;
+}
+
+.confirmTimestamp {
+    font-size: .85rem;
+    opacity: .75;
+    margin: 0;
+}
+
+.confirmHeaderRight {
+    text-align: right;
+}
+
+.confirmTotalLabel {
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    opacity: .7;
+}
+
+.confirmTotalAmount {
+    font-family: 'Anton', sans-serif;
+    font-size: 2.2rem;
+    letter-spacing: .04em;
+    color: #151b2b;
+    margin: .2rem 0 0;
+}
+
+/* Tracking Timeline */
+.confirmTrackerSection {
+    margin-bottom: 3rem;
+}
+
+.confirmTrackerSection h3 {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-bottom: 1.5rem;
+}
+
+.confirmTrackerSteps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    position: relative;
+    gap: 1rem;
+}
+
+.confirmTrackerStep {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+
+.confirmStepCircle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #d8ceb9;
+    border: 2px solid #151b2b;
+    color: #151b2b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: .75rem;
+    font-size: .85rem;
+    font-weight: 700;
+}
+
+.confirmTrackerStep.isCompleted .confirmStepCircle {
+    background: #151b2b;
+    color: #c8a96e;
+}
+
+.confirmTrackerStep.isActive .confirmStepCircle {
+    background: #c8a96e;
+    color: #151b2b;
+    box-shadow: 0 0 0 4px rgba(200, 169, 110, 0.3);
+}
+
+.confirmStepLabel {
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    line-height: 1.3;
+}
+
+.confirmGrid2Col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+    margin-bottom: 2.5rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.2);
+}
+
+.confirmDetailsBox h4 {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 1rem;
+}
+
+.confirmDetailsBox p {
+    font-size: .88rem;
+    line-height: 1.6;
+    margin: .2rem 0;
+}
+
+.confirmItemsSection {
+    margin-bottom: 2.5rem;
+}
+
+.confirmItemsSection h4 {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 1.25rem;
+}
+
+.confirmReceiptActions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+}
+
+.confirmShopBtn {
+    cursor: pointer;
+    min-height: 48px;
+    padding: .8rem 1.6rem;
+}
+
+.confirmAccountBtn {
+    background: transparent;
+    color: #151b2b;
+    border: 1px solid #151b2b;
+    cursor: pointer;
+    min-height: 48px;
+    padding: .8rem 1.6rem;
+}
+
+/* Account Order History Cards */
+.accountOrderCard {
+    background: #eae2d1;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.accountOrderHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.15);
+}
+
+.accountOrderId {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: .04em;
+    margin: 0;
+}
+
+.accountOrderDate {
+    font-size: .8rem;
+    opacity: .75;
+}
+
+.accountOrderMeta {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+}
+
+.accountOrderItemsSummary {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    margin-bottom: 1.5rem;
+}
+
+.accountOrderItemRow {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.accountOrderItemThumb {
+    width: 48px;
+    height: 44px;
+    object-fit: contain;
+    background: #f7f2e8;
+    padding: .2rem;
+    border: 1px solid rgba(21, 27, 43, 0.15);
+}
+
+.accountOrderFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(21, 27, 43, 0.15);
+}
+
+.accountOrderTotalAmount {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: .04em;
+}
+
+@media (max-width: 900px) {
+    .checkoutLayout {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .checkoutSummaryBox {
+        position: static;
+    }
+
+    .confirmGrid2Col {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .confirmTrackerSteps {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+
+    .confirmHeaderRight {
+        text-align: left;
+    }
+}
+
+/* ==========================================================================
+   STAGE 5: ADMIN OPERATIONS & INVENTORY COMMAND CONSOLE
+   ========================================================================== */
+
+.adminRoot {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: #F1EBDD;
+    color: #151B2B;
+}
+
+.adminPageContainer {
+    width: min(1440px, 100%);
+    margin: 0 auto;
+    padding: 3.5rem 4% 6rem;
+}
+
+.adminHeaderSection {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.2);
+    flex-wrap: wrap;
+}
+
+.adminTitleWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.adminKanjiSub {
+    font-size: 0.75rem;
+    letter-spacing: 0.24em;
+    font-weight: 600;
+    color: #A89060;
+    text-transform: uppercase;
+}
+
+.adminTitle {
+    font-family: 'Anton', sans-serif;
+    font-size: clamp(2.4rem, 5vw, 4.2rem);
+    letter-spacing: 0.04em;
+    line-height: 1;
+    margin: 0;
+    color: #151B2B;
+}
+
+.adminSubtitle {
+    font-size: 0.95rem;
+    color: rgba(21, 27, 43, 0.75);
+    max-width: 600px;
+    margin-top: 0.25rem;
+}
+
+.adminControlsGroup {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.adminOperatorBadgeGroup {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #e8e0ce;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+}
+
+.adminOperatorBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    padding: 0.3rem 0.6rem;
+}
+
+.adminOperatorBadge.isActive {
+    background: #151B2B;
+    color: #C8A96E;
+}
+
+.adminOperatorBadge.isInactive {
+    background: #732222;
+    color: #F1EBDD;
+}
+
+.adminLiveBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    background: #151B2B;
+    color: #C8A96E;
+    padding: 0.5rem 0.9rem;
+    border: 1px solid #C8A96E;
+}
+
+.adminModeToggleButton {
+    background: transparent;
+    border: 1px solid rgba(21, 27, 43, 0.4);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    padding: 0.35rem 0.65rem;
+    cursor: pointer;
+    min-height: 36px;
+    color: #151B2B;
+    transition: all 0.2s ease;
+}
+
+.adminModeToggleButton:hover {
+    background: #151B2B;
+    color: #F1EBDD;
+}
+
+.adminRefreshButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    background: #151B2B;
+    color: #F1EBDD;
+    border: none;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.adminRefreshButton:hover:not(:disabled) {
+    background: #252e42;
+    color: #C8A96E;
+}
+
+.adminSpin {
+    animation: adminSpinKeyframes 1s linear infinite;
+}
+
+@keyframes adminSpinKeyframes {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.adminFeedbackBanner {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 2rem;
+    border: 1px solid;
+    font-size: 0.88rem;
+}
+
+.adminFeedbackBanner.success {
+    background: #e4eee3;
+    border-color: #2e6930;
+    color: #1d4b20;
+}
+
+.adminFeedbackBanner.error {
+    background: #f8e5e5;
+    border-color: #9c2727;
+    color: #7a1515;
+}
+
+.adminCloseFeedback {
+    margin-left: auto;
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: inherit;
+    min-height: 32px;
+    min-width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Restricted Card */
+.adminRestrictedCard {
+    background: #FAF6EF;
+    border: 1px solid rgba(21, 27, 43, 0.25);
+    padding: 4rem 2rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 2rem 0;
+    box-shadow: 0 4px 20px rgba(21, 27, 43, 0.06);
+}
+
+.adminRestrictedIconWrapper {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(21, 27, 43, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #732222;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(115, 34, 34, 0.2);
+}
+
+.adminRestrictedKanji {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.8rem;
+    letter-spacing: 0.3em;
+    color: #A89060;
+    margin-bottom: 0.5rem;
+}
+
+.adminRestrictedTitle {
+    font-family: 'Anton', sans-serif;
+    font-size: 2.5rem;
+    letter-spacing: 0.05em;
+    color: #151B2B;
+    margin-bottom: 1rem;
+}
+
+.adminRestrictedText {
+    max-width: 520px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: rgba(21, 27, 43, 0.8);
+    margin-bottom: 2rem;
+}
+
+.adminRestrictedActions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.adminLoadingCard {
+    background: #FAF6EF;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    padding: 5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
+    color: #151B2B;
+}
+
+/* KPIs Grid */
+.adminMetricsGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.adminMetricCard {
+    background: #FAF6EF;
+    border: 1px solid rgba(21, 27, 43, 0.18);
+    padding: 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1.2rem;
+    box-shadow: 0 2px 10px rgba(21, 27, 43, 0.03);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.adminMetricCard:hover {
+    transform: translateY(-2px);
+    border-color: #C8A96E;
+}
+
+.adminMetricIcon {
+    width: 48px;
+    height: 48px;
+    background: #151B2B;
+    color: #C8A96E;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.adminMetricContent {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.adminMetricKanji {
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+    color: #A89060;
+    text-transform: uppercase;
+}
+
+.adminMetricValue {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.8rem;
+    letter-spacing: 0.03em;
+    color: #151B2B;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.adminMetricMeta {
+    font-size: 0.75rem;
+    color: rgba(21, 27, 43, 0.6);
+}
+
+/* Tabs Navigation */
+.adminTabsNav {
+    display: flex;
+    gap: 1rem;
+    border-bottom: 2px solid rgba(21, 27, 43, 0.15);
+    margin-bottom: 2rem;
+}
+
+.adminTabButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 48px;
+    padding: 0 1.5rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: rgba(21, 27, 43, 0.7);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.adminTabButton:hover {
+    color: #151B2B;
+}
+
+.adminTabButton.isActive {
+    color: #151B2B;
+    border-bottom-color: #C8A96E;
+}
+
+.adminTabCount {
+    background: rgba(21, 27, 43, 0.1);
+    color: #151B2B;
+    font-size: 0.72rem;
+    padding: 0.15rem 0.45rem;
+    font-weight: 700;
+}
+
+.adminTabButton.isActive .adminTabCount {
+    background: #151B2B;
+    color: #C8A96E;
+}
+
+/* Section Toolbars */
+.adminSectionToolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.adminSearchBox {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #FAF6EF;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    padding: 0 1rem;
+    flex: 1;
+    max-width: 460px;
+    min-height: 44px;
+}
+
+.adminSearchBox input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 0.88rem;
+    color: #151B2B;
+    outline: none;
+}
+
+.adminFilterGroup {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #FAF6EF;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    padding: 0 0.75rem;
+    min-height: 44px;
+}
+
+.adminFilterSelect {
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: #151B2B;
+    outline: none;
+    cursor: pointer;
+    padding: 0.4rem;
+}
+
+/* Tables */
+.adminDropsTableContainer,
+.adminOrdersTableContainer {
+    background: #FAF6EF;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    overflow-x: auto;
+    box-shadow: 0 2px 12px rgba(21, 27, 43, 0.03);
+}
+
+.adminTable {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.85rem;
+}
+
+.adminTable thead th {
+    background: #151B2B;
+    color: #F1EBDD;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    font-weight: 600;
+    padding: 1rem 1.25rem;
+    border-bottom: 2px solid #C8A96E;
+    white-space: nowrap;
+}
+
+.adminTableRow {
+    border-bottom: 1px solid rgba(21, 27, 43, 0.12);
+    transition: background 0.15s ease;
+}
+
+.adminTableRow:hover {
+    background: rgba(200, 169, 110, 0.07);
+}
+
+.adminTable td {
+    padding: 1rem 1.25rem;
+    vertical-align: middle;
+}
+
+.adminPairBadge {
+    display: inline-block;
+    font-family: 'Anton', sans-serif;
+    font-size: 0.95rem;
+    color: #151B2B;
+    background: rgba(21, 27, 43, 0.08);
+    padding: 0.2rem 0.5rem;
+    letter-spacing: 0.04em;
+}
+
+.adminProductCellContent {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.adminShoeThumb {
+    width: 58px;
+    height: 48px;
+    object-fit: contain;
+    background: #f7f2e8;
+    padding: 0.25rem;
+    border: 1px solid rgba(21, 27, 43, 0.15);
+}
+
+.adminProductBrand {
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    color: #A89060;
+    font-weight: 600;
+}
+
+.adminProductName {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 0.03em;
+    color: #151B2B;
+}
+
+.adminProductBatch {
+    font-size: 0.7rem;
+    color: rgba(21, 27, 43, 0.6);
+}
+
+.adminSizeTag {
+    display: inline-block;
+    font-weight: 600;
+    font-size: 0.8rem;
+    background: rgba(21, 27, 43, 0.06);
+    padding: 0.25rem 0.6rem;
+    border: 1px solid rgba(21, 27, 43, 0.15);
+}
+
+.adminCellPrice {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.15rem;
+    letter-spacing: 0.03em;
+    color: #151B2B;
+    white-space: nowrap;
+}
+
+.adminStatusBadge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 0.25rem 0.5rem;
+}
+
+.badgeActive {
+    background: #e4eee3;
+    color: #2e6930;
+    border: 1px solid #2e6930;
+}
+
+.badgeInactive {
+    background: #eae6db;
+    color: #716955;
+    border: 1px solid #716955;
+}
+
+.adminStateSelect {
+    min-height: 40px;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid rgba(21, 27, 43, 0.25);
+    background: #FAF6EF;
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: #151B2B;
+    cursor: pointer;
+}
+
+.adminStateSelect.state-available {
+    border-color: #2e6930;
+    color: #2e6930;
+}
+
+.adminStateSelect.state-reserved {
+    border-color: #a36214;
+    color: #a36214;
+}
+
+.adminStateSelect.state-sold {
+    border-color: #7a1515;
+    color: #7a1515;
+}
+
+.adminStateSelect.state-archived,
+.adminStateSelect.state-unavailable {
+    border-color: #555555;
+    color: #555555;
+}
+
+.adminVerificationBox {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.adminVerifyToggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 36px;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.2s ease;
+}
+
+.adminVerifyToggle.isVerified {
+    background: #151B2B;
+    color: #C8A96E;
+    border-color: #C8A96E;
+}
+
+.adminVerifyToggle.isUnverified {
+    background: rgba(21, 27, 43, 0.05);
+    color: rgba(21, 27, 43, 0.6);
+    border-color: rgba(21, 27, 43, 0.2);
+}
+
+.adminSerialTag {
+    font-size: 0.68rem;
+    color: rgba(21, 27, 43, 0.65);
+    font-family: monospace;
+}
+
+.adminRowActions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.adminIconAction {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    color: #151B2B;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.adminIconAction:hover {
+    background: #151B2B;
+    color: #C8A96E;
+}
+
+.adminOrderLink {
+    background: none;
+    border: none;
+    font-family: monospace;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #151B2B;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0.2rem 0;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+}
+
+.adminOrderLink:hover {
+    color: #C8A96E;
+}
+
+.adminCustomerCell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.adminCustomerName {
+    font-weight: 600;
+    color: #151B2B;
+}
+
+.adminCustomerEmail {
+    font-size: 0.72rem;
+    color: rgba(21, 27, 43, 0.65);
+}
+
+.adminItemBadge {
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: rgba(21, 27, 43, 0.06);
+    padding: 0.2rem 0.5rem;
+}
+
+.adminPaymentMethodBadge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    background: rgba(21, 27, 43, 0.08);
+    padding: 0.25rem 0.5rem;
+    color: #151B2B;
+}
+
+.adminOrderStatusBadge {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 0.3rem 0.6rem;
+    text-transform: uppercase;
+    border: 1px solid;
+}
+
+.status-paid,
+.status-confirmed {
+    background: #e4eee3;
+    color: #2e6930;
+    border-color: #2e6930;
+}
+
+.status-authenticating,
+.status-processing {
+    background: #fdf3e2;
+    color: #a36214;
+    border-color: #a36214;
+}
+
+.status-shipped {
+    background: #151B2B;
+    color: #C8A96E;
+    border-color: #C8A96E;
+}
+
+.status-delivered {
+    background: #2e6930;
+    color: #FAF6EF;
+    border-color: #2e6930;
+}
+
+.status-cancelled,
+.status-expired {
+    background: #f8e5e5;
+    color: #7a1515;
+    border-color: #7a1515;
+}
+
+.status-pending_payment {
+    background: #eae6db;
+    color: #716955;
+    border-color: #716955;
+}
+
+.adminFulfillButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    padding: 0 0.85rem;
+    background: #151B2B;
+    color: #F1EBDD;
+    border: none;
+    font-size: 0.76rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.adminFulfillButton:hover {
+    background: #252e42;
+    color: #C8A96E;
+}
+
+.adminEmptyTableCell {
+    text-align: center;
+    padding: 3rem !important;
+    color: rgba(21, 27, 43, 0.6);
+    font-size: 0.95rem;
+}
+
+/* Modal and Drawers */
+.adminModalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(21, 27, 43, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 4%;
+}
+
+.adminModalCard {
+    background: #FAF6EF;
+    width: min(800px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid rgba(21, 27, 43, 0.3);
+    padding: 2.5rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+}
+
+.adminOrderDrawerCard {
+    width: min(920px, 100%);
+}
+
+.adminModalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.15);
+    margin-bottom: 2rem;
+}
+
+.adminModalTitle {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.8rem;
+    letter-spacing: 0.04em;
+    margin: 0.25rem 0 0;
+    color: #151B2B;
+}
+
+.adminModalClose {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    line-height: 1;
+    color: #151B2B;
+    cursor: pointer;
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.adminFormGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.adminFormLabel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: #151B2B;
+}
+
+.adminInput,
+.adminSelect,
+.adminTextarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.65rem 0.9rem;
+    background: #F1EBDD;
+    border: 1px solid rgba(21, 27, 43, 0.25);
+    font-family: inherit;
+    font-size: 0.88rem;
+    color: #151B2B;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.adminInput:focus,
+.adminSelect:focus,
+.adminTextarea:focus {
+    border-color: #151B2B;
+    box-shadow: 0 0 0 1px #151B2B;
+}
+
+.adminQuickImagePicks {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.adminImagePickBtn {
+    background: rgba(21, 27, 43, 0.06);
+    border: 1px solid rgba(21, 27, 43, 0.15);
+    padding: 0.2rem 0.5rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 32px;
+}
+
+.adminImagePickBtn:hover {
+    background: #151B2B;
+    color: #C8A96E;
+}
+
+.adminCheckboxRow {
+    margin: 1.25rem 0;
+}
+
+.adminCheckboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    min-height: 44px;
+}
+
+.adminModalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(21, 27, 43, 0.15);
+}
+
+.adminPrimaryButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 46px;
+    padding: 0 1.5rem;
+    background: #151B2B;
+    color: #F1EBDD;
+    border: 1px solid #151B2B;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.adminPrimaryButton:hover:not(:disabled) {
+    background: #252e42;
+    color: #C8A96E;
+}
+
+.adminSecondaryButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: 0 1.5rem;
+    background: transparent;
+    color: #151B2B;
+    border: 1px solid rgba(21, 27, 43, 0.3);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.adminSecondaryButton:hover {
+    background: rgba(21, 27, 43, 0.05);
+}
+
+/* Order Details Dossier */
+.adminOrderModalBody {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.adminOrderFulfillSection {
+    background: #F1EBDD;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    padding: 1.5rem;
+}
+
+.adminSubsectionTitle {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.15rem;
+    letter-spacing: 0.04em;
+    color: #151B2B;
+    margin-bottom: 0.4rem;
+}
+
+.adminSubsectionDesc {
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: rgba(21, 27, 43, 0.7);
+    margin-bottom: 1.25rem;
+}
+
+.adminFulfillRow {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.adminFlexGrow {
+    flex: 1;
+    min-width: 250px;
+}
+
+.adminCommitStatusBtn {
+    min-height: 44px;
+}
+
+.adminOrderDetailsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.adminDetailBlock {
+    background: #F1EBDD;
+    border: 1px solid rgba(21, 27, 43, 0.15);
+    padding: 1.25rem;
+}
+
+.adminAddressDisplay {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: rgba(21, 27, 43, 0.85);
+}
+
+.adminAddrName {
+    font-weight: 700;
+    color: #151B2B;
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+}
+
+.adminAddrCountry {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: rgba(21, 27, 43, 0.65);
+}
+
+.adminFinancialDisplay {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.adminFinRow {
+    display: flex;
+    justify-content: space-between;
+    color: rgba(21, 27, 43, 0.75);
+}
+
+.adminFinTotal {
+    border-top: 1px solid rgba(21, 27, 43, 0.15);
+    padding-top: 0.5rem;
+    font-family: 'Anton', sans-serif;
+    font-size: 1.2rem;
+    color: #151B2B;
+}
+
+.adminFinProvider {
+    margin-top: 0.5rem;
+    font-size: 0.78rem;
+    display: flex;
+    justify-content: space-between;
+    color: rgba(21, 27, 43, 0.65);
+}
+
+.adminOrderItemsSection {
+    background: #F1EBDD;
+    border: 1px solid rgba(21, 27, 43, 0.15);
+    padding: 1.25rem;
+}
+
+.adminItemsList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.adminItemRow {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #FAF6EF;
+    border: 1px solid rgba(21, 27, 43, 0.1);
+    padding: 0.75rem 1rem;
+}
+
+.adminItemImage {
+    width: 60px;
+    height: 50px;
+    object-fit: contain;
+    background: #f7f2e8;
+    padding: 0.2rem;
+    border: 1px solid rgba(21, 27, 43, 0.15);
+}
+
+.adminItemDetails {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.adminItemBrand {
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    color: #A89060;
+    font-weight: 600;
+}
+
+.adminItemName {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 0.03em;
+    color: #151B2B;
+}
+
+.adminItemSize {
+    font-size: 0.78rem;
+    color: rgba(21, 27, 43, 0.65);
+}
+
+.adminItemPrice {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 0.03em;
+    color: #151B2B;
+}
+
+/* Responsive Overrides */
+@media (max-width: 1024px) {
+    .adminMetricsGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .adminMetricsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .adminFormGrid,
+    .adminOrderDetailsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .adminHeaderSection {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .adminControlsGroup {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .adminSearchBox {
+        max-width: 100%;
+    }
+}

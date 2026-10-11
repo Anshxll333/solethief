@@ -10,7 +10,7 @@ export default function ProductGallery({ shoe }) {
   return (
     <main className="pairDetails pairImagesOnly">
       <nav className="pairBreadcrumb" aria-label="Breadcrumb">
-        <Link to="/#new-drops"><ArrowLeft size={15} aria-hidden="true" /> Back to the archive</Link>
+        <Link to="/shop"><ArrowLeft size={15} aria-hidden="true" /> Back to the archive</Link>
         <span aria-current="page">{shoe.name} / Images</span>
       </nav>
       <h1 className="pairImagesTitle">{shoe.name}</h1>

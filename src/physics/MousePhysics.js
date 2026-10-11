@@ -1,72 +1,104 @@
 import Matter from 'matter-js';
 
-export function createMouseInteraction(shoeBodies, interactionArea, hoverSound = null) {
-  const handleMouseMove = (e) => {
-    // Skip on touch devices to keep mobile simple
-    if (e.pointerType === 'touch') return;
+export function createMouseInteraction(engine, shoeBodies, interactionArea, hoverSound = null) {
+  let mouseX = -9999;
+  let mouseY = -9999;
+  let isPointerActive = false;
+  let cachedRect = null;
+  let currentCursor = 'default';
 
-    const rect = interactionArea.getBoundingClientRect();
-    const pageX = e.clientX - rect.left;
-    const pageY = e.clientY - rect.top;
-    const interactionRadius = 350; // Interaction range for physical repulsion
-    const clickRadius = 140; // Range for considering the shoe "hovered" mathematically
-    const maxForce = 0.04;
-    
+  const updateRect = () => {
+    cachedRect = interactionArea.getBoundingClientRect();
+  };
+
+  updateRect();
+  window.addEventListener('resize', updateRect, { passive: true });
+  window.addEventListener('scroll', updateRect, { passive: true });
+
+  const handlePointerMove = (e) => {
+    // Skip touch events
+    if (e.pointerType === 'touch') return;
+    if (!cachedRect) updateRect();
+
+    mouseX = e.clientX - cachedRect.left;
+    mouseY = e.clientY - cachedRect.top;
+    isPointerActive = true;
+  };
+
+  const handlePointerLeave = () => {
+    isPointerActive = false;
+    mouseX = -9999;
+    mouseY = -9999;
+    shoeBodies.forEach(shoeBody => {
+      shoeBody.playedSound = false;
+    });
+    if (currentCursor !== 'default') {
+      currentCursor = 'default';
+      interactionArea.style.cursor = 'default';
+    }
+  };
+
+  const interactionRadius = 350;
+  const clickRadius = 140;
+  const maxForce = 0.04;
+
+  // Run repulsion synced with the Matter.js physics tick, avoiding high-polling mouse flooding
+  const applyPhysicsForces = () => {
+    if (!isPointerActive) return;
+
     let isOverAnyShoe = false;
 
-    // Loop through ALL shoe bodies and apply force if within radius
-    shoeBodies.forEach(shoeBody => {
+    for (let i = 0; i < shoeBodies.length; i++) {
+      const shoeBody = shoeBodies[i];
       const bodyPos = shoeBody.position;
-      
-      const dx = bodyPos.x - pageX;
-      const dy = bodyPos.y - pageY;
+
+      const dx = bodyPos.x - mouseX;
+      const dy = bodyPos.y - mouseY;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      
-      // Determine if we are hovering for click/cursor purposes
+
       if (dist < clickRadius) {
         isOverAnyShoe = true;
       }
-      
-      // Physical repulsion logic
+
       if (dist < interactionRadius && dist > 0) {
-        // Play sound once when entering range
         if (hoverSound && !shoeBody.playedSound) {
           hoverSound.currentTime = 0;
-          hoverSound.play().catch(() => {});
+          hoverSound.play().catch(() => { });
           shoeBody.playedSound = true;
         }
 
-        // Calculate force based on proximity
         const forceFactor = (interactionRadius - dist) / interactionRadius;
         const forceMagnitude = forceFactor * maxForce;
-        
-        // Apply force away from the cursor
+
         Matter.Body.applyForce(shoeBody, {
-          // Apply force slightly off-center to encourage natural rotation
-          x: bodyPos.x + (Math.random() * 20 - 10), 
-          y: bodyPos.y + (Math.random() * 20 - 10)
+          x: bodyPos.x + (Math.random() * 10 - 5),
+          y: bodyPos.y + (Math.random() * 10 - 5)
         }, {
           x: (dx / dist) * forceMagnitude,
           y: (dy / dist) * forceMagnitude
         });
       } else {
-        // Reset sound flag when cursor leaves radius
         shoeBody.playedSound = false;
       }
-    });
+    }
 
-    // Update cursor mathematically to avoid DOM event thrashing
-    if (isOverAnyShoe) {
-      interactionArea.style.cursor = 'pointer';
-    } else {
-      interactionArea.style.cursor = 'default';
+    const nextCursor = isOverAnyShoe ? 'pointer' : 'default';
+    if (nextCursor !== currentCursor) {
+      currentCursor = nextCursor;
+      interactionArea.style.cursor = nextCursor;
     }
   };
 
-  interactionArea.addEventListener('pointermove', handleMouseMove);
+  interactionArea.addEventListener('pointermove', handlePointerMove, { passive: true });
+  interactionArea.addEventListener('pointerleave', handlePointerLeave, { passive: true });
+  Matter.Events.on(engine, 'beforeUpdate', applyPhysicsForces);
 
   return function destroyMouseInteraction() {
-    interactionArea.removeEventListener('pointermove', handleMouseMove);
+    Matter.Events.off(engine, 'beforeUpdate', applyPhysicsForces);
+    interactionArea.removeEventListener('pointermove', handlePointerMove);
+    interactionArea.removeEventListener('pointerleave', handlePointerLeave);
+    window.removeEventListener('resize', updateRect);
+    window.removeEventListener('scroll', updateRect);
     interactionArea.style.cursor = '';
   };
 }

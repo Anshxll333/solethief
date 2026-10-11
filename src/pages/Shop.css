@@ -1,0 +1,158 @@
+.shopPage {
+    --shop-ink: #151b2b;
+    --shop-gold: #987b47;
+    width: min(1400px, 100%);
+    margin: 0 auto;
+    padding: 8rem 4% 5rem;
+    flex: 1;
+    color: var(--shop-ink);
+}
+
+.shopPage .shopIntro {
+    margin-bottom: 1.75rem;
+    font-size: clamp(1.25rem, 3vw, 2.5rem);
+    line-height: 1.2;
+}
+
+.shopPage .shopGroups,
+.shopPage .shopProducts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(1rem, 2vw, 1.75rem);
+}
+
+.shopPage .shopGroups {
+    list-style: none;
+}
+
+.shopPage .shopGroups>li {
+    min-width: 0;
+}
+
+.shopPage .shopGroupTile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    isolation: isolate;
+    min-height: 440px;
+    aspect-ratio: 3 / 4;
+    padding: clamp(1.25rem, 2.5vw, 2.25rem);
+    overflow: hidden;
+    border: 1px solid #151b2b24;
+    background: radial-gradient(ellipse at 65% 28%, #faf7ee 0%, #ebe4d5 72%);
+}
+
+.shopPage .shopGroupTile::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 8% 13% 32%;
+    border: 1px solid #987b472b;
+    border-radius: 50% 50% 0 0;
+}
+
+.shopPage .shopGroupTile img {
+    position: absolute;
+    top: 6%;
+    left: 4%;
+    width: 92%;
+    height: 65%;
+    object-fit: contain;
+    transform: rotate(-12deg);
+    pointer-events: none;
+}
+
+.shopPage .shopGroupLabel {
+    position: relative;
+    font-size: clamp(2.25rem, 4.5vw, 4.5rem);
+    line-height: 1.05;
+    letter-spacing: .025em;
+    overflow-wrap: anywhere;
+}
+
+.shopPage .shopGroupAction {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid #987b4766;
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .16em;
+}
+
+.shopPage .shopGroupAction svg {
+    color: var(--shop-gold);
+    flex-shrink: 0;
+}
+
+.shopPage .shopGroupTile:hover {
+    border-color: var(--shop-gold);
+    background: radial-gradient(ellipse at 65% 28%, #fffdf6 0%, #e4dbc9 72%);
+}
+
+.shopPage :focus-visible {
+    outline: 3px solid #735123;
+    outline-offset: 5px;
+}
+
+.shopPage .shopBack {
+    display: inline-flex;
+    align-items: center;
+    gap: .6rem;
+    min-height: 44px;
+    margin-bottom: 1.5rem;
+    font-size: .85rem;
+    text-decoration: underline;
+    text-underline-offset: 5px;
+}
+
+.shopPage .shopCollectionTitle {
+    margin-bottom: 1.5rem;
+    font-size: clamp(2rem, 4vw, 3rem);
+    overflow-wrap: anywhere;
+}
+
+.shopPage .shopEmpty {
+    padding: 2rem 0;
+    line-height: 1.8;
+}
+
+.shopPage .shopEmpty h2 {
+    font-size: 1.5rem;
+    margin-bottom: .75rem;
+}
+
+@media (max-width: 900px) {
+
+    .shopPage .shopGroups,
+    .shopPage .shopProducts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .shopPage .shopGroupTile {
+        min-height: 360px;
+    }
+}
+
+@media (max-width: 560px) {
+    .shopPage {
+        padding: 7rem 5% 3rem;
+    }
+
+    .shopPage .shopGroups,
+    .shopPage .shopProducts {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .shopPage .shopGroupTile {
+        min-height: 380px;
+    }
+
+    .shopPage .shopGroupLabel {
+        font-size: 3.5rem;
+    }
+}

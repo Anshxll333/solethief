@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowUpRight, Plus } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Plus, Heart } from 'lucide-react';
+import { AddToBag } from '../commerce/CommerceUI';
+import { useWishlist } from '../commerce/wishlistContext.js';
 
 export default function ProductDetails({ shoe }) {
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const inWishlist = isInWishlist(shoe.id);
   const images = [
     { src: shoe.frontImage, label: 'Front view' },
     { src: shoe.sideImage, label: 'Side view' },
@@ -12,7 +16,7 @@ export default function ProductDetails({ shoe }) {
   return (
     <main className="pairDetails">
       <nav className="pairBreadcrumb" aria-label="Breadcrumb">
-        <Link to="/#new-drops"><ArrowLeft size={15} aria-hidden="true" /> Back to the archive</Link>
+        <Link to="/shop"><ArrowLeft size={15} aria-hidden="true" /> Back to the archive</Link>
         <span aria-current="page">{shoe.name}</span>
       </nav>
 
@@ -44,9 +48,18 @@ export default function ProductDetails({ shoe }) {
             <p>This is the size listed for this pair. Fit details are pending confirmation.</p>
           </div>
 
-          <div className="pairPreviewNote">
-            <span className="pairPreviewDot" aria-hidden="true" />
-            <p>Archive preview <span>Details-only test. Purchasing is not enabled.</span></p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', margin: '1rem 0' }}>
+            <AddToBag product={shoe} />
+            <button
+              type="button"
+              className={`productWishlistBtn ${inWishlist ? 'isInWishlist' : ''}`}
+              aria-label={inWishlist ? `Remove ${shoe.name} from wishlist` : `Save ${shoe.name} to wishlist`}
+              aria-pressed={inWishlist}
+              onClick={() => toggleWishlist(shoe.id)}
+            >
+              <Heart size={18} fill={inWishlist ? 'currentColor' : 'none'} aria-hidden="true" />
+              <span>{inWishlist ? 'Saved in Wishlist' : 'Save to Wishlist'}</span>
+            </button>
           </div>
 
           <div className="pairAccordions">
@@ -70,7 +83,7 @@ export default function ProductDetails({ shoe }) {
             </details>
           </div>
 
-          <Link className="pairArchiveLink" to="/#new-drops">Explore the rest of the drop <ArrowUpRight size={18} aria-hidden="true" /></Link>
+          <Link className="pairArchiveLink" to="/shop">Explore the rest of the drop <ArrowUpRight size={18} aria-hidden="true" /></Link>
         </section>
       </div>
     </main>

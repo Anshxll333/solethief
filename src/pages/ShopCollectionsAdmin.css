@@ -1,0 +1,913 @@
+/* ==========================================================================
+   Shop Collections Administration Styles
+   SoleThief Aesthetic: Warm Washi Ivory, Deep Indigo, Antique Gold
+   ========================================================================== */
+
+.collectionsAdminRoot {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    color: #151B2B;
+}
+
+/* --------------------------------------------------------------------------
+   Feedback Banner
+   -------------------------------------------------------------------------- */
+
+.collectionsAdminAlert {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem 1.4rem;
+    border: 1px solid rgba(21, 27, 43, 0.18);
+    font-size: 0.86rem;
+    font-weight: 500;
+    line-height: 1.4;
+    box-shadow: 0 2px 8px rgba(21, 27, 43, 0.04);
+}
+
+.collectionsAdminAlert.isSuccess {
+    background: #e4eee3;
+    border-color: #bad3ba;
+    color: #2e6930;
+}
+
+.collectionsAdminAlert.isError {
+    background: #f8e5e5;
+    border-color: #e5b6b6;
+    color: #8b2525;
+}
+
+.collectionsAdminAlertClose {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 1.4rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 0.35rem;
+    opacity: 0.7;
+    transition: opacity 0.15s ease;
+}
+
+.collectionsAdminAlertClose:hover {
+    opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   Header Section
+   -------------------------------------------------------------------------- */
+
+.collectionsAdminHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    padding-bottom: 1.75rem;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.18);
+}
+
+.collectionsAdminKanjiSub {
+    font-size: 0.75rem;
+    letter-spacing: 0.22em;
+    font-weight: 600;
+    color: #A89060;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.35rem;
+}
+
+.collectionsAdminTitle {
+    font-family: 'Anton', sans-serif;
+    font-size: clamp(1.8rem, 3vw, 2.4rem);
+    letter-spacing: 0.04em;
+    color: #151B2B;
+    margin: 0;
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
+.collectionsAdminSubtitle {
+    font-size: 0.92rem;
+    color: #5E6573;
+    margin: 0.45rem 0 0 0;
+    max-width: 680px;
+    line-height: 1.5;
+}
+
+.collectionsAdminHeaderActions {
+    display: flex;
+    gap: 0.85rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* --------------------------------------------------------------------------
+   Buttons
+   -------------------------------------------------------------------------- */
+
+.collectionsAdminButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0 1.35rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    text-decoration: none;
+    box-sizing: border-box;
+}
+
+.collectionsAdminButton.primary {
+    background: #151B2B;
+    color: #F1EBDD;
+    border-color: #151B2B;
+}
+
+.collectionsAdminButton.primary:hover:not(:disabled) {
+    background: #252e42;
+    color: #C8A96E;
+    border-color: #252e42;
+}
+
+.collectionsAdminButton.secondary {
+    background: transparent;
+    color: #151B2B;
+    border-color: rgba(21, 27, 43, 0.25);
+}
+
+.collectionsAdminButton.secondary:hover:not(:disabled) {
+    background: rgba(21, 27, 43, 0.06);
+    color: #151B2B;
+    border-color: #151B2B;
+}
+
+.collectionsAdminButton:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------------------
+   Workspace Two-Column Grid
+   -------------------------------------------------------------------------- */
+
+.collectionsAdminGrid {
+    display: grid;
+    grid-template-columns: 1fr 1.35fr;
+    gap: 2rem;
+}
+
+@media (max-width: 1024px) {
+    .collectionsAdminGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.collectionsAdminColumn {
+    background: #FAF6EF;
+    border: 1px solid rgba(21, 27, 43, 0.18);
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+    min-height: 540px;
+    box-shadow: 0 2px 10px rgba(21, 27, 43, 0.03);
+}
+
+.collectionsAdminColumnHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.14);
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.collectionsAdminColumnTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #151B2B;
+}
+
+.collectionsColumnIcon {
+    width: 38px;
+    height: 38px;
+    background: #151B2B;
+    color: #C8A96E;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.collectionsColumnKanji {
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    font-weight: 600;
+    color: #A89060;
+    text-transform: uppercase;
+    display: block;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.collectionsAdminColumnTitle h3 {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.25rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #151B2B;
+    margin: 0;
+    line-height: 1.1;
+}
+
+.collectionsAdminBadge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.35rem 0.75rem;
+    background: #151B2B;
+    color: #C8A96E;
+    border: 1px solid #151B2B;
+    white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   State Displays (Loading, Empty, Error)
+   -------------------------------------------------------------------------- */
+
+.collectionsAdminState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 4rem 1.5rem;
+    text-align: center;
+    color: #5E6573;
+    font-size: 0.9rem;
+    background: #F1EBDD;
+    border: 1px dashed rgba(21, 27, 43, 0.22);
+}
+
+.collectionsAdminState.error {
+    background: #f8e5e5;
+    border-color: #e5b6b6;
+    color: #8b2525;
+}
+
+.collectionsAdminRetryBtn {
+    margin-top: 0.5rem;
+    background: #151B2B;
+    border: 1px solid #151B2B;
+    color: #F1EBDD;
+    padding: 0.45rem 1.1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.collectionsAdminRetryBtn:hover {
+    background: #252e42;
+    color: #C8A96E;
+}
+
+/* --------------------------------------------------------------------------
+   Collections Card Directory
+   -------------------------------------------------------------------------- */
+
+.collectionsList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    max-height: 620px;
+    overflow-y: auto;
+    padding-right: 0.4rem;
+}
+
+.collectionCard {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    padding: 0.95rem 1.1rem;
+    background: #F1EBDD;
+    border: 1px solid rgba(21, 27, 43, 0.16);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    position: relative;
+}
+
+.collectionCard:hover {
+    background: #EDE6D8;
+    border-color: #C8A96E;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(21, 27, 43, 0.06);
+}
+
+.collectionCard.isSelected {
+    background: #E8E1D1;
+    border-color: #151B2B;
+    box-shadow: inset 4px 0 0 #C8A96E, 0 4px 14px rgba(21, 27, 43, 0.08);
+}
+
+.collectionArtwork {
+    width: 54px;
+    height: 54px;
+    border: 1px solid rgba(21, 27, 43, 0.18);
+    background: #FAF6EF;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.collectionThumbImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.collectionNeutralArtwork {
+    width: 100%;
+    height: 100%;
+    background: rgba(21, 27, 43, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #A89060;
+}
+
+.collectionInfo {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.collectionMetaTop {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.collectionOrderBadge {
+    font-size: 0.68rem;
+    font-family: 'Inter', monospace;
+    font-weight: 600;
+    color: #151B2B;
+    background: rgba(21, 27, 43, 0.08);
+    padding: 0.15rem 0.45rem;
+}
+
+.collectionVisibilityBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.5rem;
+}
+
+.collectionVisibilityBadge.isVisible {
+    background: #e4eee3;
+    color: #2e6930;
+    border: 1px solid rgba(46, 105, 48, 0.25);
+}
+
+.collectionVisibilityBadge.isHidden {
+    background: rgba(21, 27, 43, 0.08);
+    color: #5E6573;
+    border: 1px solid rgba(21, 27, 43, 0.18);
+}
+
+.collectionName {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.03em;
+    color: #151B2B;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.collectionSlug {
+    font-size: 0.74rem;
+    font-family: 'Inter', monospace;
+    color: #5E6573;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.collectionPairsCount {
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: #A89060;
+    letter-spacing: 0.02em;
+}
+
+.collectionActions {
+    display: flex;
+    gap: 0.45rem;
+    align-items: center;
+}
+
+.collectionActionBtn {
+    background: #FAF6EF;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    color: #151B2B;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.collectionActionBtn:hover {
+    background: #151B2B;
+    color: #C8A96E;
+    border-color: #151B2B;
+}
+
+.collectionActionBtn.danger:hover {
+    background: #732222;
+    color: #F1EBDD;
+    border-color: #732222;
+}
+
+/* --------------------------------------------------------------------------
+   Product Membership Picker Workspace
+   -------------------------------------------------------------------------- */
+
+.collectionsPairsWorkspace {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    flex: 1;
+}
+
+.collectionsPairsSearchRow {
+    display: flex;
+    align-items: center;
+    gap: 0.95rem;
+}
+
+.collectionsSearchInputWrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.collectionsSearchIcon {
+    position: absolute;
+    left: 0.9rem;
+    color: rgba(21, 27, 43, 0.45);
+    pointer-events: none;
+}
+
+.collectionsSearchInput {
+    width: 100%;
+    min-height: 44px;
+    background: #F1EBDD;
+    border: 1px solid rgba(21, 27, 43, 0.25);
+    padding: 0.55rem 2.2rem 0.55rem 2.5rem;
+    font-size: 0.86rem;
+    font-family: inherit;
+    color: #151B2B;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.collectionsSearchInput:focus {
+    border-color: #151B2B;
+    box-shadow: 0 0 0 1px #151B2B;
+}
+
+.collectionsSearchClearBtn {
+    position: absolute;
+    right: 0.8rem;
+    background: none;
+    border: none;
+    color: rgba(21, 27, 43, 0.5);
+    font-size: 1.3rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0.2rem;
+    transition: color 0.15s ease;
+}
+
+.collectionsSearchClearBtn:hover {
+    color: #151B2B;
+}
+
+.collectionsAssignedBadge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.7rem 1.05rem;
+    background: #151B2B;
+    color: #C8A96E;
+    white-space: nowrap;
+    border: 1px solid #151B2B;
+}
+
+.collectionsAdminCreateProductBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.45rem 0.95rem;
+    background: #151B2B;
+    border: 1px solid #151B2B;
+    color: #F1EBDD;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.collectionsAdminCreateProductBtn:hover {
+    background: #252e42;
+    color: #C8A96E;
+    border-color: #252e42;
+}
+
+/* --------------------------------------------------------------------------
+   Product Items in Catalog Grid
+   -------------------------------------------------------------------------- */
+
+.collectionsProductsList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 540px;
+    overflow-y: auto;
+    padding-right: 0.4rem;
+}
+
+.collectionProductItem {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    padding: 0.85rem 1rem;
+    background: #F1EBDD;
+    border: 1px solid rgba(21, 27, 43, 0.16);
+    transition: all 0.2s ease;
+}
+
+.collectionProductItem:hover {
+    background: #EDE6D8;
+    border-color: rgba(21, 27, 43, 0.28);
+}
+
+.collectionProductItem.isAssigned {
+    border-color: rgba(46, 105, 48, 0.4);
+    background: #eaf3e9;
+}
+
+.collectionProductThumb {
+    width: 52px;
+    height: 52px;
+    background: #FAF6EF;
+    border: 1px solid rgba(21, 27, 43, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.collectionProductThumb img {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+}
+
+.collectionProductDetails {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+}
+
+.collectionProductBrand {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #A89060;
+}
+
+.collectionProductName {
+    font-family: 'Anton', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.03em;
+    color: #151B2B;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.collectionProductMeta {
+    font-size: 0.74rem;
+    color: #5E6573;
+    font-family: 'Inter', monospace;
+}
+
+.collectionProductAction {
+    margin-left: auto;
+}
+
+.collectionAssignToggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 38px;
+    padding: 0 0.95rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid rgba(21, 27, 43, 0.25);
+    background: #FAF6EF;
+    color: #151B2B;
+}
+
+.collectionAssignToggle:hover:not(:disabled) {
+    background: #151B2B;
+    color: #F1EBDD;
+    border-color: #151B2B;
+}
+
+.collectionAssignToggle.isAssigned {
+    background: #151B2B;
+    border-color: #151B2B;
+    color: #C8A96E;
+}
+
+.collectionAssignToggle.isAssigned:hover:not(:disabled) {
+    background: #732222;
+    border-color: #732222;
+    color: #F1EBDD;
+}
+
+.collectionAssignToggle:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------------------
+   Modal Dialog
+   -------------------------------------------------------------------------- */
+
+.collectionsModalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(21, 27, 43, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 4%;
+    z-index: 100000;
+}
+
+.collectionsModalCard {
+    background: #FAF6EF;
+    border: 1px solid rgba(21, 27, 43, 0.3);
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 2.25rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.collectionsModalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.16);
+    padding-bottom: 1.25rem;
+}
+
+.collectionsModalKanji {
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    font-weight: 600;
+    color: #A89060;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.collectionsModalHeader h3 {
+    margin: 0;
+    font-family: 'Anton', sans-serif;
+    font-size: 1.65rem;
+    letter-spacing: 0.04em;
+    color: #151B2B;
+    text-transform: uppercase;
+    line-height: 1.1;
+}
+
+.collectionsModalClose {
+    background: none;
+    border: none;
+    color: #151B2B;
+    font-size: 2rem;
+    cursor: pointer;
+    line-height: 1;
+    min-width: 40px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease;
+}
+
+.collectionsModalClose:hover {
+    color: #C8A96E;
+}
+
+.collectionsForm {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.collectionsFormGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.collectionsFormRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    align-items: flex-end;
+}
+
+@media (max-width: 560px) {
+    .collectionsFormRow {
+        grid-template-columns: 1fr;
+    }
+}
+
+.collectionsCheckboxGroup {
+    padding-bottom: 0.25rem;
+}
+
+.collectionsCheckboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 0.86rem;
+    font-weight: 500;
+    color: #151B2B;
+    cursor: pointer;
+    user-select: none;
+    min-height: 44px;
+}
+
+.collectionsCheckboxLabel input[type="checkbox"] {
+    accent-color: #151B2B;
+    width: 17px;
+    height: 17px;
+    cursor: pointer;
+}
+
+.collectionsFormLabel {
+    font-size: 0.76rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    color: #151B2B;
+    text-transform: uppercase;
+}
+
+.collectionsFormHint {
+    font-size: 0.72rem;
+    color: #5E6573;
+    font-weight: normal;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.collectionsFormInput {
+    background: #F1EBDD;
+    border: 1px solid rgba(21, 27, 43, 0.25);
+    min-height: 44px;
+    padding: 0.65rem 0.95rem;
+    font-size: 0.88rem;
+    color: #151B2B;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+    width: 100%;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.collectionsFormInput:focus {
+    border-color: #151B2B;
+    box-shadow: 0 0 0 1px #151B2B;
+}
+
+.collectionsFieldError {
+    font-size: 0.74rem;
+    color: #8b2525;
+    font-weight: 500;
+}
+
+.collectionsFormError {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.8rem 1rem;
+    background: #f8e5e5;
+    border: 1px solid #e5b6b6;
+    color: #8b2525;
+    font-size: 0.84rem;
+    font-weight: 500;
+}
+
+.collectionsModalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 0.85rem;
+    padding-top: 1.35rem;
+    border-top: 1px solid rgba(21, 27, 43, 0.16);
+}
+
+/* --------------------------------------------------------------------------
+   Scrollbars & Animations
+   -------------------------------------------------------------------------- */
+
+.collectionsList::-webkit-scrollbar,
+.collectionsProductsList::-webkit-scrollbar,
+.collectionsModalCard::-webkit-scrollbar {
+    width: 6px;
+}
+
+.collectionsList::-webkit-scrollbar-track,
+.collectionsProductsList::-webkit-scrollbar-track,
+.collectionsModalCard::-webkit-scrollbar-track {
+    background: rgba(21, 27, 43, 0.05);
+}
+
+.collectionsList::-webkit-scrollbar-thumb,
+.collectionsProductsList::-webkit-scrollbar-thumb,
+.collectionsModalCard::-webkit-scrollbar-thumb {
+    background: rgba(21, 27, 43, 0.2);
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}

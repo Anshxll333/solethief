@@ -1,8 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Menu, X, ShoppingCart } from 'lucide-react';
+import { Menu, X, ShoppingCart, User } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { useCommerce } from '../commerce/context.js';
+import { useAuth } from '../auth/authContext.js';
 
 export default function Navbar() {
+  const { cart } = useCommerce();
+  const { user, profile } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButton = useRef(null);
   const location = useLocation();
@@ -39,12 +43,22 @@ export default function Navbar() {
         <Link to="/shop" className="navLink">Shop</Link>
         <Link to="/#new-drops" className="navLink">New Drops</Link>
         <Link to="/#about" className="navLink">About</Link>
+        <Link to="/account" className="navLink">Account {user ? '(Active)' : ''}</Link>
+        <Link to="/admin" className="navLink">Admin</Link>
       </nav>
       <div className="headerIcons">
         <button ref={menuButton} className="iconButton mobileMenuButton" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} aria-controls="primary-navigation" onClick={() => setMenuOpen(!menuOpen)}>
           {menuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
-        <Link to="/cart" className="iconButton" aria-label="Shopping cart"><ShoppingCart size={24} /></Link>
+        <Link
+          to="/account"
+          className="iconButton navbarAccountLink"
+          aria-label={user ? `Customer account: signed in as ${profile?.display_name || user.email}` : 'Customer account: guest'}
+        >
+          <User size={22} />
+          {user && <span className="navbarAuthDot" aria-hidden="true" />}
+        </Link>
+        <Link to="/cart" className="iconButton" aria-label={`Shopping cart, ${cart.ids.length} pairs`}><ShoppingCart size={24} /><span className="commerceCartCount">{cart.ids.length}</span></Link>
       </div>
     </header>
   );
