@@ -67,6 +67,7 @@ export function resolveCategorySelection({ categories = [], memberships = [], pr
 
 export const DEFAULT_COLLECTION_ARTWORK = Object.freeze({
     'new-balance': '/shoes/transparent/new-balance.png',
+    'adidas': '/shoes/transparent/adidas.png',
 });
 
 /**

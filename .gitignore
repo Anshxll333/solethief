@@ -29,3 +29,11 @@ dist-ssr
 !.env.example
 *.pem
 *.key
+
+# Temporary inspection dumps and LevelDB artifacts
+*.ldb
+CURRENT
+LOCK
+LOG
+LOG.old
+MANIFEST-*

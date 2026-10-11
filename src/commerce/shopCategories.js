@@ -8,6 +8,10 @@ const IMAGE = /^(https:\/\/[A-Za-z0-9]+([.-][A-Za-z0-9]+)*(:[0-9]{1,5})?(\/[A-Za
 const DATA_IMAGE = /^data:image\/(?:png|jpe?g|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=]+$/;
 const MAX_DATA_IMAGE_LENGTH = 10 * 1024 * 1024;
 const SEEDS = ['Travis Scott', 'Low Dunks', 'Retro 4', 'Air Jordans', 'Leather Shoes', 'Air Forces', 'Adidas', 'New Balance', 'Limited'];
+const DEFAULT_CATEGORY_IMAGES = {
+    'new-balance': '/shoes/transparent/new-balance.png',
+    'adidas': '/shoes/transparent/adidas.png',
+};
 
 export function assertCategoryId(id) {
     if (typeof id !== 'string' || !UUID.test(id)) throw new Error('Invalid category ID.');
@@ -58,7 +62,17 @@ export function sortCategories(categories) {
 }
 
 export function getDefaultShopCategories() {
-    return SEEDS.map((name, index) => ({ id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`, name, slug: createCategorySlug(name), image_url: null, display_order: index + 1, is_visible: true }));
+    return SEEDS.map((name, index) => {
+        const slug = createCategorySlug(name);
+        return {
+            id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+            name,
+            slug,
+            image_url: DEFAULT_CATEGORY_IMAGES[slug] || null,
+            display_order: index + 1,
+            is_visible: true,
+        };
+    });
 }
 
 export function getShopStorage() {
