@@ -8,6 +8,8 @@ import {
     findShopCategory,
     getCategoryProducts,
     resolveCategorySelection,
+    resolveCollectionArtwork,
+    DEFAULT_COLLECTION_ARTWORK,
 } from '../src/pages/shopGroups.js';
 
 test('Shop groups the real catalog by collection, retaining every individual pair', () => {
@@ -163,4 +165,48 @@ test('Shop component source contract fulfills all wiring and decoupled requireme
 
     // Query parameter navigation
     assert.ok(shopSource.includes("searchParams.get('group')"), 'Must use group query param');
+});
+
+test('resolveCollectionArtwork prioritizes custom uploaded images over hardcoded defaults', () => {
+    // 1. Custom base64 image on New Balance takes priority over default asset
+    const customBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    const nbWithCustomImage = {
+        name: 'New Balance',
+        slug: 'new-balance',
+        image_url: customBase64,
+    };
+    assert.equal(resolveCollectionArtwork(nbWithCustomImage), customBase64);
+
+    // 2. Custom external link on New Balance takes priority
+    const nbWithLink = {
+        name: 'New Balance',
+        slug: 'new-balance',
+        image_url: 'https://example.com/custom-nb.png',
+    };
+    assert.equal(resolveCollectionArtwork(nbWithLink), 'https://example.com/custom-nb.png');
+
+    // 3. artwork_url property fallback takes priority
+    const nbWithArtworkUrl = {
+        name: 'New Balance',
+        slug: 'new-balance',
+        artwork_url: 'https://example.com/custom-artwork.png',
+    };
+    assert.equal(resolveCollectionArtwork(nbWithArtworkUrl), 'https://example.com/custom-artwork.png');
+
+    // 4. Empty/null image_url falls back to default artwork for New Balance
+    const nbWithoutImage = {
+        name: 'New Balance',
+        slug: 'new-balance',
+        image_url: null,
+    };
+    assert.equal(resolveCollectionArtwork(nbWithoutImage), DEFAULT_COLLECTION_ARTWORK['new-balance']);
+
+    // 5. Category without custom image and without default mapping returns null
+    const otherWithoutImage = {
+        name: 'Custom Brand',
+        slug: 'custom-brand',
+        image_url: null,
+    };
+    assert.equal(resolveCollectionArtwork(otherWithoutImage), null);
+    assert.equal(resolveCollectionArtwork(null), null);
 });

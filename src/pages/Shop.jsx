@@ -3,11 +3,12 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import TransparentArtwork from '../components/TransparentArtwork';
 import { useCommerce } from '../commerce/context.js';
 import { CatalogCard, CatalogState } from '../commerce/CommerceUI';
 import { shopCategoriesService, subscribeShopUpdates } from '../services/shopCategories.js';
 import { readPreviewShopCategories } from '../commerce/shopCategories.js';
-import { resolveCategorySelection, shopGroupLocation } from './shopGroups.js';
+import { resolveCategorySelection, shopGroupLocation, resolveCollectionArtwork } from './shopGroups.js';
 import './Shop.css';
 
 export default function Shop() {
@@ -22,6 +23,12 @@ export default function Shop() {
   });
   const heading = useRef(null);
   const previousSlug = useRef(selectedSlug);
+  const [failedImages, setFailedImages] = useState({});
+
+  const handleArtworkError = (imageUrl) => {
+    if (!imageUrl) return;
+    setFailedImages((prev) => ({ ...prev, [imageUrl]: true }));
+  };
 
   useEffect(() => {
     let active = true;
@@ -136,23 +143,39 @@ export default function Shop() {
         </div>
       ) : directory.categories.length > 0 ? (
         <ul className="shopGroups" aria-label="Shoe collections">
-          {directory.categories.map(category => (
-            <li key={category.id}>
-              <Link
-                className="shopGroupTile"
-                to={shopGroupLocation(searchParams, category.slug)}
-                aria-label={`Shop ${category.name} collection`}
-              >
-                {category.image_url ? (
-                  <img src={category.image_url} alt="" loading="lazy" />
-                ) : null}
-                <h2 className="shopGroupLabel">{category.name}</h2>
-                <span className="shopGroupAction">
-                  SHOP NOW <ArrowUpRight size={20} aria-hidden="true" />
-                </span>
-              </Link>
-            </li>
-          ))}
+          {directory.categories.map(category => {
+            const artworkSrc = resolveCollectionArtwork(category);
+            const hasArtwork = Boolean(artworkSrc) && !failedImages[artworkSrc];
+            return (
+              <li key={category.id}>
+                <Link
+                  className={`shopGroupTile ${hasArtwork ? 'hasArtwork' : ''}`}
+                  data-group={category.slug}
+                  to={shopGroupLocation(searchParams, category.slug)}
+                  aria-label={`Shop ${category.name} collection`}
+                >
+                  <div
+                    className={`shopGroupArch ${hasArtwork ? 'hasArtwork' : ''}`}
+                    aria-hidden="true"
+                  >
+                    {hasArtwork ? (
+                      <TransparentArtwork
+                        className="shopGroupArtwork"
+                        src={artworkSrc}
+                        alt=""
+                        loading="lazy"
+                        onError={() => handleArtworkError(artworkSrc)}
+                      />
+                    ) : null}
+                  </div>
+                  <h2 className="shopGroupLabel">{category.name}</h2>
+                  <span className="shopGroupAction">
+                    SHOP NOW <ArrowUpRight size={18} aria-hidden="true" />
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <div className="shopEmpty" role="status">

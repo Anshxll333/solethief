@@ -18,11 +18,15 @@
 .shopPage .shopProducts {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: clamp(1rem, 2vw, 1.75rem);
+    gap: clamp(1.25rem, 2.2vw, 2rem);
+    width: 100%;
 }
 
 .shopPage .shopGroups {
     list-style: none;
+    width: 100%;
+    margin: 0 auto;
+    gap: clamp(1.5rem, 2.5vw, 2.25rem);
 }
 
 .shopPage .shopGroups>li {
@@ -35,37 +39,132 @@
     flex-direction: column;
     justify-content: flex-end;
     isolation: isolate;
-    min-height: 440px;
-    aspect-ratio: 3 / 4;
-    padding: clamp(1.25rem, 2.5vw, 2.25rem);
+    min-height: 380px;
+    aspect-ratio: 4 / 5;
+    padding: clamp(1.1rem, 2vw, 1.75rem);
     overflow: hidden;
-    border: 1px solid #151b2b24;
-    background: radial-gradient(ellipse at 65% 28%, #faf7ee 0%, #ebe4d5 72%);
+    border: none !important;
+    border-color: transparent !important;
+    background: transparent !important;
+    background-image: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
 }
 
-.shopPage .shopGroupTile::before {
-    content: '';
+.shopPage .shopGroupTile:hover,
+.shopPage .shopGroupTile:focus,
+.shopPage .shopGroupTile:focus-visible,
+.shopPage .shopGroupTile:active {
+    border: none !important;
+    border-color: transparent !important;
+    background: transparent !important;
+    background-image: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+.shopPage .shopGroupTile * {
+    box-shadow: none !important;
+}
+
+.shopPage .shopGroupArch {
     position: absolute;
-    z-index: -1;
     inset: 8% 13% 32%;
-    border: 1px solid #987b472b;
+    border: 1px solid #987b4733;
     border-radius: 50% 50% 0 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(0.75rem, 1.5vw, 1.25rem);
+    pointer-events: none;
+    z-index: 1;
+    -webkit-mask-image: -webkit-radial-gradient(white, black);
+    transition: border-color 0.3s ease;
 }
 
+/* For collections with artwork: remove bounding arch box / frame so artwork floats freely */
+.shopPage .shopGroupTile.hasArtwork .shopGroupArch,
+.shopPage .shopGroupArch.hasArtwork {
+    border: none !important;
+    background: transparent !important;
+    border-radius: 0;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+    overflow: visible;
+}
+
+.shopPage .shopGroupTile.hasArtwork:hover .shopGroupArch,
+.shopPage .shopGroupTile:hover .shopGroupArch.hasArtwork {
+    border: none !important;
+    border-color: transparent !important;
+    background: transparent !important;
+}
+
+.shopPage .shopGroupArtwork,
+.shopPage .shopGroupArch img,
 .shopPage .shopGroupTile img {
-    position: absolute;
-    top: 6%;
-    left: 4%;
-    width: 92%;
-    height: 65%;
+    max-width: calc(86% * 1.5);
+    max-height: calc(86% * 1.5);
+    width: auto;
+    height: auto;
     object-fit: contain;
-    transform: rotate(-12deg);
+    mix-blend-mode: normal;
+    display: block;
+    transform: scale(1);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
     pointer-events: none;
+    user-select: none;
+    -webkit-mask-image: radial-gradient(ellipse 92% 92% at 50% 50%, #000 80%, transparent 100%);
+    mask-image: radial-gradient(ellipse 92% 92% at 50% 50%, #000 80%, transparent 100%);
+    filter: drop-shadow(0 6px 14px rgba(152, 123, 71, 0.08));
+}
+
+.shopPage .shopGroupArtwork.transparentArtwork--loading {
+    opacity: 0;
+}
+
+.shopPage .shopGroupArtwork.transparentArtwork--ready {
+    opacity: 1;
+}
+
+.shopPage .shopGroupTile:hover .shopGroupArch {
+    border-color: #987b4766;
+}
+
+.shopPage .shopGroupTile:hover .shopGroupArtwork,
+.shopPage .shopGroupTile:hover .shopGroupArch img,
+.shopPage .shopGroupTile:hover img {
+    transform: scale(1.05);
+}
+
+/* New Balance group profile artwork: cushioned with padding so it doesn't overlap on any side, with slightly reduced height to fit cleanly */
+.shopPage .shopGroupTile[data-group="new-balance"] {
+    overflow: visible;
+}
+
+.shopPage .shopGroupTile[data-group="new-balance"] .shopGroupArch {
+    inset: 0% 0% 26%;
+    padding: clamp(0.75rem, 1.5vw, 1.25rem);
+}
+
+.shopPage .shopGroupTile[data-group="new-balance"] .shopGroupArtwork,
+.shopPage .shopGroupTile[data-group="new-balance"] .shopGroupArch img,
+.shopPage .shopGroupTile[data-group="new-balance"] img {
+    max-height: 100%;
+    transform: translateY(-8px) scale(1.26);
+    transform-origin: center center;
+}
+
+.shopPage .shopGroupTile[data-group="new-balance"]:hover .shopGroupArtwork,
+.shopPage .shopGroupTile[data-group="new-balance"]:hover .shopGroupArch img,
+.shopPage .shopGroupTile[data-group="new-balance"]:hover img {
+    transform: translateY(-8px) scale(calc(1.26 * 1.05));
 }
 
 .shopPage .shopGroupLabel {
     position: relative;
-    font-size: clamp(2.25rem, 4.5vw, 4.5rem);
+    font-size: clamp(1.75rem, 3.2vw, 3.25rem);
     line-height: 1.05;
     letter-spacing: .025em;
     overflow-wrap: anywhere;
@@ -75,13 +174,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    margin-top: 1.25rem;
-    padding-top: 1rem;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 0.85rem;
     border-top: 1px solid #987b4766;
-    font-size: .7rem;
+    font-size: .68rem;
     font-weight: 600;
-    letter-spacing: .16em;
+    letter-spacing: .14em;
 }
 
 .shopPage .shopGroupAction svg {
@@ -89,10 +188,6 @@
     flex-shrink: 0;
 }
 
-.shopPage .shopGroupTile:hover {
-    border-color: var(--shop-gold);
-    background: radial-gradient(ellipse at 65% 28%, #fffdf6 0%, #e4dbc9 72%);
-}
 
 .shopPage :focus-visible {
     outline: 3px solid #735123;
@@ -131,10 +226,11 @@
     .shopPage .shopGroups,
     .shopPage .shopProducts {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: clamp(1.25rem, 2.5vw, 1.75rem);
     }
 
     .shopPage .shopGroupTile {
-        min-height: 360px;
+        min-height: 320px;
     }
 }
 
@@ -146,13 +242,14 @@
     .shopPage .shopGroups,
     .shopPage .shopProducts {
         grid-template-columns: minmax(0, 1fr);
+        gap: 1.25rem;
     }
 
     .shopPage .shopGroupTile {
-        min-height: 380px;
+        min-height: 320px;
     }
 
     .shopPage .shopGroupLabel {
-        font-size: 3.5rem;
+        font-size: 2.5rem;
     }
 }

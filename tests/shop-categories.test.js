@@ -77,6 +77,22 @@ test('save generates unique UUID-suffixed slugs, persists edits, and keeps slugs
     assert.equal((await service().list()).categories.length, 11);
 });
 
+test('custom uploaded artwork for new-balance is preserved and never overwritten by defaults', async () => {
+    const list = await service().list();
+    const nb = list.categories.find(c => c.slug === 'new-balance');
+    assert.ok(nb, 'New Balance seed collection exists');
+
+    // Custom large base64 JPEG data URL
+    const customJpegDataUrl = `data:image/jpeg;base64,${'A'.repeat(60000)}`;
+    const updated = await service().save({ ...nb, image_url: customJpegDataUrl });
+    assert.equal(updated.image_url, customJpegDataUrl);
+
+    // Reading preview categories again must NOT overwrite the custom uploaded image
+    const reloaded = await service().list();
+    const reloadedNb = reloaded.categories.find(c => c.slug === 'new-balance');
+    assert.equal(reloadedNb.image_url, customJpegDataUrl, 'Custom image must not be overwritten with fallback image');
+});
+
 test('corrupt and wrong-version stores fail without overwrite; read/write errors propagate', async () => {
     for (const raw of ['', '{', 'null', '[]', JSON.stringify({ version: 2, categories: [], memberships: [] }), JSON.stringify({ version: 1, categories: [{}], memberships: [] })]) {
         values.set(SHOP_CATEGORIES_STORAGE_KEY, raw);

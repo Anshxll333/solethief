@@ -5,6 +5,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // eslint-disable-next-line no-control-regex
 const CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
 const IMAGE = /^(https:\/\/[A-Za-z0-9]+([.-][A-Za-z0-9]+)*(:[0-9]{1,5})?(\/[A-Za-z0-9_./-]*)?|\/[A-Za-z0-9_-][A-Za-z0-9_./-]*)$/;
+const DATA_IMAGE = /^data:image\/(?:png|jpe?g|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=]+$/;
+const MAX_DATA_IMAGE_LENGTH = 10 * 1024 * 1024;
 const SEEDS = ['Travis Scott', 'Low Dunks', 'Retro 4', 'Air Jordans', 'Leather Shoes', 'Air Forces', 'Adidas', 'New Balance', 'Limited'];
 
 export function assertCategoryId(id) {
@@ -30,7 +32,18 @@ export function normalizeCategory(input, existing = null, usedSlugs = []) {
     const slug = existing?.slug ?? input.slug ?? createCategorySlug(name, usedSlugs);
     if (typeof slug !== 'string' || slug.length > 120 || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) throw new Error('Invalid category slug.');
     const image_url = input.image_url === undefined ? null : input.image_url;
-    if (image_url !== null && (typeof image_url !== 'string' || image_url.length > 2048 || CONTROL.test(image_url) || !IMAGE.test(image_url))) throw new Error('Invalid category image URL.');
+    if (image_url !== null) {
+        if (typeof image_url !== 'string') throw new Error('Invalid category image URL.');
+        if (image_url.startsWith('data:')) {
+            if (image_url.length > MAX_DATA_IMAGE_LENGTH || !DATA_IMAGE.test(image_url)) {
+                throw new Error('Invalid category image URL.');
+            }
+        } else {
+            if (image_url.length > 2048 || CONTROL.test(image_url) || !IMAGE.test(image_url)) {
+                throw new Error('Invalid category image URL.');
+            }
+        }
+    }
     const display_order = input.display_order === undefined ? 0 : input.display_order;
     if (!Number.isInteger(display_order) || display_order < 0 || display_order > 2147483647) throw new Error('Invalid category display order.');
     const is_visible = input.is_visible === undefined ? true : input.is_visible;

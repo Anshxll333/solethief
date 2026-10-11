@@ -37,10 +37,10 @@ export function getCategoryProducts(category, memberships, products) {
     if (!category || !category.id || !Array.isArray(memberships) || !Array.isArray(products)) return [];
     const productIds = new Set(
         memberships
-            .filter(m => m && m.category_id === category.id)
-            .map(m => m.product_id)
+            .filter(m => m && String(m.category_id) === String(category.id))
+            .map(m => String(m.product_id))
     );
-    return products.filter(p => p && productIds.has(p.id));
+    return products.filter(p => p && (productIds.has(p.id) || productIds.has(String(p.id))));
 }
 
 export function resolveCategorySelection({ categories = [], memberships = [], products = [], slug = '', hiddenCategories = [] } = {}) {
@@ -63,4 +63,27 @@ export function resolveCategorySelection({ categories = [], memberships = [], pr
         return { state: 'hidden', category: hiddenCategory, products: [] };
     }
     return { state: 'unavailable', category: null, products: [] };
+}
+
+export const DEFAULT_COLLECTION_ARTWORK = Object.freeze({
+    'new-balance': '/shoes/transparent/new-balance.png',
+});
+
+/**
+ * Resolves artwork for a collection category.
+ * Custom uploaded image (base64 or custom URL / link) ALWAYS takes priority over default/fallback artwork.
+ */
+export function resolveCollectionArtwork(category) {
+    if (!category) return null;
+    const custom = typeof category === 'string'
+        ? category
+        : (category.image_url || category.artwork_url || '');
+    if (custom && typeof custom === 'string' && custom.trim()) {
+        return custom.trim();
+    }
+    const slug = typeof category === 'object' && category?.slug ? String(category.slug).toLowerCase().trim() : '';
+    if (slug && DEFAULT_COLLECTION_ARTWORK[slug]) {
+        return DEFAULT_COLLECTION_ARTWORK[slug];
+    }
+    return null;
 }

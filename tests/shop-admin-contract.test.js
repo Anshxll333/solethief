@@ -188,6 +188,13 @@ test('ShopCollectionsAdmin.jsx adheres to UI source contracts for taxonomy and p
         collectionsSource.includes('onOpenCreateDrop'),
         'Must support onOpenCreateDrop action button'
     );
+
+    // 8. Guidance note for webpage / Pinterest URLs
+    assert.ok(
+        collectionsSource.includes('detectWebpageUrlGuidance') ||
+        collectionsSource.includes('urlGuidanceNote'),
+        'Must detect webpage URLs and display guidance'
+    );
 });
 
 test('Shop.jsx adheres to UI source contracts for independent taxonomy and honest states', () => {
@@ -225,6 +232,13 @@ test('Shop.jsx adheres to UI source contracts for independent taxonomy and hones
     assert.ok(
         shopSource.includes('<CatalogCard'),
         'Shop must use CatalogCard component'
+    );
+
+    // 6. Graceful artwork error handling
+    assert.ok(
+        shopSource.includes('onError') ||
+        shopSource.includes('handleArtworkError'),
+        'Shop must handle artwork loading error'
     );
 });
 

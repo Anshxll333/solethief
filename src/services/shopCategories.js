@@ -133,9 +133,9 @@ export function createShopCategoriesService(runtimeProvider = getSupabaseRuntime
             const membership = { category_id: categoryId, product_id: productId };
             if (value.status === 'missing') {
                 const store = readPreviewShopCategories();
-                if (!store.categories.some(row => row.id === categoryId)) throw new Error('Category not found.');
-                if (assigned && !(await products(value)).some(row => row.id === productId)) throw new Error('Product not found.');
-                store.memberships = store.memberships.filter(row => row.category_id !== categoryId || row.product_id !== productId);
+                if (!store.categories.some(row => String(row.id) === String(categoryId))) throw new Error('Category not found.');
+                if (assigned && !(await products(value)).some(row => String(row.id) === String(productId))) throw new Error('Product not found.');
+                store.memberships = store.memberships.filter(row => String(row.category_id) !== String(categoryId) || String(row.product_id) !== String(productId));
                 if (assigned) store.memberships.push(membership);
                 writePreviewShopCategories(store);
             } else {
