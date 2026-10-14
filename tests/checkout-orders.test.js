@@ -160,6 +160,15 @@ test('preview order parsing and storage safely handles corrupt data and maintain
     assert.deepEqual(getPreviewOrderById('ST-2026-0002'), order2);
     assert.deepEqual(getPreviewOrderById('ST-2026-0001'), order1);
     assert.equal(getPreviewOrderById('ST-2026-NONEXISTENT'), null);
+
+    // Updating existing order (e.g., cancelling order1) must preserve its original position at the bottom
+    const cancelledOrder1 = { ...order1, status: 'cancelled' };
+    savePreviewOrder(cancelledOrder1);
+    const updatedSaved = parsePreviewOrders(mockStore.get(ORDERS_PREVIEW_KEY));
+    assert.equal(updatedSaved.length, 2);
+    assert.equal(updatedSaved[0].id, 'ST-2026-0002'); // order2 stays at top
+    assert.equal(updatedSaved[1].id, 'ST-2026-0001'); // order1 stays in original position (bottom)
+    assert.equal(updatedSaved[1].status, 'cancelled');
 });
 
 test('checkout shipping address validation adheres to Indian courier standards', () => {
@@ -383,4 +392,132 @@ test('createOrdersService.cancelOrder successfully cancels orders within 24 hour
         /Delivered orders cannot be cancelled/
     );
 });
+
+test('OrderConfirmation UI adheres to SoleThief luxury design system contracts', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+
+    const jsxContent = fs.readFileSync(path.resolve('src/pages/OrderConfirmation.jsx'), 'utf-8');
+    const cssContent = fs.readFileSync(path.resolve('src/pages/OrderConfirmation.css'), 'utf-8');
+
+    // 1. Verify CSS import and isolation
+    assert.ok(jsxContent.includes("import './OrderConfirmation.css'"));
+
+    // 2. Verify design tokens in CSS match the site palette
+    assert.ok(cssContent.includes('#FAF7F2'), 'Matches warm ivory card background token');
+    assert.ok(cssContent.includes('#151B2B') || cssContent.includes('#151b2b'), 'Matches deep indigo ink token');
+    assert.ok(cssContent.includes('#C8A96E') || cssContent.includes('#c8a96e'), 'Matches gold luxury accent token');
+    assert.ok(cssContent.includes('--font-mono'), 'Uses Space Mono typography');
+    assert.ok(cssContent.includes('--font-heading'), 'Uses Anton heading typography');
+
+    // 3. Verify core component structure in JSX
+    assert.ok(jsxContent.includes('confirmReceiptVault'));
+    assert.ok(jsxContent.includes('confirmVaultHeader'));
+    assert.ok(jsxContent.includes('confirmStatusBadgeModern'));
+    assert.ok(jsxContent.includes('confirmTrackerWrap'));
+    assert.ok(jsxContent.includes('confirmInfoGrid'));
+    assert.ok(jsxContent.includes('confirmItemsSection'));
+    assert.ok(jsxContent.includes('confirmBreakdownGrid'));
+    assert.ok(jsxContent.includes('handleCopyOrderId'));
+    assert.ok(jsxContent.includes('handlePrint'));
+});
+
+test('payment gateway settings schema, redaction, and loadPublic contract', async () => {
+    const {
+        DEFAULT_GLOBAL_SETTINGS,
+        redactPaymentSettings,
+        createGlobalSettingsService,
+        STORAGE_KEY,
+    } = await import('../src/services/globalSettings.js');
+
+    // 1. Verify schema defaults
+    assert.ok(DEFAULT_GLOBAL_SETTINGS.payment, 'Payment object exists in global settings');
+    assert.equal(DEFAULT_GLOBAL_SETTINGS.payment.provider, 'razorpay');
+    assert.equal(DEFAULT_GLOBAL_SETTINGS.payment.enabled, false);
+    assert.equal(DEFAULT_GLOBAL_SETTINGS.payment.maintenance, false);
+    assert.equal(DEFAULT_GLOBAL_SETTINGS.payment.mode, 'test');
+    assert.ok(DEFAULT_GLOBAL_SETTINGS.payment.maintenanceMessage.includes('maintenance'));
+    assert.ok(DEFAULT_GLOBAL_SETTINGS.payment.cod, 'COD sub-config exists');
+    assert.equal(DEFAULT_GLOBAL_SETTINGS.payment.cod.enabled, true);
+    assert.equal(DEFAULT_GLOBAL_SETTINGS.payment.cod.maintenance, false);
+
+    // 2. Redaction security test: secretKey must NEVER be leaked
+    const withSecret = {
+        payment: {
+            provider: 'razorpay',
+            enabled: true,
+            mode: 'live',
+            keyId: 'rzp_live_test_12345',
+            secretKey: 'SUPER_SECRET_KEY_NEVER_EXPOSE',
+            webhookSecret: 'whsec_test',
+        },
+    };
+
+    const redacted = redactPaymentSettings(withSecret);
+    assert.equal(redacted.payment.secretKey, undefined, 'Secret key must be stripped');
+    assert.equal(redacted.payment.secretConfigured, true, 'secretConfigured flag set to true');
+    assert.equal(redacted.payment.keyId, 'rzp_live_test_12345', 'Public key ID preserved');
+
+    // 3. loadPublic in preview mode
+    mockStore.clear();
+    const service = createGlobalSettingsService(() => ({ status: 'missing', client: null }), { storage: storageMock });
+    const publicRes = await service.loadPublic();
+    assert.ok(publicRes.settings);
+    assert.equal(publicRes.settings.payment.secretKey, undefined);
+    assert.equal(publicRes.source, 'preview');
+
+    // 4. Save and load via preview storage
+    const customSettings = {
+        ...DEFAULT_GLOBAL_SETTINGS,
+        payment: {
+            ...DEFAULT_GLOBAL_SETTINGS.payment,
+            enabled: true,
+            maintenance: true,
+            maintenanceMessage: 'Emergency maintenance underway.',
+        },
+    };
+    await service.save(customSettings);
+    const savedPublic = await service.loadPublic();
+    assert.equal(savedPublic.settings.payment.maintenance, true);
+    assert.equal(savedPublic.settings.payment.maintenanceMessage, 'Emergency maintenance underway.');
+});
+
+test('Checkout and Admin enforce payment gateway controls, maintenance badges, and validation', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+
+    const adminJsx = fs.readFileSync(path.resolve('src/pages/Admin.jsx'), 'utf-8');
+    const checkoutJsx = fs.readFileSync(path.resolve('src/pages/Checkout.jsx'), 'utf-8');
+    const commerceCss = fs.readFileSync(path.resolve('src/commerce/commerce.css'), 'utf-8');
+
+    // 1. Admin UI contracts
+    assert.ok(adminJsx.includes('PaymentGatewayManager'), 'Admin renders PaymentGatewayManager');
+    assert.ok(adminJsx.includes('PAYMENT GATEWAYS'), 'Admin has PAYMENT GATEWAYS navigation tab');
+    assert.ok(adminJsx.includes('Emergency Maintenance Mode'), 'Admin has Emergency Maintenance toggle');
+    assert.ok(adminJsx.includes('updatePayment(\'maintenance\''), 'Admin tracks maintenance state');
+    assert.ok(adminJsx.includes('testPaymentConnection'), 'Admin wires server-side connection testing');
+
+    // 2. Checkout UI & logic contracts
+    assert.ok(checkoutJsx.includes('createGlobalSettingsService'), 'Checkout imports settings service');
+    assert.ok(checkoutJsx.includes('isRazorpayMaintenance'), 'Checkout checks Razorpay maintenance');
+    assert.ok(checkoutJsx.includes('isRazorpaySelectable'), 'Checkout computes selectable status');
+    assert.ok(checkoutJsx.includes('MAINTENANCE MODE ON'), 'Checkout renders MAINTENANCE MODE ON badge');
+    assert.ok(checkoutJsx.includes('checkoutMaintenanceBadge'), 'Checkout uses checkoutMaintenanceBadge CSS');
+    assert.ok(checkoutJsx.includes('disabled={!isRazorpaySelectable}'), 'Checkout disables maintenance options');
+    assert.ok(checkoutJsx.includes('isAnyPaymentAvailable'), 'Checkout checks if any gateway is active');
+
+    // 3. Unconfigured Key ID safety guard
+    assert.ok(
+        checkoutJsx.includes('!razorpayConfig.keyId') &&
+        checkoutJsx.includes('Razorpay is not yet configured with an API Key ID'),
+        'Checkout guards against placing orders when Razorpay key ID is unconfigured'
+    );
+
+    // 4. CSS styling contracts
+    assert.ok(commerceCss.includes('.checkoutMaintenanceBadge'), 'CSS defines .checkoutMaintenanceBadge');
+    assert.ok(commerceCss.includes('.badgeMaintenance'), 'CSS defines .badgeMaintenance');
+    assert.ok(commerceCss.includes('.checkoutRadioOption.isUnavailable'), 'CSS defines disabled option styling');
+    assert.ok(commerceCss.includes('.checkoutAlertBanner.isMaintenance'), 'CSS defines maintenance banner styling');
+});
+
 

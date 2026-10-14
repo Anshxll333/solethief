@@ -16,8 +16,10 @@ import {
     Upload,
     Download,
     Loader2,
+    RotateCcw,
 } from 'lucide-react';
 import { shopCategoriesService, subscribeShopUpdates } from '../services/shopCategories.js';
+import { getDefaultShopCategories, writePreviewShopCategories } from '../commerce/shopCategories.js';
 import { downloadImageAsDataUrl } from '../services/remoteImage.js';
 import { resolveCollectionArtwork } from './shopGroups.js';
 import './ShopCollectionsAdmin.css';
@@ -135,6 +137,19 @@ export default function ShopCollectionsAdmin({ onOpenCreateDrop, refreshTrigger 
             setProductsLoading(false);
         }
     }, []);
+
+    const handleResetCategories = () => {
+        if (window.confirm('Reset all shop collections to default system defaults? Any custom collections or artwork changes will be replaced.')) {
+            try {
+                const store = { version: 1, categories: getDefaultShopCategories(), memberships: [] };
+                writePreviewShopCategories(store);
+                loadCategories();
+                setFeedback({ type: 'success', message: 'Shop collections reset to original defaults!' });
+            } catch (err) {
+                setFeedback({ type: 'error', message: err.message || 'Failed to reset collections.' });
+            }
+        }
+    };
 
     useEffect(() => {
         loadCategories();
@@ -496,6 +511,15 @@ export default function ShopCollectionsAdmin({ onOpenCreateDrop, refreshTrigger 
                     </p>
                 </div>
                 <div className="collectionsAdminHeaderActions">
+                    <button
+                        type="button"
+                        className="collectionsAdminButton secondary"
+                        onClick={handleResetCategories}
+                        title="Reset collections to original defaults"
+                    >
+                        <RotateCcw size={16} />
+                        Reset Defaults
+                    </button>
                     <button
                         type="button"
                         className="collectionsAdminButton secondary"

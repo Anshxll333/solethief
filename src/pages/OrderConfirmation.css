@@ -1,0 +1,1357 @@
+/* ==========================================================================
+   SoleThief Streetwear Luxury - Order Confirmation & Dispatch Receipt Styles
+   Warm Cream & Ivory Editorial Aesthetic (#F1EBDD / #FAF7F2 / #151B2B / #C8A96E)
+   ========================================================================== */
+
+@keyframes confirmPulseRing {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(200, 169, 110, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 7px rgba(200, 169, 110, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(200, 169, 110, 0);
+    }
+}
+
+/* Page Layout */
+.confirmPageContainer {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg, #F1EBDD);
+    color: var(--ink, #151B2B);
+}
+
+.confirmPageWrapper {
+    width: min(1040px, 92%);
+    margin: 0 auto;
+    padding: 2.25rem 0 4.5rem;
+    flex: 1;
+}
+
+/* Eyebrow Navigation & Title Bar */
+.confirmEyebrowRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+
+.confirmEyebrowText {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #8A857C;
+}
+
+.confirmEyebrowText svg {
+    color: #C8A96E;
+}
+
+.confirmEyebrowTag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    background: rgba(200, 169, 110, 0.15);
+    color: #8C6827;
+    border: 1px solid rgba(200, 169, 110, 0.35);
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* Loading & Error States */
+.confirmStateCard {
+    background: #FAF7F2;
+    border: 1px solid rgba(21, 27, 43, 0.14);
+    border-radius: 12px;
+    padding: 3.5rem 2rem;
+    text-align: center;
+    max-width: 600px;
+    margin: 3rem auto;
+    box-shadow: 0 4px 20px rgba(21, 27, 43, 0.04);
+}
+
+.confirmStateCard h2 {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 1.85rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    color: #151B2B;
+}
+
+.confirmStateCard p {
+    font-size: 0.95rem;
+    color: #6E6960;
+    margin-bottom: 1.75rem;
+    line-height: 1.5;
+}
+
+.confirmStateBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: #151B2B;
+    color: #F1EBDD;
+    padding: 0.85rem 1.75rem;
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.confirmStateBtn:hover {
+    background: #000000;
+    transform: translateY(-1px);
+}
+
+/* Main Dispatch Vault Receipt Card */
+.confirmReceiptVault {
+    background: #FAF7F2;
+    border: 1px solid rgba(21, 27, 43, 0.16);
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(21, 27, 43, 0.04);
+    overflow: hidden;
+    margin-bottom: 2rem;
+    transition: box-shadow 0.25s ease;
+}
+
+/* Header Section */
+.confirmVaultHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    padding: 2rem 2.25rem 1.75rem;
+    background: #FAF7F2;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.12);
+}
+
+.confirmHeaderLeft {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+/* Status Badges */
+.confirmStatusBadgeModern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 9999px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    width: fit-content;
+}
+
+.confirmStatusBadgeModern .statusDot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.confirmStatusBadgeModern.confirmed,
+.confirmStatusBadgeModern.processing,
+.confirmStatusBadgeModern.paid {
+    background: rgba(200, 169, 110, 0.18);
+    color: #8C6827;
+    border: 1px solid rgba(200, 169, 110, 0.38);
+}
+
+.confirmStatusBadgeModern.confirmed .statusDot,
+.confirmStatusBadgeModern.processing .statusDot,
+.confirmStatusBadgeModern.paid .statusDot {
+    background: #C8A96E;
+    box-shadow: 0 0 6px rgba(200, 169, 110, 0.6);
+}
+
+.confirmStatusBadgeModern.shipped {
+    background: rgba(59, 130, 246, 0.12);
+    color: #1E40AF;
+    border: 1px solid rgba(59, 130, 246, 0.28);
+}
+
+.confirmStatusBadgeModern.shipped .statusDot {
+    background: #3B82F6;
+    box-shadow: 0 0 6px rgba(59, 130, 246, 0.6);
+}
+
+.confirmStatusBadgeModern.delivered {
+    background: rgba(16, 185, 129, 0.12);
+    color: #065F46;
+    border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.confirmStatusBadgeModern.delivered .statusDot {
+    background: #10B981;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.confirmStatusBadgeModern.isPending,
+.confirmStatusBadgeModern.pending_payment {
+    background: rgba(234, 179, 8, 0.14);
+    color: #A16207;
+    border: 1px solid rgba(234, 179, 8, 0.35);
+}
+
+.confirmStatusBadgeModern.isPending .statusDot,
+.confirmStatusBadgeModern.pending_payment .statusDot {
+    background: #EAB308;
+    box-shadow: 0 0 6px rgba(234, 179, 8, 0.6);
+}
+
+.confirmStatusBadgeModern.isCancelled,
+.confirmStatusBadgeModern.cancelled,
+.confirmStatusBadgeModern.refunded,
+.confirmStatusBadgeModern.expired {
+    background: rgba(239, 68, 68, 0.12);
+    color: #991B1B;
+    border: 1px solid rgba(239, 68, 68, 0.28);
+}
+
+.confirmStatusBadgeModern.isCancelled .statusDot,
+.confirmStatusBadgeModern.cancelled .statusDot,
+.confirmStatusBadgeModern.refunded .statusDot,
+.confirmStatusBadgeModern.expired .statusDot {
+    background: #EF4444;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+}
+
+/* Order ID Serial Row */
+.confirmOrderIdRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.confirmOrderIdTitle {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: clamp(2rem, 3.8vw, 2.75rem);
+    letter-spacing: 0.04em;
+    color: #151B2B;
+    margin: 0;
+    line-height: 1.05;
+}
+
+.confirmCopyBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    background: #EAE5DC;
+    border: 1px solid rgba(21, 27, 43, 0.15);
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #151B2B;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.confirmCopyBtn:hover {
+    background: #151B2B;
+    color: #F1EBDD;
+}
+
+.confirmCopyBtn .copySuccessIcon {
+    color: #10B981;
+}
+
+/* Meta date and payment pill */
+.confirmMetaRow {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    color: #6E6960;
+}
+
+.confirmMetaDate {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.confirmPaymentPill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    background: rgba(21, 27, 43, 0.06);
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #5A554C;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+/* Header Right: Grand Total Card */
+.confirmHeaderRight {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    background: #F4EFE6;
+    border: 1px solid rgba(21, 27, 43, 0.12);
+    border-radius: 8px;
+    padding: 0.9rem 1.4rem;
+    min-width: 175px;
+}
+
+.confirmTotalLabel {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #8A857C;
+    font-weight: 700;
+}
+
+.confirmTotalAmount {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 2.25rem;
+    letter-spacing: 0.03em;
+    color: #151B2B;
+    margin: 0.15rem 0 0.1rem;
+    line-height: 1;
+}
+
+.confirmTotalTaxSub {
+    font-size: 0.72rem;
+    color: #7A756D;
+}
+
+/* Notice for Pending Payment */
+.confirmPendingNotice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1.15rem 1.5rem;
+    background: rgba(234, 179, 8, 0.08);
+    border-bottom: 1px solid rgba(234, 179, 8, 0.35);
+}
+
+.confirmPendingNotice svg {
+    color: #EAB308;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.confirmPendingNotice strong {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    color: #A16207;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.confirmPendingNotice p {
+    font-size: 0.86rem;
+    color: #5A554C;
+    margin: 0;
+    line-height: 1.45;
+}
+
+/* Notice for Cancelled Order */
+.confirmCancelledNotice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1.15rem 1.5rem;
+    background: rgba(239, 68, 68, 0.08);
+    border-bottom: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.confirmCancelledNotice svg {
+    color: #EF4444;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.confirmCancelledNotice strong {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    color: #991B1B;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.confirmCancelledNotice p {
+    font-size: 0.86rem;
+    color: #5A554C;
+    margin: 0;
+    line-height: 1.45;
+}
+
+/* --------------------------------------------------------------------------
+   Delivery Stepper & Timeline Progress Tracker
+   -------------------------------------------------------------------------- */
+.confirmTrackerWrap {
+    padding: 1.75rem 2.25rem 2rem;
+    background: #FBF9F5;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.1);
+}
+
+.confirmTrackerHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.confirmTrackerTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #151B2B;
+    margin: 0;
+}
+
+.confirmTrackerLiveBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8C6827;
+}
+
+.confirmTrackerLiveBadge .beaconDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #C8A96E;
+    animation: confirmPulseRing 2s infinite ease-in-out;
+}
+
+/* Steps Grid */
+.confirmTrackerStepsGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    position: relative;
+}
+
+.confirmTrackerStepNode {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+}
+
+.confirmStepIndicator {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    position: relative;
+    justify-content: center;
+    margin-bottom: 0.75rem;
+}
+
+.confirmStepCircle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #EAE5DC;
+    color: #8A857C;
+    border: 2px solid #FFFFFF;
+    z-index: 2;
+    position: relative;
+    box-shadow: 0 1px 4px rgba(21, 27, 43, 0.08);
+    transition: all 0.25s ease;
+}
+
+.confirmStepLine {
+    position: absolute;
+    left: 50%;
+    right: -50%;
+    top: 50%;
+    height: 2px;
+    background: #E2DDD2;
+    transform: translateY(-50%);
+    z-index: 1;
+    transition: background 0.25s ease;
+}
+
+.confirmStepLine.isFilled {
+    background: #151B2B;
+}
+
+/* Completed Step */
+.confirmTrackerStepNode.completed .confirmStepCircle {
+    background: #151B2B;
+    color: #F1EBDD;
+    border-color: #151B2B;
+}
+
+/* Current / Active Step */
+.confirmTrackerStepNode.current .confirmStepCircle,
+.confirmTrackerStepNode.active .confirmStepCircle {
+    background: #C8A96E;
+    color: #151B2B;
+    border-color: #151B2B;
+}
+
+.confirmTrackerStepNode.current .pulseRing,
+.confirmTrackerStepNode.active .pulseRing {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    animation: confirmPulseRing 2s infinite ease-in-out;
+}
+
+/* Upcoming Step */
+.confirmTrackerStepNode.upcoming .confirmStepCircle {
+    background: #EAE5DC;
+    color: #A9A399;
+}
+
+/* Cancelled Step */
+.confirmTrackerStepNode.cancelled .confirmStepCircle {
+    background: rgba(239, 68, 68, 0.12);
+    color: #EF4444;
+    border-color: #EF4444;
+}
+
+/* Step Content text */
+.confirmStepContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.confirmStepLabel {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #151B2B;
+    line-height: 1.25;
+}
+
+.confirmStepSub {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.65rem;
+    color: #8A857C;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+/* --------------------------------------------------------------------------
+   Two-Column Details Grid: Shipping & Payment Cards
+   -------------------------------------------------------------------------- */
+.confirmInfoGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    padding: 2rem 2.25rem;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.12);
+}
+
+.confirmInfoCard {
+    background: #FFFFFF;
+    border: 1px solid rgba(21, 27, 43, 0.12);
+    border-radius: 8px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    box-shadow: 0 2px 8px rgba(21, 27, 43, 0.02);
+}
+
+.confirmInfoCardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.08);
+}
+
+.confirmInfoCardTitleWrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.confirmInfoCardTitleWrap svg {
+    color: #C8A96E;
+}
+
+.confirmInfoCardTitle {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #151B2B;
+    margin: 0;
+}
+
+.confirmInfoCardBadge {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.18rem 0.45rem;
+    background: rgba(21, 27, 43, 0.06);
+    border-radius: 4px;
+    color: #6E6960;
+}
+
+.confirmInfoCardBody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: #4A463F;
+}
+
+.confirmRecipientName {
+    font-weight: 700;
+    color: #151B2B;
+    font-size: 1rem;
+}
+
+.confirmMetaField {
+    margin: 0.2rem 0;
+    font-size: 0.88rem;
+}
+
+.confirmMetaField strong {
+    color: #151B2B;
+    font-size: 0.82rem;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.1rem;
+}
+
+/* --------------------------------------------------------------------------
+   Allocated Drop Items Section
+   -------------------------------------------------------------------------- */
+.confirmItemsSection {
+    padding: 2rem 2.25rem 2.25rem;
+}
+
+.confirmItemsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.confirmItemsTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 1.35rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #151B2B;
+    margin: 0;
+}
+
+.confirmItemsCountPill {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.72rem;
+    padding: 0.25rem 0.65rem;
+    background: #EAE5DC;
+    border-radius: 9999px;
+    color: #151B2B;
+    font-weight: 700;
+}
+
+/* Items List */
+.confirmLineItemsList {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 0 0 2rem;
+    padding: 0;
+}
+
+.confirmLineItem {
+    display: grid;
+    grid-template-columns: 88px 1fr auto;
+    align-items: center;
+    gap: 1.25rem;
+    background: #FFFFFF;
+    border: 1px solid rgba(21, 27, 43, 0.1);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    transition: border-color 0.2s ease;
+}
+
+.confirmLineItem:hover {
+    border-color: rgba(21, 27, 43, 0.25);
+}
+
+.confirmItemThumbWrap {
+    width: 88px;
+    height: 72px;
+    background: #F8F5EE;
+    border: 1px solid rgba(21, 27, 43, 0.08);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem;
+    overflow: hidden;
+}
+
+.confirmItemThumb {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.08));
+    transition: transform 0.2s ease;
+}
+
+.confirmLineItem:hover .confirmItemThumb {
+    transform: scale(1.05);
+}
+
+.confirmItemInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.confirmItemBrandRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.confirmItemBrandBadge {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8C6827;
+}
+
+.confirmItemName {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 1.15rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #151B2B;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.confirmItemMetaRow {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    font-size: 0.82rem;
+    color: #6E6960;
+}
+
+.confirmItemSizeTag {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.68rem;
+    font-weight: 700;
+    background: rgba(21, 27, 43, 0.06);
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    color: #151B2B;
+}
+
+.confirmItemVerified {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.78rem;
+    color: #065F46;
+    font-weight: 600;
+}
+
+.confirmItemPriceWrap {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.confirmItemPrice {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #151B2B;
+    letter-spacing: 0.02em;
+}
+
+.confirmItemQtySub {
+    font-size: 0.72rem;
+    color: #8A857C;
+}
+
+/* Cost Breakdown Section */
+.confirmBreakdownGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(320px, 1fr);
+    gap: 2rem;
+    align-items: start;
+    margin-top: 1rem;
+}
+
+/* Security Guarantee Banner */
+.confirmAssuranceBox {
+    background: #F4EFE6;
+    border: 1px solid rgba(21, 27, 43, 0.1);
+    border-radius: 8px;
+    padding: 1.4rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.confirmAssuranceIconWrap {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #EAE5DC;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #C8A96E;
+    flex-shrink: 0;
+}
+
+.confirmAssuranceText h5 {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #151B2B;
+    margin: 0 0 0.35rem;
+}
+
+.confirmAssuranceText p {
+    font-size: 0.84rem;
+    color: #6E6960;
+    margin: 0;
+    line-height: 1.45;
+}
+
+/* Financial Breakdown Table */
+.confirmBreakdownCard {
+    background: #FFFFFF;
+    border: 1px solid rgba(21, 27, 43, 0.12);
+    border-radius: 8px;
+    padding: 1.4rem 1.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.confirmBreakdownRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #5A554C;
+}
+
+.confirmBreakdownRow span:last-child {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #151B2B;
+}
+
+.confirmFreeShippingBadge {
+    display: inline-flex;
+    padding: 0.15rem 0.5rem;
+    background: rgba(16, 185, 129, 0.12);
+    color: #065F46;
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+.confirmBreakdownDivider {
+    height: 1px;
+    background: rgba(21, 27, 43, 0.12);
+    margin: 0.35rem 0;
+}
+
+.confirmBreakdownRow.isTotal {
+    font-size: 1.05rem;
+    color: #151B2B;
+    padding-top: 0.25rem;
+}
+
+.confirmBreakdownRow.isTotal span:first-child {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 1.25rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #151B2B;
+}
+
+.confirmBreakdownRow.isTotal span:last-child {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 1.6rem;
+    letter-spacing: 0.03em;
+    color: #151B2B;
+}
+
+/* --------------------------------------------------------------------------
+   Action Controls Bar
+   -------------------------------------------------------------------------- */
+.confirmReceiptActions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.confirmActionsLeft {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.confirmCtaPrimary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    background: #151B2B;
+    color: #F1EBDD;
+    padding: 0.9rem 1.85rem;
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    min-height: 48px;
+}
+
+.confirmCtaPrimary:hover {
+    background: #000000;
+    color: #C8A96E;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(21, 27, 43, 0.2);
+}
+
+.confirmCtaSecondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: #FAF7F2;
+    color: #151B2B;
+    border: 1px solid rgba(21, 27, 43, 0.25);
+    padding: 0.9rem 1.6rem;
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    min-height: 48px;
+}
+
+.confirmCtaSecondary:hover {
+    background: #151B2B;
+    color: #F1EBDD;
+    border-color: #151B2B;
+}
+
+.confirmPrintBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: 1px solid rgba(21, 27, 43, 0.15);
+    color: #6E6960;
+    padding: 0.75rem 1.25rem;
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 48px;
+}
+
+.confirmPrintBtn:hover {
+    background: rgba(21, 27, 43, 0.06);
+    color: #151B2B;
+    border-color: #151B2B;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Breakpoints
+   -------------------------------------------------------------------------- */
+@media (max-width: 860px) {
+    .confirmVaultHeader {
+        padding: 1.5rem;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .confirmHeaderRight {
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    .confirmInfoGrid {
+        grid-template-columns: 1fr;
+        padding: 1.5rem;
+    }
+
+    .confirmBreakdownGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .confirmItemsSection {
+        padding: 1.5rem;
+    }
+
+    .confirmTrackerWrap {
+        padding: 1.5rem;
+    }
+
+    .confirmTrackerStepsGrid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem 1rem;
+    }
+
+    .confirmStepLine {
+        display: none;
+    }
+
+    .confirmReceiptActions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .confirmActionsLeft {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .confirmCtaPrimary,
+    .confirmCtaSecondary,
+    .confirmPrintBtn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 580px) {
+    .confirmPageWrapper {
+        width: 94%;
+        padding: 1.5rem 0 3.5rem;
+    }
+
+    .confirmLineItem {
+        grid-template-columns: 72px 1fr;
+        gap: 1rem;
+    }
+
+    .confirmItemPriceWrap {
+        grid-column: 1 / -1;
+        text-align: left;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: baseline;
+        padding-top: 0.65rem;
+        border-top: 1px dashed rgba(21, 27, 43, 0.1);
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Interactive Modals: 24-Hour Order Cancellation & Digital Invoice
+   -------------------------------------------------------------------------- */
+.orderModalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 13, 20, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+.orderModalContent {
+    background: #FFFFFF;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    border-radius: 10px;
+    width: 100%;
+    max-width: 560px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    color: #151B2B;
+}
+
+.orderModalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.1);
+    background: #FAF7F2;
+}
+
+.orderModalHeader h3 {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 1.5rem;
+    letter-spacing: 0.04em;
+    color: #151B2B;
+    margin: 0;
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
+.orderModalCloseBtn {
+    background: transparent;
+    border: none;
+    color: #6E6960;
+    cursor: pointer;
+    padding: 0.35rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.orderModalCloseBtn:hover {
+    color: #151B2B;
+}
+
+.orderModalBody {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.cancelModalWarning {
+    background: rgba(220, 38, 38, 0.06);
+    border: 1px solid rgba(220, 38, 38, 0.22);
+    border-radius: 6px;
+    padding: 1rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.cancelModalWarning strong {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    color: #B91C1C;
+    text-transform: uppercase;
+}
+
+.cancelModalWarning p {
+    font-size: 0.86rem;
+    color: #4A453C;
+    line-height: 1.45;
+    margin: 0;
+}
+
+.modalFormGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.modalFormGroup label {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #151B2B;
+    text-transform: uppercase;
+}
+
+.modalSelect,
+.modalTextarea {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    background: #FAF7F2;
+    border: 1px solid rgba(21, 27, 43, 0.18);
+    border-radius: 4px;
+    font-family: var(--font-body, 'Inter', sans-serif);
+    font-size: 0.88rem;
+    color: #151B2B;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.modalSelect:focus,
+.modalTextarea:focus {
+    outline: none;
+    border-color: #151B2B;
+    box-shadow: 0 0 0 2px rgba(21, 27, 43, 0.12);
+}
+
+.orderModalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    background: #FAF7F2;
+    border-top: 1px solid rgba(21, 27, 43, 0.1);
+}
+
+.btnModalDismiss {
+    padding: 0.65rem 1.25rem;
+    background: transparent;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #5A554C;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.2s;
+}
+
+.btnModalDismiss:hover {
+    background: rgba(21, 27, 43, 0.06);
+    color: #151B2B;
+}
+
+.btnModalConfirmCancel {
+    padding: 0.65rem 1.35rem;
+    background: #B91C1C;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.btnModalConfirmCancel:hover:not(:disabled) {
+    background: #991B1B;
+    transform: translateY(-1px);
+}
+
+.btnModalConfirmCancel:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------------------
+   Print Stylesheet
+   -------------------------------------------------------------------------- */
+@media print {
+    header,
+    nav,
+    footer,
+    .confirmEyebrowRow,
+    .confirmReceiptActions,
+    .confirmPrintBtn {
+        display: none !important;
+    }
+
+    .confirmPageContainer,
+    .confirmPageWrapper {
+        background: #FFFFFF !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+    }
+
+    .confirmReceiptVault {
+        border: 1px solid #000000 !important;
+        box-shadow: none !important;
+        background: #FFFFFF !important;
+    }
+
+    .confirmVaultHeader,
+    .confirmTrackerWrap,
+    .confirmInfoGrid,
+    .confirmItemsSection {
+        background: #FFFFFF !important;
+    }
+}

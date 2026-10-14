@@ -30,6 +30,26 @@
 }
 
 /* --------------------------------------------------------------------------
+   Navigation Tabs (Slider-free responsive tabs)
+   -------------------------------------------------------------------------- */
+.accountNavTabs {
+    display: flex;
+    gap: .5rem;
+    border-bottom: 2px solid rgba(21, 27, 43, 0.2);
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+    overflow-x: visible;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.accountNavTabs::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+/* --------------------------------------------------------------------------
    Main Order Vault Section
    -------------------------------------------------------------------------- */
 .accountOrdersSection {
@@ -96,7 +116,10 @@
 .vaultMetricCard {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 0.35rem;
     background: #faf7f2;
     border: 1px solid rgba(21, 27, 43, 0.14);
     border-radius: 6px;
@@ -118,6 +141,7 @@
     text-transform: uppercase;
     color: #8a857c;
     font-weight: 700;
+    text-align: center;
 }
 
 .vaultMetricValue {
@@ -126,6 +150,9 @@
     color: #151b2b;
     letter-spacing: 0.02em;
     line-height: 1;
+    text-align: center;
+    display: block;
+    width: 100%;
 }
 
 .vaultMetricValue.gold {
@@ -440,12 +467,21 @@
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 4px 18px rgba(21, 27, 43, 0.04);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .orderVaultCard:hover {
     border-color: rgba(21, 27, 43, 0.35);
     box-shadow: 0 8px 26px rgba(21, 27, 43, 0.08);
+}
+
+.orderVaultCard.isInteractive {
+    cursor: pointer;
+}
+
+.orderVaultCard.isInteractive:hover {
+    border-color: #151b2b;
+    box-shadow: 0 10px 32px rgba(21, 27, 43, 0.12);
 }
 
 .orderVaultCard.isExpanded {
@@ -672,6 +708,41 @@
     padding: 1.25rem 1.4rem;
     background: #fbf9f5;
     border-bottom: 1px solid rgba(21, 27, 43, 0.08);
+    transition: background 0.22s ease, border-color 0.22s ease;
+}
+
+.orderProgressTrackerWrap.isClickable {
+    cursor: pointer;
+}
+
+.orderProgressTrackerWrap.isClickable:hover {
+    background: #f5efe6;
+    border-bottom-color: rgba(200, 169, 110, 0.4);
+}
+
+.orderProgressTrackerWrap.isClickable:active {
+    background: #ede4d5;
+}
+
+.orderTrackerHoverCue {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 0.65rem;
+    border-top: 1px dashed rgba(21, 27, 43, 0.12);
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #8a857c;
+    text-transform: uppercase;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.orderProgressTrackerWrap:hover .orderTrackerHoverCue {
+    color: #b8934a;
 }
 
 .trackerStepsGrid {
@@ -816,6 +887,24 @@
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.03em;
+    transition: background 0.2s ease;
+}
+
+.orderCancelledBanner.isClickable {
+    cursor: pointer;
+}
+
+.orderCancelledBanner.isClickable:hover {
+    background: rgba(239, 68, 68, 0.14);
+}
+
+.orderReplacementActiveBanner.isClickable {
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.orderReplacementActiveBanner.isClickable:hover {
+    background: rgba(200, 169, 110, 0.28);
 }
 
 /* --------------------------------------------------------------------------
@@ -840,12 +929,24 @@
     background: #faf7f2;
     border: 1px solid rgba(21, 27, 43, 0.09);
     border-radius: 8px;
-    transition: background 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+    transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, transform 0.22s ease;
 }
 
 .orderSneakerCard:hover {
-    background: #f5efe6;
-    border-color: rgba(21, 27, 43, 0.18);
+    background: #ffffff;
+    border-color: #c8a96e;
+    box-shadow: 0 6px 20px rgba(200, 169, 110, 0.18);
+    transform: translateY(-2px);
+}
+
+.orderSneakerCard:active {
+    transform: scale(0.99);
+}
+
+.orderSneakerCard:focus-visible {
+    outline: 2px solid #c8a96e;
+    outline-offset: 2px;
 }
 
 /* Sneaker Thumbnail: Crisp, strictly fixed container preventing image explosion! */
@@ -866,6 +967,13 @@
     justify-content: center;
     flex-shrink: 0;
     box-sizing: border-box;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.orderSneakerCard:hover .orderSneakerThumb {
+    background: #f2ede4;
+    border-color: #c8a96e;
 }
 
 .orderSneakerThumb img {
@@ -881,7 +989,7 @@
 }
 
 .orderSneakerCard:hover .orderSneakerThumb img {
-    transform: scale(1.08) rotate(-2deg);
+    transform: scale(1.1) rotate(-2deg);
 }
 
 .orderSneakerPlaceholder {
@@ -1804,6 +1912,170 @@
 .cancelExpiredState .commerceButton {
     margin-top: 0.75rem;
     min-width: 140px;
+}
+
+/* --------------------------------------------------------------------------
+   Order Rejection Notice & 3-Day Replacement Styles
+   -------------------------------------------------------------------------- */
+.orderCancelledBannerContent {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.orderCancelledTitle {
+    font-weight: 700;
+}
+
+.orderRejectionNoticeLine {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    color: #991b1b;
+    background: rgba(220, 38, 38, 0.08);
+    padding: 0.35rem 0.65rem;
+    border-radius: 4px;
+    margin-top: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.orderReplacementActiveBanner {
+    background: rgba(99, 45, 153, 0.08);
+    border: 1px solid rgba(99, 45, 153, 0.25);
+    color: #4e217a;
+    padding: 0.85rem 1.25rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    border-radius: 4px;
+}
+
+.orderReplacementActiveContent {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.orderReplacementTitle {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #6b21a8;
+}
+
+.orderReplacementReason {
+    font-size: 0.84rem;
+    color: #381a57;
+}
+
+.orderItemRejectionNotice {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.4rem;
+    padding: 0.35rem 0.65rem;
+    background: #fdf2f2;
+    border: 1px solid #fecaca;
+    border-radius: 4px;
+    font-size: 0.78rem;
+}
+
+.itemCancelledPill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: #b91c1c;
+    color: #ffffff;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 0.15rem 0.45rem;
+    border-radius: 3px;
+    letter-spacing: 0.06em;
+}
+
+.itemCancelledReason {
+    color: #7f1d1d;
+    font-size: 0.78rem;
+}
+
+.orderReplaceBtn {
+    background: #f3e8ff;
+    color: #6b21a8;
+    border: 1px solid #d8b4fe;
+    font-weight: 700;
+}
+
+.orderReplaceBtn:hover:not(:disabled) {
+    background: #6b21a8;
+    color: #ffffff;
+    border-color: #6b21a8;
+}
+
+.orderReplaceBtn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.replaceModalContent {
+    max-width: 560px;
+}
+
+.replaceModalTitle {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 1.55rem;
+    letter-spacing: 0.04em;
+    color: #151b2b;
+    margin: 0;
+    line-height: 1.1;
+}
+
+.replaceModalSub {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    color: #8a857c;
+}
+
+.replacePolicyNotice {
+    background: rgba(99, 45, 153, 0.06);
+    border: 1px solid rgba(99, 45, 153, 0.22);
+    border-radius: 6px;
+    padding: 1rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.replacePolicyNotice .cancelNoticeHeader {
+    color: #6b21a8;
+}
+
+.replacePolicyNotice p {
+    font-size: 0.88rem;
+    color: #4a453c;
+    line-height: 1.45;
+    margin: 0;
+}
+
+.replacementWindowTimer {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #6b21a8;
+    background: rgba(99, 45, 153, 0.1);
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+    align-self: flex-start;
+    margin-top: 0.25rem;
 }
 
 /* --------------------------------------------------------------------------

@@ -7,7 +7,7 @@ import {
 } from '../src/commerce/shopCategories.js';
 import { createShopCategoriesService } from '../src/services/shopCategories.js';
 import { createCatalogService, previewDropToRow } from '../src/services/catalog.js';
-import { ADMIN_STORAGE_DROPS_KEY, ADMIN_STORAGE_OPERATOR_KEY, getPreviewDrops, savePreviewDrops } from '../src/commerce/admin.js';
+import { ADMIN_STORAGE_DROPS_KEY, getPreviewDrops, savePreviewDrops } from '../src/commerce/admin.js';
 
 const values = new Map();
 const storage = { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
@@ -148,8 +148,6 @@ test('all admin operations require current RPC authorization, never a caller rol
         assert.equal(live.calls.length, 5);
         live.calls.forEach(call => assert.deepEqual(call, ['rpc', 'is_shop_admin']));
     }
-    values.set(ADMIN_STORAGE_OPERATOR_KEY, JSON.stringify({ isOperator: false, role: 'admin' }));
-    await assert.rejects(service().save({ name: 'X' }), /operator/);
     assert.equal((await service().list()).categories.length, 9);
 });
 

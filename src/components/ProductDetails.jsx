@@ -10,8 +10,8 @@ import {
   Maximize2,
   X,
   Truck,
-  Package,
   ShieldCheck,
+  RotateCcw,
 } from 'lucide-react';
 import TransparentArtwork from './TransparentArtwork';
 import SimilarProductsCarousel from './SimilarProductsCarousel';
@@ -131,13 +131,51 @@ export default function ProductDetails({ shoe }) {
       ? [{ value: shoe.size, quantity: 10, sold: false }]
       : defaultSizes;
 
-  const sizes = rawSizes.map((s) => (typeof s === 'string' ? { value: s, quantity: 10, sold: false } : { ...s, quantity: s.quantity ?? 10 }));
-  const firstAvailableSize = sizes.find((s) => !s.sold && s.quantity > 0)?.value || sizes[0]?.value;
-  const [selectedSize, setSelectedSize] = useState(firstAvailableSize);
+  const sizes = useMemo(() => {
+    return rawSizes.map((s) => {
+      if (typeof s === 'string') return { value: s, quantity: 10, sold: false };
+      const qty = typeof s.quantity === 'number' ? s.quantity : 10;
+      const sold = Boolean(s.sold || qty <= 0);
+      return {
+        ...s,
+        quantity: Math.max(0, qty),
+        sold,
+      };
+    });
+  }, [rawSizes]);
 
-  // Quantity selector allows increasing up to 10
-  const maxAvailable = 10;
-  const [quantity, setQuantity] = useState(1);
+  const firstAvailableSize = useMemo(() => {
+    return sizes.find((s) => !s.sold && s.quantity > 0)?.value || null;
+  }, [sizes]);
+
+  const [selectedSize, setSelectedSize] = useState(() => firstAvailableSize);
+
+  // Sync selected size if current selection is invalid, out of stock, or quantity hit zero
+  useEffect(() => {
+    const currentVariant = sizes.find((s) => s.value === selectedSize);
+    if (!selectedSize || !currentVariant || currentVariant.sold || currentVariant.quantity <= 0) {
+      setSelectedSize(firstAvailableSize);
+    }
+  }, [shoe?.id, sizes, selectedSize, firstAvailableSize]);
+
+  const selectedVariant = sizes.find((s) => s.value === selectedSize);
+  const isSelectedSoldOut = !selectedSize || !selectedVariant || selectedVariant.sold || selectedVariant.quantity <= 0;
+  const allSizesSoldOut = sizes.every((s) => s.sold || s.quantity <= 0);
+
+  // Quantity selector bounds based on available stock of the chosen size (capped at 10)
+  const availableStock = selectedVariant && !selectedVariant.sold ? Math.max(0, selectedVariant.quantity) : 0;
+  const maxAvailable = Math.min(10, availableStock);
+  const [quantity, setQuantity] = useState(() => (availableStock > 0 ? 1 : 0));
+
+  useEffect(() => {
+    if (availableStock <= 0) {
+      setQuantity(0);
+    } else if (quantity <= 0) {
+      setQuantity(1);
+    } else if (quantity > maxAvailable) {
+      setQuantity(maxAvailable);
+    }
+  }, [availableStock, maxAvailable, quantity]);
 
   const existingSizeQuantity = cart.items?.find(
     (item) => String(item.id) === String(shoe?.id) && (item.size === selectedSize || (!item.size && !selectedSize))
@@ -150,10 +188,10 @@ export default function ProductDetails({ shoe }) {
 
   const handleActionClick = (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    if (full || !shoe) return;
+    if (full || !shoe || isSelectedSoldOut || !selectedSize || availableStock <= 0) return;
     const numericId = Number(shoe?.id);
     const targetId = Number.isInteger(numericId) && numericId > 0 ? numericId : shoe?.id;
-    add(targetId, quantity, selectedSize);
+    add(targetId, Math.min(quantity, availableStock), selectedSize);
     setJustAdded(true);
   };
 
@@ -327,14 +365,16 @@ export default function ProductDetails({ shoe }) {
             </div>
             <div className="pairSizeOptions" role="radiogroup" aria-label="Available shoe sizes">
               {sizes.map((size) => {
-                const isSoldOut = size.sold || size.quantity <= 0;
-                const isSelected = selectedSize === size.value;
+                const isSoldOut = Boolean(size.sold || size.quantity <= 0);
+                const isSelected = !isSoldOut && selectedSize === size.value;
                 return (
                   <button
                     type="button"
                     key={size.value}
                     className={`pairSizePill ${isSelected ? 'isSelected' : ''} ${isSoldOut ? 'isSoldOut' : ''}`}
                     disabled={isSoldOut}
+                    aria-disabled={isSoldOut}
+                    tabIndex={isSoldOut ? -1 : 0}
                     onClick={() => {
                       if (!isSoldOut) {
                         setSelectedSize(size.value);
@@ -346,11 +386,12 @@ export default function ProductDetails({ shoe }) {
                     aria-checked={isSelected}
                     title={
                       isSoldOut
-                        ? 'Sold out'
+                        ? `${size.value} - Out of stock`
                         : `${size.quantity} ${size.quantity === 1 ? 'pair' : 'pairs'} available`
                     }
                   >
-                    {size.value}
+                    <span className="pairSizeValue">{size.value}</span>
+                    {isSoldOut && <span className="pairSizeStockLabel">OUT OF STOCK</span>}
                   </button>
                 );
               })}
@@ -371,13 +412,13 @@ export default function ProductDetails({ shoe }) {
                   setQuantity((q) => Math.max(1, q - 1));
                   setJustAdded(false);
                 }}
-                disabled={quantity <= 1}
+                disabled={quantity <= 1 || isSelectedSoldOut || availableStock <= 0}
                 aria-label="Decrease quantity"
               >
                 <Minus size={15} strokeWidth={1.5} aria-hidden="true" />
               </button>
               <span className="pairQuantityValue" aria-live="polite">
-                {quantity}
+                {isSelectedSoldOut ? 0 : quantity}
               </span>
               <button
                 type="button"
@@ -386,7 +427,7 @@ export default function ProductDetails({ shoe }) {
                   setQuantity((q) => Math.min(maxAvailable, q + 1));
                   setJustAdded(false);
                 }}
-                disabled={quantity >= maxAvailable}
+                disabled={quantity >= maxAvailable || isSelectedSoldOut || availableStock <= 0}
                 aria-label="Increase quantity"
               >
                 <Plus size={15} strokeWidth={1.5} aria-hidden="true" />
@@ -396,17 +437,25 @@ export default function ProductDetails({ shoe }) {
             {/* Dark Primary Action Button */}
             <button
               type="button"
-              className={`pairAddToBagBtn ${justAdded ? 'isJustAdded' : ''}`}
-              disabled={!enabled || full}
+              className={`pairAddToBagBtn ${justAdded ? 'isJustAdded' : ''} ${isSelectedSoldOut ? 'isSoldOut' : ''}`}
+              disabled={!enabled || full || isSelectedSoldOut || availableStock <= 0}
               onClick={handleActionClick}
               aria-label={
-                `${!enabled ? 'Availability unverified' : full ? 'Bag limit reached' : 'Add to bag'}: ${shoe.name}, ${selectedSize}`
+                isSelectedSoldOut || allSizesSoldOut
+                  ? `${shoe.name} is out of stock`
+                  : !enabled
+                    ? 'Availability unverified'
+                    : full
+                      ? 'Bag limit reached'
+                      : `Add to bag: ${shoe.name}, ${selectedSize}`
               }
             >
               {justAdded ? (
                 <>
                   ADDED TO BAG ✓
                 </>
+              ) : isSelectedSoldOut || allSizesSoldOut ? (
+                'OUT OF STOCK'
               ) : full ? (
                 'BAG LIMIT REACHED'
               ) : (
@@ -442,7 +491,7 @@ export default function ProductDetails({ shoe }) {
 
           {storageWarning && <span className="pairStorageWarning">{storageWarning}</span>}
 
-          {/* 3 Trust Badges */}
+          {/* Trust Badges */}
           <div className="pairTrustBadges">
             <div className="pairTrustItem">
               <div className="pairTrustIconWrap">
@@ -455,11 +504,11 @@ export default function ProductDetails({ shoe }) {
             </div>
             <div className="pairTrustItem">
               <div className="pairTrustIconWrap">
-                <Package size={18} strokeWidth={1.5} className="pairTrustIcon" aria-hidden="true" />
+                <RotateCcw size={18} strokeWidth={1.5} className="pairTrustIcon" aria-hidden="true" />
               </div>
               <div className="pairTrustText">
-                <span className="pairTrustTitle">Carefully Packaged</span>
-                <span className="pairTrustDesc">Safe delivery</span>
+                <span className="pairTrustTitle">3 Days Replacement</span>
+                <span className="pairTrustDesc">Hassle-free size exchange</span>
               </div>
             </div>
             <div className="pairTrustItem">

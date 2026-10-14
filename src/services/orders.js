@@ -5,9 +5,12 @@ import {
     getPreviewOrderById,
     savePreviewOrder,
     canCancelOrder,
+    canReplaceOrder,
     updatePreviewOrderStatus,
+    requestPreviewOrderReplacement,
 } from '../commerce/orders.js';
 import { validateAddress } from '../commerce/address.js';
+import { decrementPreviewStock, restorePreviewStock } from '../commerce/admin.js';
 
 export function createOrdersService(getRuntime) {
     return {
@@ -45,6 +48,35 @@ export function createOrdersService(getRuntime) {
             if (!isLive) {
                 if (!canPreview) {
                     throw new Error('Supabase environment is not configured and preview mode is not enabled.');
+                }
+
+                // Validate stock availability for preview orders
+                for (const item of items) {
+                    const pId = item?.id ?? item?.productId ?? item?.product_id;
+                    const itemSize = item?.size;
+                    const qty = Number.isInteger(item?.quantity) && item.quantity > 0 ? item.quantity : 1;
+                    if (pId && itemSize) {
+                        try {
+                            const { getPreviewDrops } = await import('../commerce/admin.js');
+                            const drops = getPreviewDrops();
+                            const drop = drops.find(d => d.id === Number(pId) || String(d.id) === String(pId));
+                            if (drop && Array.isArray(drop.sizes)) {
+                                const sizeVar = drop.sizes.find(s => s.value === itemSize);
+                                if (sizeVar) {
+                                    if (sizeVar.sold || sizeVar.quantity <= 0) {
+                                        throw new Error(`Size ${itemSize} for ${drop.name || 'product'} is out of stock.`);
+                                    }
+                                    if (qty > sizeVar.quantity) {
+                                        throw new Error(`Insufficient stock for ${drop.name || 'product'} (${itemSize}). Only ${sizeVar.quantity} pairs available.`);
+                                    }
+                                }
+                            }
+                        } catch (err) {
+                            if (err.message && (err.message.includes('stock') || err.message.includes('out of stock'))) {
+                                throw err;
+                            }
+                        }
+                    }
                 }
 
                 // Subtotal
@@ -111,6 +143,20 @@ export function createOrdersService(getRuntime) {
 
                 savePreviewOrder(simulatedOrder);
 
+                // Decrement size quantity in preview inventory
+                for (const item of items) {
+                    const pId = item?.id ?? item?.productId ?? item?.product_id;
+                    const itemSize = item?.size;
+                    const qty = Number.isInteger(item?.quantity) && item.quantity > 0 ? item.quantity : 1;
+                    if (pId && itemSize) {
+                        try {
+                            decrementPreviewStock(pId, itemSize, qty);
+                        } catch {
+                            // Drop might not exist in preview storage in isolated test runs
+                        }
+                    }
+                }
+
                 return {
                     success: true,
                     mode: 'preview',
@@ -156,13 +202,13 @@ export function createOrdersService(getRuntime) {
             };
         },
 
-        async getOrder(orderId, { allowPreview = undefined } = {}) {
+        async getOrder(orderId, { allowPreview = undefined, user = null } = {}) {
             const runtime = getRuntime ? getRuntime() : { status: 'missing', client: null };
             const isLive = runtime.status === 'configured' && Boolean(runtime.client);
             const canPreview = allowPreview !== undefined ? allowPreview : Boolean(runtime.previewMode);
 
             if (!isLive || canPreview) {
-                const localOrder = getPreviewOrderById(orderId);
+                const localOrder = getPreviewOrderById(orderId, user?.id || null);
                 if (localOrder) {
                     return {
                         ...localOrder,
@@ -209,7 +255,7 @@ export function createOrdersService(getRuntime) {
             let results = [];
 
             if (!isLive || canPreview) {
-                const previewOrders = getPreviewOrders();
+                const previewOrders = getPreviewOrders(user?.id || null);
                 results = [...previewOrders];
             }
 
@@ -233,6 +279,16 @@ export function createOrdersService(getRuntime) {
                 }
             }
 
+            // Always ensure stable queue positioning by created_at (newest at top, oldest at bottom)
+            results.sort((a, b) => {
+                const timeA = a?.created_at ? new Date(a.created_at).getTime() : 0;
+                const timeB = b?.created_at ? new Date(b.created_at).getTime() : 0;
+                if (timeA && timeB && timeA !== timeB) {
+                    return timeB - timeA;
+                }
+                return 0;
+            });
+
             return {
                 data: results,
                 error: null,
@@ -249,7 +305,7 @@ export function createOrdersService(getRuntime) {
             const canPreview = allowPreview !== undefined ? allowPreview : Boolean(runtime.previewMode);
 
             // Retrieve order to validate cancellation eligibility
-            const fetched = await this.getOrder(orderId, { allowPreview });
+            const fetched = await this.getOrder(orderId, { allowPreview, user });
             const order = fetched?.order || fetched?.data || fetched;
             if (!order || !order.id) {
                 throw new Error(`Order ${orderId} not found.`);
@@ -270,6 +326,21 @@ export function createOrdersService(getRuntime) {
             // Preview mode or order found in preview storage
             if (!isLive || canPreview || getPreviewOrderById(orderId)) {
                 const updated = updatePreviewOrderStatus(orderId, 'cancelled', { reason });
+                // Restore stock for cancelled order items
+                if (order && Array.isArray(order.items)) {
+                    for (const item of order.items) {
+                        const pId = item?.product_id ?? item?.productId ?? item?.id;
+                        const itemSize = item?.size;
+                        const qty = Number.isInteger(item?.quantity) && item.quantity > 0 ? item.quantity : 1;
+                        if (pId && itemSize) {
+                            try {
+                                restorePreviewStock(pId, itemSize, qty);
+                            } catch {
+                                // ignore
+                            }
+                        }
+                    }
+                }
                 return {
                     success: true,
                     mode: 'preview',
@@ -320,6 +391,88 @@ export function createOrdersService(getRuntime) {
             }
 
             throw new Error('Unable to cancel order: service environment not configured.');
+        },
+
+        async requestReplacement(orderId, { reason = '', preferredSize = '', notes = '', user = null, allowPreview = undefined } = {}) {
+            if (!orderId) {
+                throw new Error('Order ID is required to request replacement.');
+            }
+
+            const runtime = getRuntime ? getRuntime() : { status: 'missing', client: null };
+            const isLive = runtime.status === 'configured' && Boolean(runtime.client);
+            const canPreview = allowPreview !== undefined ? allowPreview : Boolean(runtime.previewMode);
+
+            const fetched = await this.getOrder(orderId, { allowPreview, user });
+            const order = fetched?.order || fetched?.data || fetched;
+            if (!order || !order.id) {
+                throw new Error(`Order ${orderId} not found.`);
+            }
+
+            if (order.status !== 'delivered') {
+                throw new Error('Only delivered orders can be replaced.');
+            }
+
+            if (!canReplaceOrder(order)) {
+                throw new Error('Replacement window of 3 days from delivery has elapsed.');
+            }
+
+            if (!isLive || canPreview || getPreviewOrderById(orderId)) {
+                const updated = requestPreviewOrderReplacement(orderId, { reason, preferredSize, notes });
+                return {
+                    success: true,
+                    mode: 'preview',
+                    order: updated,
+                    data: updated,
+                    error: null,
+                };
+            }
+
+            if (isLive) {
+                const client = runtime.client;
+                const updatePayload = {
+                    replacement_requested: true,
+                    replacement_status: 'requested',
+                    replacement_reason: reason,
+                    replacement_preferred_size: preferredSize,
+                    replacement_notes: notes,
+                    replacement_requested_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                };
+
+                let query = client.from('orders').update(updatePayload).eq('id', orderId);
+                if (user?.id) {
+                    query = query.eq('user_id', user.id);
+                }
+
+                const { data, error } = await query.select('*, order_items(*)').maybeSingle();
+                if (error) {
+                    try {
+                        const { data: rpcData, error: rpcErr } = await client.rpc('request_order_replacement', {
+                            p_order_id: orderId,
+                            p_reason: reason,
+                            p_size: preferredSize,
+                            p_notes: notes,
+                        });
+                        if (!rpcErr && rpcData) {
+                            return { success: true, mode: 'live', order: rpcData, data: rpcData, error: null };
+                        }
+                    } catch {
+                        // ignore fallback error
+                    }
+                    throw new Error(`Failed to request replacement: ${error.message}`);
+                }
+
+                const formatted = data ? { ...data, items: data.order_items || [] } : { ...order, ...updatePayload };
+                return {
+                    success: true,
+                    mode: 'live',
+                    order: formatted,
+                    data: formatted,
+                    error: null,
+                };
+            }
+
+            throw new Error('Unable to request replacement: service environment not configured.');
         },
     };
 }

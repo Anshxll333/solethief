@@ -1,5 +1,5 @@
 import { getSupabaseRuntime } from '../lib/supabase.js';
-import { getOperatorSession, getPreviewDrops } from '../commerce/admin.js';
+import { getPreviewDrops } from '../commerce/admin.js';
 import { adaptCatalogRow, previewDropToRow } from './catalog.js';
 import {
     assertCategoryId, assertProductId, normalizeCategory, sortCategories,
@@ -29,11 +29,8 @@ export function createShopCategoriesService(runtimeProvider = getSupabaseRuntime
     }
 
     async function authorize(value) {
-        if (value.status === 'missing') {
-            // This session authorizes only a local demo, never a Supabase request.
-            const session = getOperatorSession();
-            if (session?.isOperator !== true || session.role !== 'admin') throw new Error('Local demo operator required.');
-        } else if (await result(value.client.rpc('is_shop_admin')) !== true) {
+        // The protected admin route applies the configured-email gate in preview mode.
+        if (value.status !== 'missing' && await result(value.client.rpc('is_shop_admin')) !== true) {
             throw new Error('Shop administrator required.');
         }
     }

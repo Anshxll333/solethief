@@ -209,4 +209,12 @@ test('resolveCollectionArtwork prioritizes custom uploaded images over hardcoded
     };
     assert.equal(resolveCollectionArtwork(otherWithoutImage), null);
     assert.equal(resolveCollectionArtwork(null), null);
+
+    // 6. Pinterest pin webpage URL falls back to default collection artwork instead of disappearing
+    const nbWithPinterestPinUrl = {
+        name: 'New Balance',
+        slug: 'new-balance',
+        image_url: 'https://in.pinterest.com/pin/123456789/',
+    };
+    assert.equal(resolveCollectionArtwork(nbWithPinterestPinUrl), DEFAULT_COLLECTION_ARTWORK['new-balance']);
 });

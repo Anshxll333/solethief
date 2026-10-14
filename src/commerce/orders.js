@@ -155,7 +155,7 @@ export function parsePreviewOrders(raw) {
         if (typeof raw !== 'string' || raw.length > 50000) return [];
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed)) return [];
-        return parsed.filter(item => {
+        const valid = parsed.filter(item => {
             const total = item?.total_amount_minor ?? item?.total_minor;
             return (
                 item &&
@@ -167,17 +167,33 @@ export function parsePreviewOrders(raw) {
                 (!item.items || Array.isArray(item.items))
             );
         }).slice(0, MAX_ORDER_HISTORY);
+
+        // Preserve chronological placement queue: newest created_at first (top), oldest created_at last (bottom)
+        // If created_at is equal or absent, maintain stable array order
+        return [...valid].sort((a, b) => {
+            const timeA = a?.created_at ? new Date(a.created_at).getTime() : 0;
+            const timeB = b?.created_at ? new Date(b.created_at).getTime() : 0;
+            if (timeA && timeB && timeA !== timeB) {
+                return timeB - timeA;
+            }
+            return 0;
+        });
     } catch {
         return [];
     }
 }
 
-export function getPreviewOrders() {
+export function getPreviewOrders(userId = null) {
     const storage = getStorage();
     if (!storage) return [];
     try {
         const raw = storage.getItem(ORDERS_PREVIEW_KEY);
-        return parsePreviewOrders(raw);
+        const allOrders = parsePreviewOrders(raw);
+        // If userId provided, filter orders to only show those belonging to this user
+        if (userId) {
+            return allOrders.filter(order => order.user_id === userId);
+        }
+        return allOrders;
     } catch {
         return [];
     }
@@ -191,9 +207,17 @@ export function savePreviewOrder(order) {
     if (!storage) return [order];
     try {
         const existing = getPreviewOrders();
-        // Prepend new order; deduplicate by ID
-        const filtered = existing.filter(o => o.id !== order.id);
-        const updated = [order, ...filtered].slice(0, MAX_ORDER_HISTORY);
+        const existingIndex = existing.findIndex(o => o.id === order.id);
+        let updated;
+        if (existingIndex >= 0) {
+            // Update in-place to preserve original placement/queue position
+            updated = [...existing];
+            updated[existingIndex] = order;
+        } else {
+            // Prepend new order; deduplicate by ID
+            const filtered = existing.filter(o => o.id !== order.id);
+            updated = [order, ...filtered].slice(0, MAX_ORDER_HISTORY);
+        }
         storage.setItem(ORDERS_PREVIEW_KEY, JSON.stringify(updated));
         return updated;
     } catch {
@@ -201,8 +225,8 @@ export function savePreviewOrder(order) {
     }
 }
 
-export function getPreviewOrderById(orderId) {
-    const orders = getPreviewOrders();
+export function getPreviewOrderById(orderId, userId = null) {
+    const orders = getPreviewOrders(userId);
     return orders.find(o => o.id === orderId) || null;
 }
 
@@ -246,7 +270,46 @@ export function getCancellationRemainingTime(order, now = Date.now()) {
     };
 }
 
-export function updatePreviewOrderStatus(orderId, nextStatus, { reason = '' } = {}) {
+export const REPLACEMENT_WINDOW_MS = 3 * 24 * 60 * 60 * 1000; // 3 days in milliseconds
+
+export function canReplaceOrder(order, now = Date.now()) {
+    if (!order || order.status !== 'delivered') return false;
+    if (order.replacement_requested || order.status === 'replaced') return false;
+
+    const deliveredAtMs = new Date(order.delivered_at || order.updated_at || order.created_at).getTime();
+    if (Number.isNaN(deliveredAtMs)) return false;
+
+    const nowMs = typeof now === 'number' ? now : new Date(now).getTime();
+    if (Number.isNaN(nowMs)) return false;
+
+    const elapsed = nowMs - deliveredAtMs;
+    return elapsed >= 0 && elapsed <= REPLACEMENT_WINDOW_MS;
+}
+
+export function getReplacementRemainingTime(order, now = Date.now()) {
+    if (!order || order.status !== 'delivered') return null;
+    const deliveredAtMs = new Date(order.delivered_at || order.updated_at || order.created_at).getTime();
+    if (Number.isNaN(deliveredAtMs)) return null;
+
+    const nowMs = typeof now === 'number' ? now : new Date(now).getTime();
+    if (Number.isNaN(nowMs)) return null;
+
+    const remainingMs = REPLACEMENT_WINDOW_MS - (nowMs - deliveredAtMs);
+    if (remainingMs <= 0) return null;
+
+    const totalHours = Math.floor(remainingMs / (60 * 60 * 1000));
+    const days = Math.floor(totalHours / 24);
+    const hours = totalHours % 24;
+
+    return {
+        days,
+        hours,
+        remainingMs,
+        formatted: days > 0 ? `${days}d ${hours}h remaining` : `${hours}h remaining`,
+    };
+}
+
+export function updatePreviewOrderStatus(orderId, nextStatus, { reason = '', notes = '', trackingId = '' } = {}) {
     if (!orderId) {
         throw new Error('Order ID is required to update order status.');
     }
@@ -259,12 +322,58 @@ export function updatePreviewOrderStatus(orderId, nextStatus, { reason = '' } = 
         throw new Error(`Invalid status transition from "${order.status}" to "${nextStatus}".`);
     }
 
+    const isCancelled = nextStatus === 'cancelled';
+    const isDelivered = nextStatus === 'delivered';
+    const effectiveReason = reason || notes || order.cancel_reason || 'Cancelled';
+
     const updatedOrder = {
         ...order,
         status: nextStatus,
-        cancel_reason: nextStatus === 'cancelled' ? reason || order.cancel_reason || 'Cancelled by collector' : order.cancel_reason,
-        cancelled_at: nextStatus === 'cancelled' ? new Date().toISOString() : order.cancelled_at,
+        cancel_reason: isCancelled ? effectiveReason : order.cancel_reason,
+        rejection_reason: isCancelled ? (reason || order.rejection_reason || '') : order.rejection_reason,
+        cancelled_by: isCancelled ? (order.cancelled_by || (reason.toLowerCase().includes('collector') || reason.toLowerCase().includes('mind') ? 'user' : 'admin')) : order.cancelled_by,
+        cancelled_at: isCancelled ? (order.cancelled_at || new Date().toISOString()) : order.cancelled_at,
+        delivered_at: isDelivered ? (order.delivered_at || new Date().toISOString()) : order.delivered_at,
+        tracking_id: trackingId || order.tracking_id || null,
+        fulfillment_notes: notes || order.fulfillment_notes || '',
         updated_at: new Date().toISOString(),
+    };
+
+    savePreviewOrder(updatedOrder);
+    return updatedOrder;
+}
+
+export function requestPreviewOrderReplacement(orderId, { reason = '', preferredSize = '', notes = '' } = {}) {
+    if (!orderId) throw new Error('Order ID is required to request replacement.');
+    const order = getPreviewOrderById(orderId);
+    if (!order) throw new Error(`Order ${orderId} not found in preview storage.`);
+
+    if (order.status !== 'delivered') {
+        throw new Error('Only delivered orders are eligible for replacement.');
+    }
+
+    if (!canReplaceOrder(order)) {
+        throw new Error('Replacement window of 3 days from delivery has expired.');
+    }
+
+    const updatedOrder = {
+        ...order,
+        replacement_requested: true,
+        replacement_status: 'requested',
+        replacement_reason: reason || 'Replacement requested by customer',
+        replacement_preferred_size: preferredSize || 'Same size',
+        replacement_notes: notes || '',
+        replacement_requested_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        order_history: [
+            ...(order.order_history || []),
+            {
+                status: 'replacement_requested',
+                reason,
+                preferred_size: preferredSize,
+                created_at: new Date().toISOString(),
+            },
+        ],
     };
 
     savePreviewOrder(updatedOrder);

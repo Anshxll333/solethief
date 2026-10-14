@@ -4,8 +4,6 @@ import {
     savePreviewDrops,
     getPreviewInventory,
     savePreviewInventory,
-    getOperatorSession,
-    setOperatorSession,
     validateDropInput,
     validateInventoryPairState,
     isValidAdminStatusTransition,
@@ -13,12 +11,14 @@ import {
     calculateOperationalMetrics,
     deletePreviewDrop,
     decrementPreviewStock,
+    restorePreviewStock,
 } from '../commerce/admin.js';
 import {
     getPreviewOrders,
     savePreviewOrder,
 } from '../commerce/orders.js';
 import { parsePrice } from '../commerce/catalog.js';
+import { getConfiguredAdminEmails, isConfiguredAdminUser } from '../auth/adminAccess.js';
 
 export function getSampleSeedOrders() {
     return [
@@ -127,7 +127,14 @@ export function getSampleSeedOrders() {
     ];
 }
 
-export function createAdminService(getRuntime = getSupabaseRuntime) {
+export function createAdminService(
+    getRuntime = getSupabaseRuntime,
+    { adminEmails = getConfiguredAdminEmails() } = {},
+) {
+    const configuredAdminEmails = Array.isArray(adminEmails)
+        ? adminEmails
+        : String(adminEmails || '').split(',');
+
     function readRuntime() {
         const runtime = getRuntime();
         if (runtime?.status === 'missing' && !runtime.client) return runtime;
@@ -146,27 +153,33 @@ export function createAdminService(getRuntime = getSupabaseRuntime) {
         return runtime;
     }
 
-    function requirePreview() {
-        if (readRuntime().status !== 'missing') {
-            throw new Error('Operator sessions are only available in local demo mode.');
-        }
-    }
-
     const service = {
         async checkAdminAccess({ user = null } = {}) {
             const runtime = readRuntime();
             const isLive = runtime.status === 'configured' && Boolean(runtime.client);
+            const mode = isLive ? 'live' : 'preview';
+
+            if (!user || !user.id) {
+                return {
+                    isAdmin: false,
+                    mode,
+                    role: null,
+                    error: 'Authentication required. No user session active.',
+                };
+            }
+
+            if (!isConfiguredAdminUser(user, configuredAdminEmails)) {
+                return {
+                    isAdmin: false,
+                    mode,
+                    role: null,
+                    error: configuredAdminEmails.some((email) => String(email).trim())
+                        ? 'Access restricted: This account is not a configured administrator email.'
+                        : 'Access restricted: No administrator email is configured.',
+                };
+            }
 
             if (isLive) {
-                if (!user || !user.id) {
-                    return {
-                        isAdmin: false,
-                        mode: 'live',
-                        role: null,
-                        error: 'Authentication required. No user session active.',
-                    };
-                }
-
                 let data;
                 try {
                     const response = await runtime.client.rpc('is_shop_admin');
@@ -198,25 +211,13 @@ export function createAdminService(getRuntime = getSupabaseRuntime) {
                 };
             }
 
-            // Preview Mode: Operator test credentials toggle
-            const opSession = getOperatorSession();
             return {
-                isAdmin: Boolean(opSession?.isOperator),
+                isAdmin: true,
                 mode: 'preview',
-                role: opSession?.isOperator ? (opSession?.role || 'admin') : null,
-                operatorId: opSession?.operatorId || 'op_shibuya_preview_01',
-                error: opSession?.isOperator ? null : 'Access restricted: Preview operator toggle is off.',
+                role: 'admin',
+                operatorId: user.id,
+                error: null,
             };
-        },
-
-        getOperatorSession() {
-            requirePreview();
-            return getOperatorSession();
-        },
-
-        setOperatorSession(session) {
-            requirePreview();
-            return setOperatorSession(session);
         },
 
         async getOperationalMetrics() {
@@ -490,7 +491,7 @@ export function createAdminService(getRuntime = getSupabaseRuntime) {
             return updated;
         },
 
-        async listOrders({ status = 'all' } = {}) {
+        async listOrders({ status = 'all', userId = null } = {}) {
             const runtime = readRuntime();
             const isLive = runtime.status === 'configured' && Boolean(runtime.client);
 
@@ -507,10 +508,11 @@ export function createAdminService(getRuntime = getSupabaseRuntime) {
 
                 const statuses = normalizeAdminOrderFilter(status);
                 return (data || []).map((o) => ({ ...o, items: o.order_items || [], history: o.order_history || [] }))
-                    .filter((o) => !statuses || statuses.includes(o.status));
+                    .filter((o) => !statuses || statuses.includes(o.status))
+                    .filter((o) => !userId || o.user_id === userId);
             }
 
-            const previewOrders = getPreviewOrders();
+            const previewOrders = getPreviewOrders(userId);
             if (previewOrders.length === 0) {
                 // Populate sample preview orders
                 const seeds = getSampleSeedOrders();
@@ -534,13 +536,30 @@ export function createAdminService(getRuntime = getSupabaseRuntime) {
                 throw new Error(`Invalid status transition from "${order.status}" to "${nextStatus}".`);
             }
 
+            let resolvedNotes = '';
+            let resolvedTrackingId = '';
+            let resolvedRejectionReason = '';
+
+            if (typeof notes === 'object' && notes !== null) {
+                resolvedRejectionReason = notes.rejectionReason || notes.cancelReason || notes.reason || '';
+                resolvedNotes = notes.notes || resolvedRejectionReason || '';
+                resolvedTrackingId = notes.trackingId || notes.tracking_id || trackingId || '';
+            } else {
+                resolvedNotes = typeof notes === 'string' ? notes : '';
+                resolvedTrackingId = typeof trackingId === 'string' ? trackingId : '';
+                resolvedRejectionReason = resolvedNotes;
+            }
+
             const runtime = readRuntime();
             const isLive = runtime.status === 'configured' && Boolean(runtime.client);
 
             if (isLive) {
                 const client = runtime.client;
                 const { data, error } = await client.rpc('admin_update_order_fulfillment', {
-                    p_order_id: orderId, p_status: nextStatus, p_notes: notes || null, p_tracking_id: trackingId || null,
+                    p_order_id: orderId,
+                    p_status: nextStatus,
+                    p_notes: resolvedNotes || null,
+                    p_tracking_id: resolvedTrackingId || null,
                 });
 
                 if (error) {
@@ -550,13 +569,49 @@ export function createAdminService(getRuntime = getSupabaseRuntime) {
             }
 
             // Update in preview storage
+            const isCancelled = nextStatus === 'cancelled';
+            const isDelivered = nextStatus === 'delivered';
+            const isConfirmed = nextStatus === 'confirmed';
+            const isShipped = nextStatus === 'shipped';
+            const isReplaced = nextStatus === 'replaced';
+
+            if (isCancelled && order.items && Array.isArray(order.items)) {
+                for (const item of order.items) {
+                    const prodId = item.product_id || item.id;
+                    if (prodId && item.size) {
+                        try {
+                            restorePreviewStock(prodId, item.size, item.quantity || 1);
+                        } catch {
+                            // Non-fatal preview stock restore
+                        }
+                    }
+                }
+            }
+
             const updatedOrder = {
                 ...order,
                 status: nextStatus,
-                fulfillment_notes: notes || order.fulfillment_notes || '',
-                tracking_id: trackingId || order.tracking_id || null,
+                fulfillment_notes: resolvedNotes || order.fulfillment_notes || '',
+                tracking_id: resolvedTrackingId || order.tracking_id || null,
+                cancel_reason: isCancelled ? (resolvedRejectionReason || resolvedNotes || order.cancel_reason || 'Rejected by Administrator') : order.cancel_reason,
+                rejection_reason: isCancelled ? (resolvedRejectionReason || resolvedNotes || order.rejection_reason || 'Rejected by Administrator') : order.rejection_reason,
+                cancelled_by: isCancelled ? 'admin' : order.cancelled_by,
+                cancelled_at: isCancelled ? (order.cancelled_at || new Date().toISOString()) : order.cancelled_at,
+                delivered_at: isDelivered ? (order.delivered_at || new Date().toISOString()) : order.delivered_at,
+                confirmed_at: isConfirmed ? (order.confirmed_at || new Date().toISOString()) : order.confirmed_at,
+                shipped_at: isShipped ? (order.shipped_at || new Date().toISOString()) : order.shipped_at,
+                replaced_at: isReplaced ? (order.replaced_at || new Date().toISOString()) : order.replaced_at,
+                replacement_status: isReplaced ? 'completed' : order.replacement_status,
                 updated_at: new Date().toISOString(),
-                order_history: [...(order.order_history || []), { status: nextStatus, notes, tracking_id: trackingId || null, created_at: new Date().toISOString() }],
+                order_history: [
+                    ...(order.order_history || []),
+                    {
+                        status: nextStatus,
+                        notes: resolvedNotes,
+                        tracking_id: resolvedTrackingId || null,
+                        created_at: new Date().toISOString(),
+                    },
+                ],
             };
 
             savePreviewOrder(updatedOrder);

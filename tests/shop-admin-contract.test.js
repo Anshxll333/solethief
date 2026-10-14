@@ -77,35 +77,17 @@ test('Admin.jsx adheres to UI source contracts for security and collections wiri
         'Admin must refresh product list on drop creation'
     );
 
-    // 6. Preview toggle NEVER rendered in live or invalid modes
+    // 6. Local operator toggles must not bypass configured-email authorization
     assert.ok(
-        adminSource.includes('isDemoAllowed') &&
-        adminSource.includes("runtimeStatus === 'missing'"),
-        'Demo preview toggle must only be enabled when runtime status is missing'
+        !adminSource.includes('handleToggleOperatorPreview') &&
+        !adminSource.includes('Enable Demo Operator Mode'),
+        'Admin must not expose a preview operator authorization bypass'
     );
 
-    // 7. Demo mode is explicitly labeled
+    // 7. Restricted fallback returns visitors to public routes
     assert.ok(
-        adminSource.includes('Local browser only, no authentication') ||
-        adminSource.includes('local browser only'),
-        'Demo mode must be labeled local browser only, no authentication'
-    );
-
-    // 8. Sign-in link for unauthorized users uses allowlisted /admin return
-    assert.ok(
-        adminSource.includes('/account?return=/admin'),
-        'Sign in link must point to /account?return=/admin'
-    );
-
-    // 9. setAccessMode state defined and operator preview grants immediate console access
-    assert.ok(
-        adminSource.includes('setAccessMode') && adminSource.includes('accessMode'),
-        'accessMode state setter must be defined'
-    );
-    assert.ok(
-        adminSource.includes('isDemoOperatorActive') &&
-        (adminSource.includes('hasConsoleAccess') || adminSource.includes('hasAccess || isDemoOperatorActive')),
-        'Demo operator active mode must grant immediate console access'
+        adminSource.includes('Return Home') && adminSource.includes('Return to Public Shop'),
+        'Restricted admin fallback must return visitors to public routes'
     );
 });
 

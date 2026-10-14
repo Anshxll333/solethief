@@ -7,7 +7,6 @@ import { normalizeShoeAssetPath } from '../services/transparentArtwork.js';
 
 export const ADMIN_STORAGE_DROPS_KEY = 'solethief.admin.drops.v1';
 export const ADMIN_STORAGE_INVENTORY_KEY = 'solethief.admin.inventory.v1';
-export const ADMIN_STORAGE_OPERATOR_KEY = 'solethief.admin.operator.v1';
 export const ADMIN_IDB_DATABASE_NAME = 'solethief_admin_db';
 export const ADMIN_IDB_STORE_NAME = 'preview_drops_store';
 export const ADMIN_IDB_KEY = 'solethief.admin.drops.v1';
@@ -382,14 +381,68 @@ export function decrementPreviewStock(productId, size, quantity = 1) {
     const drops = getPreviewDrops();
     const index = drops.findIndex((drop) => drop.id === Number(productId));
     if (index === -1) throw new Error(`Drop with ID ${productId} not found.`);
-    const sizes = (drops[index].sizes || []).map((item) => ({ ...item }));
-    const variant = sizes.find((item) => item.value === size);
-    if (!variant || variant.sold || variant.quantity < quantity) throw new Error('Insufficient stock.');
+    let sizes = (drops[index].sizes || []).map((item) => ({ ...item }));
+    if (!sizes.length) {
+        const dropSize = drops[index].size || size || 'US 9';
+        sizes = [{ value: dropSize, quantity: 10, sold: false }];
+    }
+    let variant = sizes.find((item) => item.value === size);
+    if (!variant) {
+        variant = { value: size, quantity: 10, sold: false };
+        sizes.push(variant);
+    }
+    if (variant.sold || variant.quantity < quantity) throw new Error('Insufficient stock.');
     variant.quantity -= quantity;
-    if (variant.quantity === 0) variant.sold = true;
+    if (variant.quantity <= 0) {
+        variant.quantity = 0;
+        variant.sold = true;
+    }
+    const allSold = sizes.every((s) => s.sold || (typeof s.quantity === 'number' && s.quantity <= 0));
+    if (allSold) {
+        drops[index].status = 'sold_out';
+    }
     drops[index] = { ...drops[index], sizes };
     savePreviewDrops(drops);
+
+    try {
+        const inv = getPreviewInventory();
+        if (inv[productId] && allSold) {
+            inv[productId].state = 'sold';
+            savePreviewInventory(inv);
+        }
+    } catch {
+        // ignore
+    }
+
     return variant.quantity;
+}
+
+export function restorePreviewStock(productId, size, quantity = 1) {
+    if (!Number.isInteger(quantity) || quantity <= 0) return 0;
+    try {
+        const drops = getPreviewDrops();
+        const index = drops.findIndex((drop) => drop.id === Number(productId));
+        if (index === -1) return 0;
+        const sizes = (drops[index].sizes || []).map((item) => ({ ...item }));
+        const variant = sizes.find((item) => item.value === size);
+        if (variant) {
+            variant.quantity += quantity;
+            if (variant.quantity > 0) variant.sold = false;
+            if (drops[index].status === 'sold_out') {
+                drops[index].status = drops[index].active !== false ? 'active' : 'draft';
+            }
+            drops[index] = { ...drops[index], sizes };
+            savePreviewDrops(drops);
+        }
+        const inv = getPreviewInventory();
+        if (inv[productId] && inv[productId].state === 'sold') {
+            inv[productId].state = 'available';
+            savePreviewInventory(inv);
+        }
+        return variant ? variant.quantity : 0;
+    } catch {
+        return 0;
+    }
 }
 
 export function getPreviewInventory() {
@@ -611,39 +664,4 @@ export function calculateOperationalMetrics({ drops = [], inventory = {}, orders
         pendingShipmentsCount,
         totalOrdersCount: orders.length,
     };
-}
-
-export function getOperatorSession() {
-    const storage = getStorage();
-    if (!storage) {
-        return { isOperator: true, operatorId: 'op_shibuya_preview_01', role: 'admin' };
-    }
-    try {
-        const raw = storage.getItem(ADMIN_STORAGE_OPERATOR_KEY);
-        if (!raw) {
-            // Default operator mode active for preview store owner
-            const defaultOp = { isOperator: true, operatorId: 'op_shibuya_preview_01', role: 'admin' };
-            storage.setItem(ADMIN_STORAGE_OPERATOR_KEY, JSON.stringify(defaultOp));
-            return defaultOp;
-        }
-        return JSON.parse(raw);
-    } catch {
-        return { isOperator: true, operatorId: 'op_shibuya_preview_01', role: 'admin' };
-    }
-}
-
-export function setOperatorSession(session) {
-    const storage = getStorage();
-    if (storage) {
-        try {
-            if (!session) {
-                storage.removeItem(ADMIN_STORAGE_OPERATOR_KEY);
-            } else {
-                storage.setItem(ADMIN_STORAGE_OPERATOR_KEY, JSON.stringify(session));
-            }
-        } catch {
-            // Storage quota or disabled
-        }
-    }
-    return session;
 }

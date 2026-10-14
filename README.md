@@ -16,7 +16,7 @@ SoleThief operates in a resilient **Dual-Mode Architecture** designed for seamle
 | **Bag & Wishlist** | Client-persisted (`solethief.cart.v1`, `solethief.wishlist.v1`) | Client-persisted with live DB stock resolution |
 | **Checkout & Orders** | Simulated order generation with GST 18% and instant ST-ID | Atomic server Edge Functions, DB repricing, inventory locking |
 | **Payments** | Simulated instant payment / mock test mode | Authoritative Razorpay gateway with HMAC SHA-256 webhooks |
-| **Admin Console** | Shibuya Command (`/admin`) with local operator session | Query against `public.admin_roles` table with failure-closed RLS |
+| **Admin Console** | `/admin` gated by the signed-in `VITE_ADMIN_EMAILS` allowlist | Email allowlist plus `public.admin_roles` with failure-closed RLS |
 
 ---
 
@@ -54,12 +54,13 @@ When ready to switch from **Preview Mode** to **Live Supabase Mode**, follow the
 Copy `.env.example` to `.env` (or update existing `.env`):
 ```env
 # Public client configuration only (safe for browser bundles)
+VITE_ADMIN_EMAILS=admin@example.com
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key_here
 # Alternatively use legacy anon key:
 # VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
-> **Security Guardrail:** `src/lib/supabase.js` strictly inspects the key format. If a `service_role` secret is mistakenly passed to `VITE_SUPABASE_PUBLISHABLE_KEY` or `VITE_SUPABASE_ANON_KEY`, the client fails closed and throws an error to prevent leaking backend credentials to the browser.
+> **Security Guardrail:** `VITE_ADMIN_EMAILS` is a public UI/route allowlist, not a secret or a replacement for backend authorization. Live admin operations still require the matching authenticated account to have an `admin_roles` grant. `src/lib/supabase.js` also rejects `service_role` secrets placed in browser configuration.
 
 ### Step 2: Run Database Migrations
 1. Open the **SQL Editor** in your Supabase Dashboard (or use `supabase db push`).
@@ -136,7 +137,7 @@ The test suite contains 36 automated unit tests validating all domain invariants
 - `tests/commerce.test.js`: Cart storage validation, decimal parsing, single-pair limits, filter logic.
 - `tests/auth-wishlist.test.js`: Wishlist operations, PIN code validation, profile schema, mock accounts.
 - `tests/checkout-orders.test.js`: Order ID generation, integer paise math, GST 18%, FIFO history, lifecycle transitions.
-- `tests/admin.test.js`: Operator access control, live RLS isolation, drop creation validation, fulfillment operations, KPI formulas.
+- `tests/admin.test.js`: Configured-email access control, live RLS isolation, drop creation validation, fulfillment operations, KPI formulas.
 
 Run all tests:
 ```bash

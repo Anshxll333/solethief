@@ -54,7 +54,7 @@ export default function SimilarProductsCarousel({ products = [] }) {
           </h2>
         </div>
         <Link to="/shop" className="similarViewAllLink">
-          <span>VIEW ENTIRE ARCHIVE</span>
+          <span>MORE HEAT</span>
           <ArrowUpRight size={14} strokeWidth={2} aria-hidden="true" />
         </Link>
       </div>

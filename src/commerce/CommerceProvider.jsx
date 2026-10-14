@@ -118,6 +118,19 @@ export default function CommerceProvider({ children }) {
         }
         const source = catalog.source || 'preview';
         const chosenSize = size || product?.size || 'US 9';
+
+        // Guard: Out-of-stock sizes cannot be added to bag, and stock limits must be strictly enforced
+        let availableStock = 10;
+        if (product && Array.isArray(product.sizes) && product.sizes.length > 0) {
+            const sizeVariant = product.sizes.find(s => s.value === chosenSize);
+            if (sizeVariant && (sizeVariant.sold || (typeof sizeVariant.quantity === 'number' && sizeVariant.quantity <= 0))) {
+                return;
+            }
+            if (sizeVariant && typeof sizeVariant.quantity === 'number') {
+                availableStock = sizeVariant.quantity;
+            }
+        }
+
         const lineId = `${targetId}:${chosenSize}`;
         const qtyNum = Number.isInteger(quantity) && quantity > 0 ? quantity : 1;
 
@@ -131,6 +144,17 @@ export default function CommerceProvider({ children }) {
             }));
         }
 
+        const existingItem = currentItems.find(i =>
+            i.lineId === lineId || (i.id === targetId && i.size === chosenSize)
+        );
+        const existingQty = existingItem ? (existingItem.quantity || 1) : 0;
+
+        if (existingQty >= availableStock) {
+            return;
+        }
+        const allowedQtyToAdd = Math.min(qtyNum, availableStock - existingQty);
+        if (allowedQtyToAdd <= 0) return;
+
         const existingIndex = currentItems.findIndex(i =>
             i.lineId === lineId || (i.id === targetId && i.size === chosenSize)
         );
@@ -139,17 +163,17 @@ export default function CommerceProvider({ children }) {
         if (existingIndex >= 0) {
             nextItems = currentItems.map((item, idx) => {
                 if (idx === existingIndex) {
-                    return { ...item, quantity: (item.quantity || 1) + qtyNum };
+                    return { ...item, quantity: (item.quantity || 1) + allowedQtyToAdd };
                 }
                 return item;
             });
         } else {
-            nextItems = [...currentItems, { lineId, id: targetId, size: chosenSize, quantity: qtyNum }];
+            nextItems = [...currentItems, { lineId, id: targetId, size: chosenSize, quantity: allowedQtyToAdd }];
         }
 
         const nextIds = [...new Set(nextItems.map(i => i.id))];
         const nextQuantities = { ...(cartRef.current.quantities || {}) };
-        nextQuantities[lineId] = nextItems.find(i => i.lineId === lineId)?.quantity || qtyNum;
+        nextQuantities[lineId] = nextItems.find(i => i.lineId === lineId)?.quantity || allowedQtyToAdd;
         nextQuantities[targetId] = nextItems.filter(i => i.id === targetId).reduce((s, i) => s + (i.quantity || 1), 0);
 
         commit({
@@ -161,8 +185,21 @@ export default function CommerceProvider({ children }) {
         });
     };
     const updateQuantity = (lineIdOrId, quantity) => {
-        const qtyNum = Math.max(1, Math.floor(Number(quantity) || 1));
         const currentItems = Array.isArray(cartRef.current.items) ? [...cartRef.current.items] : [];
+        const targetItem = currentItems.find(i => i.lineId === String(lineIdOrId) || i.id === lineIdOrId || i.lineId === lineIdOrId);
+
+        let maxStock = 10;
+        if (targetItem) {
+            const product = catalog.products?.find(p => p.id === targetItem.id) || shoesData.find(s => s.id === targetItem.id);
+            if (product && Array.isArray(product.sizes)) {
+                const sizeVar = product.sizes.find(s => s.value === targetItem.size);
+                if (sizeVar && typeof sizeVar.quantity === 'number') {
+                    maxStock = sizeVar.quantity;
+                }
+            }
+        }
+
+        const qtyNum = Math.max(1, Math.min(maxStock, Math.floor(Number(quantity) || 1)));
         let nextItems;
         if (currentItems.length > 0) {
             nextItems = currentItems.map(item => {

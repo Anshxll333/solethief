@@ -16,6 +16,7 @@ import { formatMoney, resolveCart } from '../commerce/cart.js';
 import { validateAddress } from '../commerce/address.js';
 import { calculateOrderTotals, SHIPPING_OPTIONS } from '../commerce/orders.js';
 import { createOrdersService } from '../services/orders.js';
+import { createGlobalSettingsService, DEFAULT_GLOBAL_SETTINGS, STORAGE_KEY } from '../services/globalSettings.js';
 import { getSupabaseRuntime } from '../lib/supabase.js';
 import { shoesData } from '../data/shoes.js';
 
@@ -29,6 +30,7 @@ const INDIAN_STATES = [
 ];
 
 const ordersService = createOrdersService(getSupabaseRuntime);
+const globalSettingsService = createGlobalSettingsService(getSupabaseRuntime);
 
 function loadRazorpayScript() {
     return new Promise((resolve) => {
@@ -149,11 +151,93 @@ export default function Checkout() {
         return addresses.find(a => a.id === defaultAddressId) || addresses[0];
     }, [addresses, defaultAddressId]);
 
+    // Global store settings for payment gateways
+    const [globalSettings, setGlobalSettings] = useState(DEFAULT_GLOBAL_SETTINGS);
+
+    useEffect(() => {
+        let mounted = true;
+        async function loadSettings() {
+            try {
+                const res = await globalSettingsService.loadPublic();
+                if (mounted && res?.settings) {
+                    setGlobalSettings(res.settings);
+                }
+            } catch {
+                // Keep default
+            }
+        }
+        loadSettings();
+
+        const handleUpdate = (e) => {
+            if (e.detail) {
+                setGlobalSettings(e.detail);
+            } else {
+                loadSettings();
+            }
+        };
+
+        const handleStorage = (e) => {
+            if (e.key === STORAGE_KEY || !e.key) {
+                loadSettings();
+            }
+        };
+
+        if (typeof window !== 'undefined') {
+            window.addEventListener('solethief:settings-updated', handleUpdate);
+            window.addEventListener('storage', handleStorage);
+        }
+
+        return () => {
+            mounted = false;
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('solethief:settings-updated', handleUpdate);
+                window.removeEventListener('storage', handleStorage);
+            }
+        };
+    }, []);
+
+    const razorpayConfig = globalSettings?.payment || DEFAULT_GLOBAL_SETTINGS.payment;
+    const codConfig = globalSettings?.payment?.cod || DEFAULT_GLOBAL_SETTINGS.payment.cod;
+
+    const isRazorpayMaintenance = Boolean(razorpayConfig.maintenance);
+    const isRazorpayDisabled = razorpayConfig.enabled === false;
+    const isRazorpaySelectable = !isRazorpayDisabled && !isRazorpayMaintenance;
+
+    const isCodMaintenance = Boolean(codConfig.maintenance);
+    const isCodDisabled = codConfig.enabled === false;
+    const isCodSelectable = !isCodDisabled && !isCodMaintenance;
+
+    const isAnyPaymentAvailable = isRazorpaySelectable || isCodSelectable;
+
     // Shipping selection: 'standard' | 'priority'
     const [shippingOptionId, setShippingOptionId] = useState('standard');
 
-    // Payment method: 'online' | 'cod'
-    const [paymentMethod, setPaymentMethod] = useState('online');
+    // Payment method: 'online' | 'cod' | ''
+    const [paymentMethod, setPaymentMethod] = useState(() => {
+        if (isRazorpaySelectable) return 'online';
+        if (isCodSelectable) return 'cod';
+        return '';
+    });
+
+    // Automatically synchronize selection when payment availability changes
+    useEffect(() => {
+        if (paymentMethod === 'online' && !isRazorpaySelectable) {
+            if (isCodSelectable) {
+                setPaymentMethod('cod');
+            } else {
+                setPaymentMethod('');
+            }
+        } else if (paymentMethod === 'cod' && !isCodSelectable) {
+            if (isRazorpaySelectable) {
+                setPaymentMethod('online');
+            } else {
+                setPaymentMethod('');
+            }
+        } else if (!paymentMethod && isAnyPaymentAvailable) {
+            if (isRazorpaySelectable) setPaymentMethod('online');
+            else if (isCodSelectable) setPaymentMethod('cod');
+        }
+    }, [isRazorpaySelectable, isCodSelectable, isAnyPaymentAvailable, paymentMethod]);
 
     // Saved address selection vs new address
     const [selectedSavedAddrId, setSelectedSavedAddrId] = useState(() => defaultAddr?.id || 'custom');
@@ -205,7 +289,29 @@ export default function Checkout() {
             return;
         }
 
-        // 2. Validate address
+        // 2. Validate payment gateway availability & selection
+        if (!paymentMethod) {
+            setSubmitError('Please select an active payment gateway to complete your order.');
+            return;
+        }
+
+        if (paymentMethod === 'online') {
+            if (!isRazorpaySelectable) {
+                setSubmitError(razorpayConfig.maintenanceMessage || 'Razorpay online payment is currently undergoing scheduled maintenance. Please select Cash on Delivery.');
+                return;
+            }
+            if (!razorpayConfig.keyId) {
+                setSubmitError('Razorpay is not yet configured with an API Key ID in store administration settings. Please select Cash on Delivery or contact store support.');
+                return;
+            }
+        }
+
+        if (paymentMethod === 'cod' && !isCodSelectable) {
+            setSubmitError(codConfig.maintenanceMessage || 'Cash on Delivery is currently paused for maintenance.');
+            return;
+        }
+
+        // 3. Validate address
         const validation = validateAddress(addressForm);
         if (!validation.valid) {
             setAddressErrors(validation.errors);
@@ -243,17 +349,18 @@ export default function Checkout() {
                     clearCart();
                 }
 
-                // If live mode with online payment and active Razorpay credentials, open official modal
-                if (result.mode === 'live' && paymentMethod === 'online' && result.razorpayKeyId && result.providerOrderId) {
+                // If live mode or configured key with online payment, open official modal
+                const activeKeyId = result.razorpayKeyId || razorpayConfig.keyId;
+                if (paymentMethod === 'online' && activeKeyId) {
                     const loaded = await loadRazorpayScript();
                     if (loaded && typeof window !== 'undefined' && window.Razorpay) {
                         const rzp = new window.Razorpay({
-                            key: result.razorpayKeyId,
+                            key: activeKeyId,
                             amount: result.order.total_minor,
                             currency: 'INR',
                             name: 'SOLETHIEF ARCHIVE',
                             description: `Archival Allocation #${result.order.id}`,
-                            order_id: result.providerOrderId,
+                            order_id: result.providerOrderId || undefined,
                             prefill: {
                                 name: validation.clean.recipient,
                                 contact: validation.clean.phone,
@@ -690,45 +797,93 @@ export default function Checkout() {
                                     <h2 id="payment-heading">3. Payment Selection</h2>
                                 </div>
 
+                                {!isAnyPaymentAvailable && (
+                                    <div className="checkoutAlertBanner isMaintenance" role="alert">
+                                        <AlertCircle size={20} aria-hidden="true" />
+                                        <div>
+                                            <strong>PAYMENT CHANNELS UNDER MAINTENANCE</strong>
+                                            <p>All online and cash payment gateways are currently undergoing scheduled maintenance. Orders cannot be dispatched at this moment.</p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="checkoutRadioGroup" role="radiogroup" aria-labelledby="payment-heading">
+                                    {/* Razorpay Online */}
                                     <label
-                                        className={`checkoutRadioOption ${paymentMethod === 'online' ? 'isSelected' : ''}`}
+                                        className={`checkoutRadioOption ${paymentMethod === 'online' && isRazorpaySelectable ? 'isSelected' : ''} ${!isRazorpaySelectable ? 'isUnavailable isMaintenanceOption' : ''}`}
                                     >
                                         <input
                                             type="radio"
                                             name="paymentMethod"
                                             value="online"
-                                            checked={paymentMethod === 'online'}
-                                            onChange={() => setPaymentMethod('online')}
+                                            disabled={!isRazorpaySelectable}
+                                            checked={paymentMethod === 'online' && isRazorpaySelectable}
+                                            onChange={() => {
+                                                if (isRazorpaySelectable) setPaymentMethod('online');
+                                            }}
                                         />
                                         <div className="checkoutRadioContent">
                                             <div className="checkoutRadioTitleRow">
-                                                <span className="checkoutRadioTitle">Online Payment (UPI / Cards / Netbanking)</span>
-                                                <span className="checkoutRadioPrice">Razorpay</span>
+                                                <span className="checkoutRadioTitle">
+                                                    <span>{razorpayConfig.title || 'Online Payment (UPI / Cards / Netbanking)'}</span>
+                                                    {isRazorpayMaintenance && (
+                                                        <span className="checkoutMaintenanceBadge">MAINTENANCE MODE ON</span>
+                                                    )}
+                                                    {isRazorpayDisabled && !isRazorpayMaintenance && (
+                                                        <span className="checkoutMaintenanceBadge isOffline">OFFLINE / DISABLED</span>
+                                                    )}
+                                                </span>
+                                                <span className="checkoutRadioPrice">
+                                                    {isRazorpayMaintenance ? 'MAINTENANCE' : isRazorpayDisabled ? 'OFFLINE' : (razorpayConfig.mode === 'test' ? 'Razorpay Test' : 'Razorpay')}
+                                                </span>
                                             </div>
                                             <p className="checkoutRadioDesc">
-                                                Instant verification via official Razorpay India payment contract. All major UPI apps, credit/debit cards, and netbanking.
+                                                {isRazorpayMaintenance
+                                                    ? (razorpayConfig.maintenanceMessage || 'Razorpay online payment is currently undergoing scheduled maintenance. Please select Cash on Delivery or check back shortly.')
+                                                    : isRazorpayDisabled
+                                                    ? 'Razorpay online payment is currently disabled by store administration.'
+                                                    : (razorpayConfig.description || 'Instant verification via official Razorpay India payment contract. All major UPI apps, credit/debit cards, and netbanking.')
+                                                }
                                             </p>
                                         </div>
                                     </label>
 
+                                    {/* Cash on Delivery */}
                                     <label
-                                        className={`checkoutRadioOption ${paymentMethod === 'cod' ? 'isSelected' : ''}`}
+                                        className={`checkoutRadioOption ${paymentMethod === 'cod' && isCodSelectable ? 'isSelected' : ''} ${!isCodSelectable ? 'isUnavailable isMaintenanceOption' : ''}`}
                                     >
                                         <input
                                             type="radio"
                                             name="paymentMethod"
                                             value="cod"
-                                            checked={paymentMethod === 'cod'}
-                                            onChange={() => setPaymentMethod('cod')}
+                                            disabled={!isCodSelectable}
+                                            checked={paymentMethod === 'cod' && isCodSelectable}
+                                            onChange={() => {
+                                                if (isCodSelectable) setPaymentMethod('cod');
+                                            }}
                                         />
                                         <div className="checkoutRadioContent">
                                             <div className="checkoutRadioTitleRow">
-                                                <span className="checkoutRadioTitle">Archive Reserve / Cash on Delivery</span>
-                                                <span className="checkoutRadioPrice">COD</span>
+                                                <span className="checkoutRadioTitle">
+                                                    <span>{codConfig.title || 'Archive Reserve / Cash on Delivery'}</span>
+                                                    {isCodMaintenance && (
+                                                        <span className="checkoutMaintenanceBadge">MAINTENANCE MODE ON</span>
+                                                    )}
+                                                    {isCodDisabled && !isCodMaintenance && (
+                                                        <span className="checkoutMaintenanceBadge isOffline">OFFLINE / DISABLED</span>
+                                                    )}
+                                                </span>
+                                                <span className="checkoutRadioPrice">
+                                                    {isCodMaintenance ? 'MAINTENANCE' : isCodDisabled ? 'OFFLINE' : 'COD'}
+                                                </span>
                                             </div>
                                             <p className="checkoutRadioDesc">
-                                                Reserve your pair immediately. Complete payment in cash or UPI upon delivery authentication inspection.
+                                                {isCodMaintenance
+                                                    ? (codConfig.maintenanceMessage || 'Cash on Delivery is currently paused for maintenance.')
+                                                    : isCodDisabled
+                                                    ? 'Cash on Delivery is currently disabled by store administration.'
+                                                    : (codConfig.description || 'Reserve your pair immediately. Complete payment in cash or UPI upon delivery authentication inspection.')
+                                                }
                                             </p>
                                         </div>
                                     </label>
@@ -800,10 +955,12 @@ export default function Checkout() {
                             <button
                                 type="submit"
                                 className="checkoutPlaceOrderBtn"
-                                disabled={isSubmitting || !hasItems}
+                                disabled={isSubmitting || !hasItems || !isAnyPaymentAvailable || !paymentMethod}
                             >
                                 {isSubmitting ? (
                                     <span>Processing Authorization...</span>
+                                ) : !isAnyPaymentAvailable ? (
+                                    <span>Gateways Under Maintenance</span>
                                 ) : (
                                     <span>
                                         Place Order • {formatMoney(totals.totalMinor)}

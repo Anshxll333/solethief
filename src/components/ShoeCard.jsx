@@ -34,6 +34,9 @@ export default function ShoeCard({
   const frontImage = normalizeShoeAssetPath(propFrontImage || item.frontImage);
   const sideImage = normalizeShoeAssetPath(propSideImage || item.sideImage);
 
+  const productSizes = Array.isArray(item.sizes) ? item.sizes : [];
+  const isAllSoldOut = productSizes.length > 0 && productSizes.every(s => s.sold || s.quantity <= 0);
+
   const inWishlist = id ? isInWishlist(id) : false;
 
   const handleCardClick = (event) => {
@@ -91,6 +94,9 @@ export default function ShoeCard({
         </button>
       )}
       <div className={`shoeCardImageContainer ${sideImage ? 'hasSideImage' : ''}`}>
+        {isAllSoldOut && (
+          <span className="shoeCardOutStockBadge">OUT OF STOCK</span>
+        )}
         <TransparentArtwork
           src={frontImage}
           alt={`${name} front`}
@@ -117,11 +123,12 @@ export default function ShoeCard({
           <div className="shoeCardActions">
             <button
               type="button"
-              className="shopButton shoeAddButton"
-              aria-label={`Add+: open details for ${name}`}
-              onClick={handleAdd}
+              className={`shopButton shoeAddButton ${isAllSoldOut ? 'isSoldOut' : ''}`}
+              disabled={isAllSoldOut}
+              aria-label={isAllSoldOut ? `${name} is out of stock` : `Add+: open details for ${name}`}
+              onClick={isAllSoldOut ? (e) => e.stopPropagation() : handleAdd}
             >
-              Add+
+              {isAllSoldOut ? 'OUT OF STOCK' : 'Add+'}
             </button>
             <button
               type="button"
@@ -135,11 +142,12 @@ export default function ShoeCard({
         ) : (
           <button
             type="button"
-            className="shopButton shoeAddButton"
-            aria-label={`Add+: open details for ${name}`}
-            onClick={handleAdd}
+            className={`shopButton shoeAddButton ${isAllSoldOut ? 'isSoldOut' : ''}`}
+            disabled={isAllSoldOut}
+            aria-label={isAllSoldOut ? `${name} is out of stock` : `Add+: open details for ${name}`}
+            onClick={isAllSoldOut ? (e) => e.stopPropagation() : handleAdd}
           >
-            Add+
+            {isAllSoldOut ? 'OUT OF STOCK' : 'Add+'}
           </button>
         )}
       </div>

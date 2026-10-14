@@ -29,6 +29,7 @@ import {
     Save,
     Send,
     CreditCard,
+    RotateCcw,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -108,6 +109,12 @@ function GlobalControlHub({ settings, setSettings, onSave, onTestPayment, loadin
         }
     };
 
+    const handleResetDefaults = () => {
+        if (window.confirm('Reset all storefront settings (Banner, Navigation, Footer, SEO, Payment) to original system defaults?')) {
+            setSettings(JSON.parse(JSON.stringify(DEFAULT_GLOBAL_SETTINGS)));
+        }
+    };
+
     return (
         <section className="adminSection" aria-labelledby="global-control-title">
             <div className="adminSectionToolbar">
@@ -118,19 +125,31 @@ function GlobalControlHub({ settings, setSettings, onSave, onTestPayment, loadin
                         Manage public hero banner, store navigation menu, footer information, SEO meta tags, and payment infrastructure.
                     </p>
                 </div>
-                <button type="button" className="adminPrimaryButton" onClick={onSave} disabled={loading}>
-                    {loading ? (
-                        <>
-                            <RefreshCw size={14} className="adminSpin" />
-                            <span>Saving...</span>
-                        </>
-                    ) : (
-                        <>
-                            <Save size={15} />
-                            <span>Save All Settings</span>
-                        </>
-                    )}
-                </button>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button
+                        type="button"
+                        className="adminSecondaryButton"
+                        onClick={handleResetDefaults}
+                        title="Reset all settings to defaults"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                        <RotateCcw size={15} />
+                        <span>Reset Defaults</span>
+                    </button>
+                    <button type="button" className="adminPrimaryButton" onClick={onSave} disabled={loading}>
+                        {loading ? (
+                            <>
+                                <RefreshCw size={14} className="adminSpin" />
+                                <span>Saving...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Save size={15} />
+                                <span>Save All Settings</span>
+                            </>
+                        )}
+                    </button>
+                </div>
             </div>
 
             <div className="adminGlobalHubGrid">
@@ -331,13 +350,15 @@ function GlobalControlHub({ settings, setSettings, onSave, onTestPayment, loadin
                             <span className="adminKanjiSub">決済ゲートウェイ / PAYMENT GATEWAY</span>
                             <h3 className="adminGlobalCardTitle">Payment Infrastructure Integration</h3>
                         </div>
-                        <span className={`adminStatusBadge ${settings.payment.enabled ? 'badgeActive' : 'badgeInactive'}`}>
-                            {settings.payment.enabled ? 'GATEWAY ACTIVE' : 'GATEWAY DISABLED'}
-                        </span>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <span className={`adminStatusBadge ${settings.payment.maintenance ? 'badgeMaintenance' : settings.payment.enabled ? 'badgeActive' : 'badgeInactive'}`}>
+                                {settings.payment.maintenance ? 'MAINTENANCE MODE ON' : settings.payment.enabled ? 'GATEWAY ACTIVE' : 'GATEWAY DISABLED'}
+                            </span>
+                        </div>
                     </div>
 
-                    <div className="adminFormGrid">
-                        <label className="adminFormLabel">
+                    <div className="adminPaymentFieldsRow2">
+                        <label className="adminPaymentField">
                             <span>PAYMENT PROVIDER</span>
                             <input
                                 className="adminInput"
@@ -346,7 +367,7 @@ function GlobalControlHub({ settings, setSettings, onSave, onTestPayment, loadin
                                 placeholder="razorpay / stripe"
                             />
                         </label>
-                        <label className="adminFormLabel">
+                        <label className="adminPaymentField">
                             <span>PUBLIC KEY ID</span>
                             <input
                                 className="adminInput"
@@ -363,14 +384,26 @@ function GlobalControlHub({ settings, setSettings, onSave, onTestPayment, loadin
                     </div>
 
                     <div className="adminPaymentControlActions">
-                        <label className="adminCheckboxLabel">
-                            <input
-                                type="checkbox"
-                                checked={settings.payment.enabled}
-                                onChange={(e) => update('payment', 'enabled', e.target.checked)}
-                            />
-                            <span>Enable live gateway for customer checkout</span>
-                        </label>
+                        <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
+                            <label className="adminCheckboxLabel">
+                                <input
+                                    type="checkbox"
+                                    checked={settings.payment.enabled}
+                                    onChange={(e) => update('payment', 'enabled', e.target.checked)}
+                                />
+                                <span>Enable live gateway for customer checkout</span>
+                            </label>
+
+                            <label className="adminCheckboxLabel" style={{ color: settings.payment.maintenance ? '#b45309' : '#151b2b' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={Boolean(settings.payment.maintenance)}
+                                    onChange={(e) => update('payment', 'maintenance', e.target.checked)}
+                                />
+                                <span>Maintenance Mode (Disable customer selection)</span>
+                            </label>
+                        </div>
+
                         <button
                             type="button"
                             className="adminSecondaryButton"
@@ -403,6 +436,443 @@ function GlobalControlHub({ settings, setSettings, onSave, onTestPayment, loadin
     );
 }
 
+function PaymentGatewayManager({ settings, setSettings, onSave, onTestPayment, loading }) {
+    const [paymentTestResult, setPaymentTestResult] = useState(null);
+    const [testingPayment, setTestingPayment] = useState(false);
+    const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
+
+    const payment = settings?.payment || {};
+    const cod = payment?.cod || {};
+
+    const updatePayment = (field, value) => {
+        setSettings((current) => ({
+            ...current,
+            payment: {
+                ...current.payment,
+                [field]: value,
+            },
+        }));
+    };
+
+    const updateCod = (field, value) => {
+        setSettings((current) => ({
+            ...current,
+            payment: {
+                ...current.payment,
+                cod: {
+                    ...(current.payment?.cod || {}),
+                    [field]: value,
+                },
+            },
+        }));
+    };
+
+    const handleSave = async () => {
+        setSaveSuccessNotice(false);
+        try {
+            await onSave();
+            setSaveSuccessNotice(true);
+            setTimeout(() => setSaveSuccessNotice(false), 4500);
+        } catch {
+            // onSave handles error feedback
+        }
+    };
+
+    const testPayment = async () => {
+        setTestingPayment(true);
+        setPaymentTestResult(null);
+        try {
+            const result = await onTestPayment();
+            setPaymentTestResult(
+                result.ok
+                    ? { ok: true, message: 'Protected payment connection verified successfully.' }
+                    : { ok: false, message: result.error || 'Protected payment test connection failed.' }
+            );
+        } catch (err) {
+            setPaymentTestResult({ ok: false, message: err.message || 'Payment test failed.' });
+        } finally {
+            setTestingPayment(false);
+        }
+    };
+
+    return (
+        <section className="adminSection" aria-labelledby="payment-gateways-title">
+            <div className="adminSectionToolbar">
+                <div>
+                    <span className="adminKanjiSub">決済ゲートウェイ管理 / PAYMENT GATEWAY CONTROLLER</span>
+                    <h2 id="payment-gateways-title">Payment Gateway Management</h2>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'rgba(21, 27, 43, 0.65)' }}>
+                        Control live customer payment gateways (Razorpay & COD), toggle emergency maintenance mode, configure public API keys, or disable methods instantly.
+                    </p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <button
+                        type="button"
+                        className="adminPrimaryButton"
+                        onClick={handleSave}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <>
+                                <RefreshCw size={15} className="adminSpin" />
+                                <span>Saving Gateways...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Save size={15} />
+                                <span>Save Gateway Settings</span>
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
+
+            {saveSuccessNotice && (
+                <div className="adminFeedbackBanner success" style={{ marginBottom: '1.25rem' }}>
+                    <CheckCircle2 size={16} />
+                    <span>Payment gateway configuration saved successfully and synchronized with customer checkout!</span>
+                </div>
+            )}
+
+            {/* Quick Status KPI Cards */}
+            <div className="adminCustomerStatsGrid" style={{ marginBottom: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                <div className="adminCustomerStatBox" style={{ background: '#FAF6EF' }}>
+                    <span className="adminCustomerStatLabel">RAZORPAY GATEWAY</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                        <span className={`adminStatusBadge ${payment.maintenance ? 'badgeMaintenance' : payment.enabled ? 'badgeActive' : 'badgeInactive'}`}>
+                            {payment.maintenance ? 'MAINTENANCE MODE ON' : payment.enabled ? 'GATEWAY ACTIVE' : 'GATEWAY OFF / DISABLED'}
+                        </span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: 'rgba(21, 27, 43, 0.6)', marginTop: '0.25rem' }}>
+                        {payment.mode === 'live' ? 'Live Production Mode' : 'Sandbox / Test Mode'}
+                    </span>
+                </div>
+
+                <div className="adminCustomerStatBox" style={{ background: '#FAF6EF' }}>
+                    <span className="adminCustomerStatLabel">CASH ON DELIVERY (COD)</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                        <span className={`adminStatusBadge ${cod.maintenance ? 'badgeMaintenance' : cod.enabled !== false ? 'badgeActive' : 'badgeInactive'}`}>
+                            {cod.maintenance ? 'MAINTENANCE MODE ON' : cod.enabled !== false ? 'COD ACTIVE' : 'COD DISABLED'}
+                        </span>
+                    </div>
+                    <span style={{ fontSize: '0.75rem', color: 'rgba(21, 27, 43, 0.6)', marginTop: '0.25rem' }}>
+                        Archive Reserve / Courier Doorstep
+                    </span>
+                </div>
+
+                <div className="adminCustomerStatBox" style={{ background: '#FAF6EF' }}>
+                    <span className="adminCustomerStatLabel">BACKEND API CREDENTIALS</span>
+                    <strong style={{ fontSize: '0.95rem', color: payment.keyId ? '#2e6930' : '#a36214', marginTop: '0.25rem' }}>
+                        {payment.keyId ? 'Key ID Configured' : 'No Key ID Set (Missing Backend Config)'}
+                    </strong>
+                    <span style={{ fontSize: '0.75rem', color: 'rgba(21, 27, 43, 0.6)' }}>
+                        {payment.secretConfigured ? 'Server secret encrypted' : 'Secret unverified'}
+                    </span>
+                </div>
+
+                <div className="adminCustomerStatBox" style={{ background: '#FAF6EF' }}>
+                    <span className="adminCustomerStatLabel">CHECKOUT SAFETY GUARD</span>
+                    <strong style={{ fontSize: '0.95rem', color: (payment.enabled && !payment.keyId && !payment.maintenance) ? '#dc2626' : '#2e6930', marginTop: '0.25rem' }}>
+                        {(payment.enabled && !payment.keyId && !payment.maintenance) ? 'Attention Required' : 'Guarded & Operational'}
+                    </strong>
+                    <span style={{ fontSize: '0.75rem', color: 'rgba(21, 27, 43, 0.6)' }}>
+                        {(payment.enabled && !payment.keyId && !payment.maintenance) ? 'Missing Key: turn off or enable maintenance' : 'Unselectable when offline'}
+                    </span>
+                </div>
+            </div>
+
+            <div className="adminGlobalGrid">
+                {/* 1. RAZORPAY GATEWAY CARD */}
+                <div className="adminCard adminGlobalCard adminGlobalSpan2">
+                    <div className="adminGlobalCardHeader">
+                        <div>
+                            <span className="adminKanjiSub">オンライン決済 / RAZORPAY DIGITAL GATEWAY</span>
+                            <h3 className="adminGlobalCardTitle">Razorpay Gateway Configuration</h3>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <span className={`adminStatusBadge ${payment.maintenance ? 'badgeMaintenance' : payment.enabled ? 'badgeActive' : 'badgeInactive'}`}>
+                                {payment.maintenance ? 'MAINTENANCE MODE ON' : payment.enabled ? 'GATEWAY ACTIVE' : 'GATEWAY DISABLED'}
+                            </span>
+                            <span className="adminStatusBadge" style={{ background: '#eef2ff', color: '#3730a3', borderColor: '#c7d2fe' }}>
+                                {payment.mode === 'live' ? 'LIVE PRODUCTION' : 'TEST / SANDBOX'}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Master Toggles: Enabled & Maintenance Mode */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', background: '#F3EFE6', padding: '1.25rem', border: '1px solid rgba(21, 27, 43, 0.12)' }}>
+                        {/* Toggle 1: Power Switch */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                            <label className="adminCheckboxLabel" style={{ minHeight: 'auto', fontWeight: '700', fontSize: '0.9rem' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={Boolean(payment.enabled)}
+                                    onChange={(e) => updatePayment('enabled', e.target.checked)}
+                                />
+                                <span>Enable Razorpay Gateway</span>
+                            </label>
+                            <span style={{ fontSize: '0.78rem', color: 'rgba(21, 27, 43, 0.65)', paddingLeft: '1.6rem' }}>
+                                Turn OFF to completely disable Razorpay at checkout.
+                            </span>
+                        </div>
+
+                        {/* Toggle 2: Maintenance Mode Switch */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                            <label className="adminCheckboxLabel" style={{ minHeight: 'auto', fontWeight: '700', fontSize: '0.9rem', color: payment.maintenance ? '#b45309' : '#151b2b' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={Boolean(payment.maintenance)}
+                                    onChange={(e) => updatePayment('maintenance', e.target.checked)}
+                                />
+                                <span>Emergency Maintenance Mode</span>
+                            </label>
+                            <span style={{ fontSize: '0.78rem', color: 'rgba(21, 27, 43, 0.65)', paddingLeft: '1.6rem' }}>
+                                When ON, option is unselectable at checkout and shows a "Maintenance Mode On" banner.
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Warning if Razorpay enabled but keyId missing */}
+                    {payment.enabled && !payment.keyId && !payment.maintenance && (
+                        <div className="adminFeedbackBanner error" style={{ margin: 0 }}>
+                            <AlertCircle size={16} />
+                            <span>
+                                <strong>Configuration Warning:</strong> Razorpay is enabled, but no Public Key ID is configured. Because backend credentials are missing, customers will not be able to complete live Razorpay transactions. Either provide your Key ID, toggle ON Maintenance Mode, or turn OFF this gateway.
+                            </span>
+                        </div>
+                    )}
+
+                    {payment.maintenance && (
+                        <div className="adminFeedbackBanner warning" style={{ margin: 0, background: '#fef3c7', borderColor: '#f59e0b', color: '#92400e' }}>
+                            <AlertCircle size={16} />
+                            <span>
+                                <strong>Maintenance Mode Active:</strong> Razorpay online payment cannot be selected by customers in the checkout page. The maintenance badge and message below are currently displayed to all visitors.
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Maintenance Message */}
+                    <label className="adminFormLabel">
+                        <span>MAINTENANCE MODE MESSAGE (SHOWN TO CUSTOMERS AT CHECKOUT)</span>
+                        <textarea
+                            className="adminTextarea"
+                            rows="2"
+                            value={payment.maintenanceMessage || ''}
+                            onChange={(e) => updatePayment('maintenanceMessage', e.target.value)}
+                            placeholder="e.g. Razorpay online payment is currently undergoing scheduled maintenance. Please select Cash on Delivery or check back shortly."
+                        />
+                        <span style={{ fontSize: '0.75rem', color: 'rgba(21, 27, 43, 0.6)' }}>
+                            This custom note is shown beneath the unselectable Razorpay option when Maintenance Mode is ON.
+                        </span>
+                    </label>
+
+                    {/* Razorpay Parameters */}
+                    <div className="adminPaymentFieldsRow4">
+                        <label className="adminPaymentField">
+                            <span>GATEWAY ENVIRONMENT MODE</span>
+                            <select
+                                className="adminSelect"
+                                value={payment.mode || 'test'}
+                                onChange={(e) => updatePayment('mode', e.target.value)}
+                            >
+                                <option value="test">Test Mode / Sandbox (Mock UPI)</option>
+                                <option value="live">Live Production (Real Banking)</option>
+                            </select>
+                        </label>
+
+                        <label className="adminPaymentField">
+                            <span>PUBLIC KEY ID</span>
+                            <input
+                                className="adminInput"
+                                value={payment.keyId || ''}
+                                onChange={(e) => updatePayment('keyId', e.target.value.trim())}
+                                placeholder="rzp_test_... or rzp_live_..."
+                            />
+                        </label>
+
+                        <label className="adminPaymentField">
+                            <span>DISPLAY TITLE (SHOWN AT CHECKOUT)</span>
+                            <input
+                                className="adminInput"
+                                value={payment.title || 'Online Payment (UPI / Cards / Netbanking)'}
+                                onChange={(e) => updatePayment('title', e.target.value)}
+                                placeholder="Online Payment (UPI / Cards / Netbanking)"
+                            />
+                        </label>
+
+                        <label className="adminPaymentField">
+                            <span>GATEWAY PROVIDER NAME</span>
+                            <input
+                                className="adminInput"
+                                value={payment.provider || 'razorpay'}
+                                onChange={(e) => updatePayment('provider', e.target.value)}
+                                placeholder="razorpay"
+                            />
+                        </label>
+                    </div>
+
+                    <label className="adminFormLabel">
+                        <span>DISPLAY DESCRIPTION (SHOWN AT CHECKOUT)</span>
+                        <textarea
+                            className="adminTextarea"
+                            rows="2"
+                            value={payment.description || ''}
+                            onChange={(e) => updatePayment('description', e.target.value)}
+                            placeholder="Instant verification via official Razorpay India payment contract. All major UPI apps, credit/debit cards, and netbanking."
+                        />
+                    </label>
+
+                    <div className="adminPaymentSecurityNote">
+                        <ShieldCheck size={16} />
+                        <span>Security Standard: Secret keys are managed server-side via Supabase Edge Function environment secrets and are never exposed in the browser bundle.</span>
+                    </div>
+
+                    {/* Test Connection */}
+                    <div className="adminPaymentControlActions">
+                        <span style={{ fontSize: '0.82rem', color: 'rgba(21, 27, 43, 0.7)' }}>
+                            Verify backend connection with Razorpay APIs:
+                        </span>
+                        <button
+                            type="button"
+                            className="adminSecondaryButton"
+                            onClick={testPayment}
+                            disabled={testingPayment}
+                        >
+                            {testingPayment ? (
+                                <>
+                                    <RefreshCw size={14} className="adminSpin" />
+                                    <span>Testing API Link...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <CreditCard size={14} />
+                                    <span>Test Protected Server Connection</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+
+                    {paymentTestResult && (
+                        <div className={`adminFeedbackBanner ${paymentTestResult.ok ? 'success' : 'error'}`} style={{ marginTop: '0.75rem', marginBottom: 0 }}>
+                            {paymentTestResult.ok ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                            <span>{paymentTestResult.message}</span>
+                        </div>
+                    )}
+                </div>
+
+                {/* 2. CASH ON DELIVERY (COD) CARD */}
+                <div className="adminCard adminGlobalCard adminGlobalSpan2">
+                    <div className="adminGlobalCardHeader">
+                        <div>
+                            <span className="adminKanjiSub">代金引換 / ARCHIVE RESERVE (COD)</span>
+                            <h3 className="adminGlobalCardTitle">Cash on Delivery (COD) Options</h3>
+                        </div>
+                        <span className={`adminStatusBadge ${cod.maintenance ? 'badgeMaintenance' : cod.enabled !== false ? 'badgeActive' : 'badgeInactive'}`}>
+                            {cod.maintenance ? 'MAINTENANCE MODE ON' : cod.enabled !== false ? 'COD ACTIVE' : 'COD DISABLED'}
+                        </span>
+                    </div>
+
+                    {/* COD Toggles */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', background: '#F3EFE6', padding: '1.25rem', border: '1px solid rgba(21, 27, 43, 0.12)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                            <label className="adminCheckboxLabel" style={{ minHeight: 'auto', fontWeight: '700', fontSize: '0.9rem' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={cod.enabled !== false}
+                                    onChange={(e) => updateCod('enabled', e.target.checked)}
+                                />
+                                <span>Enable Cash on Delivery (Archive Reserve)</span>
+                            </label>
+                            <span style={{ fontSize: '0.78rem', color: 'rgba(21, 27, 43, 0.65)', paddingLeft: '1.6rem' }}>
+                                Allows customers to reserve pairs and pay cash/UPI on delivery inspection.
+                            </span>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                            <label className="adminCheckboxLabel" style={{ minHeight: 'auto', fontWeight: '700', fontSize: '0.9rem', color: cod.maintenance ? '#b45309' : '#151b2b' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={Boolean(cod.maintenance)}
+                                    onChange={(e) => updateCod('maintenance', e.target.checked)}
+                                />
+                                <span>COD Maintenance Mode</span>
+                            </label>
+                            <span style={{ fontSize: '0.78rem', color: 'rgba(21, 27, 43, 0.65)', paddingLeft: '1.6rem' }}>
+                                When ON, COD option is unselectable and shows a maintenance badge.
+                            </span>
+                        </div>
+                    </div>
+
+                    {cod.maintenance && (
+                        <div className="adminFeedbackBanner warning" style={{ margin: 0, background: '#fef3c7', borderColor: '#f59e0b', color: '#92400e' }}>
+                            <AlertCircle size={16} />
+                            <span>
+                                <strong>COD Maintenance Active:</strong> Cash on Delivery cannot be selected by customers at checkout.
+                            </span>
+                        </div>
+                    )}
+
+                    <label className="adminFormLabel">
+                        <span>COD MAINTENANCE MESSAGE</span>
+                        <textarea
+                            className="adminTextarea"
+                            rows="2"
+                            value={cod.maintenanceMessage || ''}
+                            onChange={(e) => updateCod('maintenanceMessage', e.target.value)}
+                            placeholder="e.g. Cash on Delivery is currently paused for logistical maintenance."
+                        />
+                    </label>
+
+                    <div className="adminPaymentFieldsRow2">
+                        <label className="adminPaymentField">
+                            <span>COD TITLE (SHOWN AT CHECKOUT)</span>
+                            <input
+                                className="adminInput"
+                                value={cod.title || 'Archive Reserve / Cash on Delivery'}
+                                onChange={(e) => updateCod('title', e.target.value)}
+                                placeholder="Archive Reserve / Cash on Delivery"
+                            />
+                        </label>
+
+                        <label className="adminPaymentField">
+                            <span>COD DESCRIPTION (SHOWN AT CHECKOUT)</span>
+                            <input
+                                className="adminInput"
+                                value={cod.description || 'Reserve your pair immediately. Complete payment in cash or UPI upon delivery authentication inspection.'}
+                                onChange={(e) => updateCod('description', e.target.value)}
+                                placeholder="Reserve your pair immediately..."
+                            />
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom Save Bar */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem', gap: '1rem' }}>
+                <button
+                    type="button"
+                    className="adminPrimaryButton"
+                    onClick={handleSave}
+                    disabled={loading}
+                    style={{ minWidth: '220px', minHeight: '48px', justifyContent: 'center' }}
+                >
+                    {loading ? (
+                        <>
+                            <RefreshCw size={16} className="adminSpin" />
+                            <span>Saving Changes...</span>
+                        </>
+                    ) : (
+                        <>
+                            <Save size={16} />
+                            <span>Save Gateway Settings</span>
+                        </>
+                    )}
+                </button>
+            </div>
+        </section>
+    );
+}
+
 export default function Admin() {
     const { user, profile } = useAuth();
 
@@ -412,19 +882,14 @@ export default function Admin() {
 
 function AdminContent({ user, profile }) {
     const adminService = useMemo(() => createAdminService(getSupabaseRuntime), []);
-    const runtimeStatus = getSupabaseRuntime().status;
-    const isDemoAllowed = runtimeStatus === 'missing';
     const globalSettingsService = useMemo(() => createGlobalSettingsService(getSupabaseRuntime), []);
 
     // Access control state
-    const [operatorSession, setOperatorSession] = useState(() => (isDemoAllowed ? adminService.getOperatorSession() : null));
-    const isDemoOperatorActive = isDemoAllowed && Boolean(operatorSession?.isOperator);
-    const [accessLoading, setAccessLoading] = useState(() => (isDemoAllowed ? false : true));
-    const [hasAccess, setHasAccess] = useState(() => (isDemoAllowed ? Boolean(adminService.getOperatorSession()?.isOperator) : false));
-    const [accessMode, setAccessMode] = useState(() => (isDemoAllowed ? 'preview' : 'live'));
+    const [accessLoading, setAccessLoading] = useState(true);
+    const [hasAccess, setHasAccess] = useState(false);
     const [accessError, setAccessError] = useState('');
-    const isAuthorized = Boolean(isDemoOperatorActive || hasAccess || (isDemoAllowed && operatorSession?.isOperator));
-    const hasConsoleAccess = isAuthorized || (hasAccess || isDemoOperatorActive);
+    const isAuthorized = hasAccess;
+    const hasConsoleAccess = hasAccess;
 
     // Dashboard tabs: storefront administration plus customer operations.
     const [currentTab, setCurrentTab] = useState('collections');
@@ -465,6 +930,7 @@ function AdminContent({ user, profile }) {
     }, [drops, inventory, orders, metrics]);
 
     const [dataLoading, setDataLoading] = useState(false);
+    const [syncState, setSyncState] = useState('idle');
     const [feedback, setFeedback] = useState({ type: '', message: '' });
     const [globalSettings, setGlobalSettings] = useState(DEFAULT_GLOBAL_SETTINGS);
     const [globalSettingsLoading, setGlobalSettingsLoading] = useState(false);
@@ -520,10 +986,21 @@ function AdminContent({ user, profile }) {
             .filter(Boolean);
     }, [dropForm.additionalImages]);
 
-    // Order details drawer / modal
+    // Order details drawer / modal & Reject Modal
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [orderStatusForm, setOrderStatusForm] = useState({
         status: '', notes: '', trackingId: '', returnAction: 'return', returnReason: '',
+    });
+    const [rejectModalOrder, setRejectModalOrder] = useState(null);
+    const [rejectionReason, setRejectionReason] = useState('Product authenticity failed physical vault inspection');
+    const [customRejectionReason, setCustomRejectionReason] = useState('');
+    const [isSubmittingReject, setIsSubmittingReject] = useState(false);
+    const [courierPartner, setCourierPartner] = useState('bluedart');
+    const [checklistState, setChecklistState] = useState({
+        boxBarcode: true,
+        insoleUv: true,
+        nfcTag: true,
+        doubleBox: true,
     });
     const [orderSearchQuery, setOrderSearchQuery] = useState('');
     const [orderFilterStatus, setOrderFilterStatus] = useState('all');
@@ -560,6 +1037,30 @@ function AdminContent({ user, profile }) {
         }
     }, [adminService, categoriesService]);
 
+    const handleManualSync = useCallback(async () => {
+        if (syncState === 'syncing' || dataLoading) return;
+        setSyncState('syncing');
+        const startTime = Date.now();
+        try {
+            await refreshDashboardData();
+            const elapsed = Date.now() - startTime;
+            if (elapsed < 650) {
+                await new Promise((resolve) => setTimeout(resolve, 650 - elapsed));
+            }
+            setSyncState('synced');
+            setFeedback({ type: 'success', message: 'Console data synchronized with live ledger.' });
+            setTimeout(() => {
+                setSyncState('idle');
+            }, 1800);
+            setTimeout(() => {
+                setFeedback((prev) => (prev.message === 'Console data synchronized with live ledger.' ? { type: '', message: '' } : prev));
+            }, 4500);
+        } catch (err) {
+            setSyncState('idle');
+            setFeedback({ type: 'error', message: err?.message || 'Sync failed.' });
+        }
+    }, [syncState, dataLoading, refreshDashboardData]);
+
     const refreshCustomerData = useCallback(async () => {
         const [userList, ticketList] = await Promise.all([
             adminService.listUsers({ search: userSearch }),
@@ -570,30 +1071,12 @@ function AdminContent({ user, profile }) {
     }, [adminService, userSearch]);
 
     const checkAccess = useCallback(async () => {
-        if (isDemoAllowed) {
-            const currentSession = adminService.getOperatorSession();
-            const isOp = Boolean(currentSession?.isOperator);
-            setOperatorSession(currentSession);
-            setAccessMode('preview');
-            setAccessLoading(false);
-            if (isOp) {
-                setHasAccess(true);
-                setAccessError('');
-                await refreshDashboardData();
-            } else {
-                setHasAccess(false);
-                setAccessError('Access restricted: Preview operator toggle is off.');
-            }
-            return;
-        }
-
         setAccessLoading(true);
         setAccessError('');
         try {
             const res = await adminService.checkAdminAccess({ user });
             const granted = Boolean(res.isAdmin);
             setHasAccess(granted);
-            setAccessMode(res.mode || 'live');
             if (!granted) {
                 setAccessError(res.error || 'Access denied.');
             } else {
@@ -605,7 +1088,7 @@ function AdminContent({ user, profile }) {
         } finally {
             setAccessLoading(false);
         }
-    }, [adminService, user, isDemoAllowed, refreshDashboardData]);
+    }, [adminService, user, refreshDashboardData]);
 
     useEffect(() => {
         checkAccess();
@@ -625,28 +1108,6 @@ function AdminContent({ user, profile }) {
         try { const result = await globalSettingsService.save(globalSettings); setGlobalSettings(result.settings); setFeedback({ type: 'success', message: 'Global settings saved.' }); }
         catch (error) { setFeedback({ type: 'error', message: error.message || 'Failed to save global settings.' }); }
         finally { setGlobalSettingsLoading(false); }
-    };
-
-    const handleToggleOperatorPreview = (forceEnable = null) => {
-        if (!isDemoAllowed) return;
-        const currentSession = adminService.getOperatorSession();
-        const nextIsOp = typeof forceEnable === 'boolean' ? forceEnable : !currentSession?.isOperator;
-        const newSession = {
-            isOperator: nextIsOp,
-            operatorId: nextIsOp ? 'op_shibuya_preview_01' : null,
-            role: nextIsOp ? 'admin' : 'viewer',
-        };
-        adminService.setOperatorSession(newSession);
-        setOperatorSession(newSession);
-        setAccessMode('preview');
-        if (nextIsOp) {
-            setHasAccess(true);
-            setAccessError('');
-            refreshDashboardData();
-        } else {
-            setHasAccess(false);
-            setAccessError('Access restricted: Preview operator toggle is off.');
-        }
     };
 
     // Drops form handlers
@@ -1118,6 +1579,163 @@ function AdminContent({ user, profile }) {
         } catch (err) { setFeedback({ type: 'error', message: err.message }); }
     };
 
+    // Quick accept order
+    const handleQuickAcceptOrder = async (order) => {
+        try {
+            const nextStatus = 'confirmed';
+            const note = 'Order accepted by Shibuya vault operator. Ready for physical authentication.';
+            const updated = await adminService.updateOrderStatus(order.id, nextStatus, note, order.tracking_id || '');
+            setFeedback({
+                type: 'success',
+                message: `Order ${order.id} accepted! Status transitioned to "CONFIRMED".`,
+            });
+            if (selectedOrder && selectedOrder.id === order.id) {
+                setSelectedOrder(updated);
+                setOrderStatusForm((prev) => ({
+                    ...prev,
+                    status: updated.status,
+                    notes: updated.fulfillment_notes || '',
+                    trackingId: updated.tracking_id || '',
+                }));
+            }
+            await refreshDashboardData();
+        } catch (err) {
+            setFeedback({ type: 'error', message: err.message || 'Failed to accept order.' });
+        }
+    };
+
+    // Open reject modal
+    const handleOpenRejectModal = (order) => {
+        setRejectModalOrder(order);
+        setRejectionReason('Product authenticity failed physical vault inspection');
+        setCustomRejectionReason('');
+    };
+
+    // Confirm reject order
+    const handleConfirmRejectOrder = async () => {
+        if (!rejectModalOrder) return;
+        const finalReason = rejectionReason === 'custom'
+            ? (customRejectionReason.trim() || 'Rejected by Administrator')
+            : rejectionReason;
+
+        setIsSubmittingReject(true);
+        try {
+            const updated = await adminService.updateOrderStatus(
+                rejectModalOrder.id,
+                'cancelled',
+                finalReason,
+                rejectModalOrder.tracking_id || ''
+            );
+            setFeedback({
+                type: 'success',
+                message: `Order ${rejectModalOrder.id} rejected. Customer cancellation reason set to: "${finalReason}".`,
+            });
+            if (selectedOrder && selectedOrder.id === rejectModalOrder.id) {
+                setSelectedOrder(updated);
+                setOrderStatusForm((prev) => ({
+                    ...prev,
+                    status: updated.status,
+                    notes: updated.fulfillment_notes || '',
+                    trackingId: updated.tracking_id || '',
+                }));
+            }
+            setRejectModalOrder(null);
+            await refreshDashboardData();
+        } catch (err) {
+            setFeedback({ type: 'error', message: err.message || 'Failed to reject order.' });
+        } finally {
+            setIsSubmittingReject(false);
+        }
+    };
+
+    // Advance order stage
+    const handleAdvanceOrderStage = async (nextStatus, autoNote = '') => {
+        if (!selectedOrder) return;
+        try {
+            const notesToUse = autoNote || orderStatusForm.notes || `Order progressed to ${nextStatus.toUpperCase()} via Operator Fulfillment Action.`;
+            const trackingToUse = orderStatusForm.trackingId || selectedOrder.tracking_id || '';
+            const updated = await adminService.updateOrderStatus(
+                selectedOrder.id,
+                nextStatus,
+                notesToUse,
+                trackingToUse
+            );
+            setSelectedOrder(updated);
+            setOrderStatusForm((prev) => ({
+                ...prev,
+                status: updated.status,
+                notes: updated.fulfillment_notes || '',
+                trackingId: updated.tracking_id || '',
+            }));
+            setFeedback({
+                type: 'success',
+                message: `Order ${selectedOrder.id} successfully updated to "${nextStatus.toUpperCase()}".`,
+            });
+            await refreshDashboardData();
+        } catch (err) {
+            setFeedback({ type: 'error', message: err.message || `Failed to transition to ${nextStatus}.` });
+        }
+    };
+
+    // Generate courier AWB
+    const handleGenerateAwb = (partner = courierPartner) => {
+        let prefix = 'BD';
+        let partnerName = 'Blue Dart Express';
+        if (partner === 'delhivery') {
+            prefix = 'DL';
+            partnerName = 'Delhivery Air';
+        } else if (partner === 'dtdc') {
+            prefix = 'DTDC';
+            partnerName = 'DTDC Priority';
+        } else if (partner === 'fedex') {
+            prefix = 'FDX';
+            partnerName = 'FedEx Express';
+        }
+        const randomDigits = Math.floor(10000000 + Math.random() * 90000000);
+        const generatedAwb = `${prefix}-${randomDigits}-IN`;
+        const generatedNote = `Dispatched via ${partnerName}. Airway Bill #${generatedAwb}. Verified Japanese Shibuya shipment.`;
+
+        setOrderStatusForm((prev) => ({
+            ...prev,
+            trackingId: generatedAwb,
+            notes: prev.notes ? `${prev.notes} | ${generatedNote}` : generatedNote,
+            status: (prev.status === 'confirmed' || prev.status === 'authenticating' || prev.status === 'paid' || prev.status === 'processing') ? 'shipped' : prev.status,
+        }));
+
+        setFeedback({
+            type: 'success',
+            message: `Generated courier tracking AWB: ${generatedAwb} (${partnerName}). Ready to commit state.`,
+        });
+    };
+
+    // Approve customer 3-day replacement
+    const handleApproveReplacement = async (order = selectedOrder) => {
+        if (!order) return;
+        try {
+            const replacementNote = `Replacement approved for size ${order.replacement_preferred_size || 'requested size'}. Reverse pickup initiated and replacement pair allocated from Shibuya depot.`;
+            const updated = await adminService.updateOrderStatus(
+                order.id,
+                'replaced',
+                replacementNote,
+                order.tracking_id || `REV-PICKUP-${Math.floor(100000 + Math.random() * 900000)}`
+            );
+            setSelectedOrder(updated);
+            setOrderStatusForm((prev) => ({
+                ...prev,
+                status: updated.status,
+                notes: updated.fulfillment_notes || '',
+                trackingId: updated.tracking_id || '',
+            }));
+            setFeedback({
+                type: 'success',
+                message: `3-Day Replacement approved for Order ${order.id}! Status transitioned to "REPLACED".`,
+            });
+            await refreshDashboardData();
+        } catch (err) {
+            setFeedback({ type: 'error', message: err.message || 'Failed to approve replacement.' });
+        }
+    };
+
     // Filtered lists
     const filteredDrops = useMemo(() => {
         const q = dropSearchQuery.trim().toLowerCase();
@@ -1158,41 +1776,29 @@ function AdminContent({ user, profile }) {
                     </div>
 
                     <div className="adminControlsGroup">
-                        {isDemoAllowed ? (
-                            <div className="adminOperatorBadgeGroup" data-access-mode={accessMode}>
-                                <span className={`adminOperatorBadge ${operatorSession?.isOperator ? 'isActive' : 'isInactive'}`}>
-                                    <ShieldCheck size={16} />
-                                    {operatorSession?.isOperator ? 'DEMO OPERATOR: ACTIVE' : 'DEMO OPERATOR: DISABLED'}
-                                </span>
-                                <button
-                                    type="button"
-                                    className="adminModeToggleButton"
-                                    onClick={handleToggleOperatorPreview}
-                                    aria-label="Toggle demo operator mode"
-                                >
-                                    {operatorSession?.isOperator ? 'Deactivate Demo' : 'Activate Demo (Local browser only, no authentication)'}
-                                </button>
-                            </div>
-                        ) : (
-                            <span className="adminLiveBadge">
-                                <ShieldCheck size={16} />
-                                {runtimeStatus === 'configured' ? (
-                                    `LIVE OPERATOR: ${profile?.display_name || user?.email || 'ADMINISTRATOR'}`
-                                ) : (
-                                    'LIVE MODE (FAIL-CLOSED)'
-                                )}
-                            </span>
-                        )}
+                        <span className="adminLiveBadge">
+                            <ShieldCheck size={16} />
+                            LIVE OPERATOR: {profile?.display_name || user?.email || 'ADMINISTRATOR'}
+                        </span>
 
                         <button
                             type="button"
-                            className="adminRefreshButton"
-                            onClick={refreshDashboardData}
-                            disabled={dataLoading}
+                            className={`adminRefreshButton ${syncState === 'syncing' ? 'isSyncing' : ''} ${syncState === 'synced' ? 'isSynced' : ''}`}
+                            onClick={handleManualSync}
+                            disabled={syncState === 'syncing' || dataLoading}
                             aria-label="Refresh console data"
                         >
-                            <RefreshCw size={16} className={dataLoading ? 'adminSpin' : ''} />
-                            <span>Sync</span>
+                            {syncState === 'synced' ? (
+                                <>
+                                    <Check size={16} className="adminSyncCheckIcon" />
+                                    <span>Synced</span>
+                                </>
+                            ) : (
+                                <>
+                                    <RefreshCw size={16} className={syncState === 'syncing' || dataLoading ? 'adminSpin' : ''} />
+                                    <span>{syncState === 'syncing' ? 'Syncing...' : 'Sync'}</span>
+                                </>
+                            )}
                         </button>
                     </div>
                 </header>
@@ -1232,19 +1838,9 @@ function AdminContent({ user, profile }) {
                             {accessError || 'This operations console is restricted to authenticated store operators possessing the admin role.'}
                         </p>
                         <div className="adminRestrictedActions">
-                            {isDemoAllowed ? (
-                                <button
-                                    type="button"
-                                    className="adminPrimaryButton"
-                                    onClick={() => handleToggleOperatorPreview(true)}
-                                >
-                                    Enable Demo Operator Mode (Local browser only, no authentication)
-                                </button>
-                            ) : (
-                                <Link to="/account?return=/admin" className="adminPrimaryButton">
-                                    Sign In With Operator Credentials
-                                </Link>
-                            )}
+                            <Link to="/" className="adminPrimaryButton">
+                                Return Home
+                            </Link>
                             <Link to="/shop" className="adminSecondaryButton">
                                 Return to Public Shop
                             </Link>
@@ -1347,9 +1943,37 @@ function AdminContent({ user, profile }) {
                                 <MessageSquare size={18} /><span>SUPPORT TICKETS</span><span className="adminTabCount">{tickets.length}</span>
                             </button>
                             <button type="button" className={`adminTabButton ${currentTab === 'global' ? 'isActive' : ''}`} onClick={() => setCurrentTab('global')} aria-selected={currentTab === 'global'}><Sliders size={18} /><span>GLOBAL CONTROL HUB</span></button>
+                            <button
+                                type="button"
+                                className={`adminTabButton ${currentTab === 'payments' ? 'isActive' : ''}`}
+                                onClick={() => setCurrentTab('payments')}
+                                aria-selected={currentTab === 'payments'}
+                            >
+                                <CreditCard size={18} />
+                                <span>PAYMENT GATEWAYS</span>
+                            </button>
                         </nav>
 
-                        {currentTab === 'global' && <GlobalControlHub settings={globalSettings} setSettings={setGlobalSettings} onSave={saveGlobalSettings} onTestPayment={() => globalSettingsService.testPaymentConnection()} loading={globalSettingsLoading} />}
+                        {currentTab === 'global' && (
+                            <GlobalControlHub
+                                settings={globalSettings}
+                                setSettings={setGlobalSettings}
+                                onSave={saveGlobalSettings}
+                                onTestPayment={() => globalSettingsService.testPaymentConnection()}
+                                loading={globalSettingsLoading}
+                                onNavigatePaymentsTab={() => setCurrentTab('payments')}
+                            />
+                        )}
+
+                        {currentTab === 'payments' && (
+                            <PaymentGatewayManager
+                                settings={globalSettings}
+                                setSettings={setGlobalSettings}
+                                onSave={saveGlobalSettings}
+                                onTestPayment={() => globalSettingsService.testPaymentConnection()}
+                                loading={globalSettingsLoading}
+                            />
+                        )}
 
                         {/* TAB 0: Shop Collections (Default) */}
                         {currentTab === 'collections' && (
@@ -1452,7 +2076,7 @@ function AdminContent({ user, profile }) {
                                                             <div className="adminSizePills">
                                                                 {(drop.sizes?.length ? drop.sizes : [{ value: drop.size, quantity: invItem.state === 'available' ? 1 : 0 }]).map((size) => (
                                                                     <span className={`adminSizeTag ${size.sold || size.quantity <= 0 ? 'badgeInactive' : ''}`} key={size.value}>
-                                                                        {size.value} ({size.quantity})
+                                                                        {size.value} ({size.quantity}){size.sold || size.quantity <= 0 ? ' · OUT' : ''}
                                                                     </span>
                                                                 ))}
                                                             </div>
@@ -1606,7 +2230,7 @@ function AdminContent({ user, profile }) {
                                                 <th scope="col">TOTAL (INR)</th>
                                                 <th scope="col">PAYMENT</th>
                                                 <th scope="col">STATUS</th>
-                                                <th scope="col">FULFILLMENT</th>
+                                                <th scope="col">ACTIONS / FULFILLMENT</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1669,21 +2293,75 @@ function AdminContent({ user, profile }) {
                                                                     {order.status.toUpperCase()}
                                                                 </span>
                                                             </td>
-                                                            <td>
-                                                                <button
-                                                                    type="button"
-                                                                    className="adminFulfillButton"
-                                                                    onClick={() => {
-                                                                        setSelectedOrder(order);
-                                                                        setOrderStatusForm({
-                                                                            status: order.status,
-                                                                            notes: order.fulfillment_notes || '', trackingId: order.tracking_id || order.awb || '', returnAction: 'return', returnReason: '',
-                                                                        });
-                                                                    }}
-                                                                >
-                                                                    <Eye size={14} />
-                                                                    <span>Inspect</span>
-                                                                </button>
+                                                            <td className="adminCellActions">
+                                                                <div className="adminTableActionsGroup">
+                                                                    {/* Quick Accept button for new/pending/paid/processing orders */}
+                                                                    {['pending_payment', 'paid', 'processing'].includes(order.status) && (
+                                                                        <button
+                                                                            type="button"
+                                                                            className="adminQuickActionBtn adminAcceptBtn"
+                                                                            onClick={() => handleQuickAcceptOrder(order)}
+                                                                            title="Accept order into Tokyo fulfillment vault"
+                                                                        >
+                                                                            <Check size={13} />
+                                                                            <span>Accept</span>
+                                                                        </button>
+                                                                    )}
+
+                                                                    {/* Quick Reject button for orders not yet shipped/delivered/cancelled */}
+                                                                    {!['shipped', 'delivered', 'cancelled', 'refunded'].includes(order.status) && (
+                                                                        <button
+                                                                            type="button"
+                                                                            className="adminQuickActionBtn adminRejectBtn"
+                                                                            onClick={() => handleOpenRejectModal(order)}
+                                                                            title="Reject order with specific reason for customer"
+                                                                        >
+                                                                            <Ban size={13} />
+                                                                            <span>Reject</span>
+                                                                        </button>
+                                                                    )}
+
+                                                                    {/* 3-Day Replacement review button if requested by customer */}
+                                                                    {(order.replacement_requested || order.replacement_status === 'requested') && (
+                                                                        <button
+                                                                            type="button"
+                                                                            className="adminQuickActionBtn adminReplacementBtn"
+                                                                            onClick={() => {
+                                                                                setSelectedOrder(order);
+                                                                                setOrderStatusForm({
+                                                                                    status: 'replaced',
+                                                                                    notes: `Replacement approved for size ${order.replacement_preferred_size || 'requested size'}`,
+                                                                                    trackingId: order.tracking_id || '',
+                                                                                    returnAction: 'replace',
+                                                                                    returnReason: order.replacement_reason || '',
+                                                                                });
+                                                                            }}
+                                                                            title="Customer requested 3-day replacement"
+                                                                        >
+                                                                            <RotateCcw size={13} />
+                                                                            <span>Replace</span>
+                                                                        </button>
+                                                                    )}
+
+                                                                    <button
+                                                                        type="button"
+                                                                        className="adminFulfillButton"
+                                                                        onClick={() => {
+                                                                            setSelectedOrder(order);
+                                                                            setOrderStatusForm({
+                                                                                status: order.status,
+                                                                                notes: order.fulfillment_notes || '',
+                                                                                trackingId: order.tracking_id || order.awb || '',
+                                                                                returnAction: 'return',
+                                                                                returnReason: '',
+                                                                            });
+                                                                        }}
+                                                                        title="Inspect full order dossier"
+                                                                    >
+                                                                        <Eye size={14} />
+                                                                        <span>Inspect</span>
+                                                                    </button>
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     );
@@ -2524,7 +3202,15 @@ function AdminContent({ user, profile }) {
                                     {(dropForm.sizes || []).map((item, index) => (
                                         <div className="adminSizeEditor" key={`${item.value}-${index}`}>
                                             <label className="adminFormLabel"><span>SIZE</span><input className="adminInput" value={item.value} onChange={(e) => setDropForm({ ...dropForm, sizes: dropForm.sizes.map((size, i) => i === index ? { ...size, value: e.target.value } : size) })} /></label>
-                                            <label className="adminFormLabel"><span>QUANTITY</span><input className="adminInput" type="number" min="0" value={item.quantity} onChange={(e) => setDropForm({ ...dropForm, sizes: dropForm.sizes.map((size, i) => i === index ? { ...size, quantity: Number(e.target.value) } : size) })} /></label>
+                                            <label className="adminFormLabel"><span>QUANTITY</span><input className="adminInput" type="number" min="0" value={item.quantity} onChange={(e) => {
+                                                const val = Number(e.target.value);
+                                                setDropForm({
+                                                    ...dropForm,
+                                                    sizes: dropForm.sizes.map((size, i) =>
+                                                        i === index ? { ...size, quantity: Math.max(0, val), sold: val <= 0 ? true : (size.quantity <= 0 && val > 0 ? false : size.sold) } : size
+                                                    )
+                                                });
+                                            }} /></label>
                                             <label className="adminCheckboxLabel"><input type="checkbox" checked={item.sold} onChange={(e) => setDropForm({ ...dropForm, sizes: dropForm.sizes.map((size, i) => i === index ? { ...size, sold: e.target.checked } : size) })} /> Mark sold</label>
                                             <button type="button" className="adminSecondaryButton" onClick={() => setDropForm({ ...dropForm, sizes: dropForm.sizes.filter((_, i) => i !== index) })}>Remove size</button>
                                         </div>
@@ -2633,17 +3319,279 @@ function AdminContent({ user, profile }) {
                             <div className="adminOrderModalBody">
                                 {/* Order Status Progression Card */}
                                 <div className="adminOrderFulfillSection">
-                                    <h4 className="adminSubsectionTitle">OPERATOR FULFILLMENT ACTION</h4>
+                                    <div className="operatorSectionHeader">
+                                        <div>
+                                            <span className="adminKanjiSub">運用手順 / AUTHENTICATED WORKFLOW</span>
+                                            <h4 className="adminSubsectionTitle">OPERATOR FULFILLMENT ACTION</h4>
+                                        </div>
+                                        <div className="operatorCurrentStatusPill">
+                                            STATUS: <span className={`adminOrderStatusBadge status-${selectedOrder.status}`}>{selectedOrder.status.toUpperCase()}</span>
+                                        </div>
+                                    </div>
                                     <p className="adminSubsectionDesc">
-                                        Advance order state through the authenticated Japanese streetwear lifecycle:
-                                        <br />
-                                        <strong>Confirmed</strong> &rarr; <strong>Authenticating</strong> &rarr; <strong>Shipped</strong> &rarr; <strong>Delivered</strong>
+                                        Complete end-to-end streetwear fulfillment pipeline:
+                                        <strong> Paid</strong> &rarr; <strong>Confirmed</strong> &rarr; <strong>Authenticating</strong> &rarr; <strong>Shipped</strong> &rarr; <strong>Delivered</strong> &rarr; <strong>3-Day Replacement</strong>
                                     </p>
 
+                                    {/* Visual Lifecycle Stepper */}
+                                    <div className="operatorLifecycleStepper">
+                                        {[
+                                            { key: 'paid', label: 'Received & Paid', date: selectedOrder.paid_at || selectedOrder.created_at },
+                                            { key: 'confirmed', label: 'Confirmed', date: selectedOrder.confirmed_at },
+                                            { key: 'authenticating', label: 'Vault Auth', date: selectedOrder.status === 'authenticating' ? selectedOrder.updated_at : null },
+                                            { key: 'shipped', label: 'Dispatched / In Transit', date: selectedOrder.shipped_at },
+                                            { key: 'delivered', label: 'Delivered', date: selectedOrder.delivered_at },
+                                        ].map((step, idx, arr) => {
+                                            const statusOrder = ['pending_payment', 'paid', 'confirmed', 'authenticating', 'processing', 'shipped', 'delivered', 'replaced'];
+                                            const curIdx = statusOrder.indexOf(selectedOrder.status);
+                                            const stepIdx = statusOrder.indexOf(step.key);
+                                            const isDone = (selectedOrder.status === 'delivered' || selectedOrder.status === 'replaced')
+                                                ? true
+                                                : selectedOrder.status === 'cancelled'
+                                                    ? false
+                                                    : curIdx >= stepIdx;
+                                            const isCurrent = selectedOrder.status === step.key || (step.key === 'authenticating' && selectedOrder.status === 'processing');
+
+                                            return (
+                                                <div key={step.key} className={`operatorStepItem ${isDone ? 'isDone' : ''} ${isCurrent ? 'isCurrent' : ''}`}>
+                                                    <div className="operatorStepIndicator">
+                                                        <div className="operatorStepCircle">
+                                                            {isDone ? <Check size={12} strokeWidth={3} /> : idx + 1}
+                                                        </div>
+                                                        {idx < arr.length - 1 && <div className="operatorStepLine" />}
+                                                    </div>
+                                                    <div className="operatorStepLabelWrap">
+                                                        <span className="operatorStepName">{step.label}</span>
+                                                        <span className="operatorStepState">
+                                                            {isCurrent ? 'Active Now' : isDone ? 'Verified' : 'Pending'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Rejection / Cancellation Dossier (if cancelled) */}
+                                    {selectedOrder.status === 'cancelled' && (
+                                        <div className="operatorAlertDossier isCancelled">
+                                            <AlertCircle size={18} />
+                                            <div>
+                                                <strong>ORDER REJECTED / CANCELLED:</strong>
+                                                <p className="operatorDossierText">
+                                                    Reason: &ldquo;{selectedOrder.rejection_reason || selectedOrder.cancel_reason || 'Rejected by Administrator'}&rdquo;
+                                                    {selectedOrder.cancelled_at && ` • Timestamp: ${new Date(selectedOrder.cancelled_at).toLocaleString('en-IN')}`}
+                                                </p>
+                                                <span className="operatorDossierHint">This reason is surfaced to the customer in their Order History.</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 3-Day Customer Replacement Dossier (if replacement was requested) */}
+                                    {(selectedOrder.replacement_requested || selectedOrder.status === 'replaced' || selectedOrder.replacement_status === 'requested') && (
+                                        <div className="operatorAlertDossier isReplacement">
+                                            <RotateCcw size={18} />
+                                            <div className="operatorReplacementContent">
+                                                <div className="operatorReplacementHead">
+                                                    <strong>CUSTOMER 3-DAY REPLACEMENT DOSSIER:</strong>
+                                                    <span className="operatorReplacementBadge">
+                                                        {selectedOrder.status === 'replaced' ? 'REPLACEMENT COMPLETED' : 'ACTION REQUIRED'}
+                                                    </span>
+                                                </div>
+                                                <div className="operatorReplacementDetailsGrid">
+                                                    <div>
+                                                        <span className="operatorLabel">REPLACEMENT REASON:</span>
+                                                        <strong>{selectedOrder.replacement_reason || 'Reason not specified'}</strong>
+                                                    </div>
+                                                    <div>
+                                                        <span className="operatorLabel">PREFERRED NEW SIZE:</span>
+                                                        <strong>{selectedOrder.replacement_preferred_size || 'Same size'}</strong>
+                                                    </div>
+                                                    {selectedOrder.replacement_notes && (
+                                                        <div className="operatorReplacementSpanAll">
+                                                            <span className="operatorLabel">CUSTOMER NOTES:</span>
+                                                            <span>{selectedOrder.replacement_notes}</span>
+                                                        </div>
+                                                    )}
+                                                    {selectedOrder.replacement_requested_at && (
+                                                        <div>
+                                                            <span className="operatorLabel">REQUESTED AT:</span>
+                                                            <span>{new Date(selectedOrder.replacement_requested_at).toLocaleString('en-IN')}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {selectedOrder.status !== 'replaced' && (
+                                                    <div className="operatorReplacementActions">
+                                                        <button
+                                                            type="button"
+                                                            className="adminPrimaryButton operatorApproveReplaceBtn"
+                                                            onClick={() => handleApproveReplacement(selectedOrder)}
+                                                        >
+                                                            <CheckCircle2 size={14} />
+                                                            <span>Approve Replacement & Allocate Pair</span>
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Quick Stage Transition Actions */}
+                                    <div className="operatorQuickActionsSection">
+                                        <span className="operatorQuickLabel">ONE-CLICK QUICK STAGE ACTIONS:</span>
+                                        <div className="operatorQuickButtonsRow">
+                                            {['pending_payment', 'paid', 'processing'].includes(selectedOrder.status) && (
+                                                <button
+                                                    type="button"
+                                                    className="operatorActionBtn operatorBtnGreen"
+                                                    onClick={() => handleAdvanceOrderStage('confirmed', 'Order accepted & confirmed by operator.')}
+                                                >
+                                                    <Check size={14} />
+                                                    <span>Accept & Confirm Order</span>
+                                                </button>
+                                            )}
+
+                                            {(selectedOrder.status === 'confirmed' || selectedOrder.status === 'paid' || selectedOrder.status === 'processing') && (
+                                                <button
+                                                    type="button"
+                                                    className="operatorActionBtn operatorBtnBlue"
+                                                    onClick={() => handleAdvanceOrderStage('authenticating', 'Physical authentication underway in Shibuya vault.')}
+                                                >
+                                                    <ShieldCheck size={14} />
+                                                    <span>Start Physical Authentication</span>
+                                                </button>
+                                            )}
+
+                                            {(selectedOrder.status === 'authenticating' || selectedOrder.status === 'confirmed') && (
+                                                <button
+                                                    type="button"
+                                                    className="operatorActionBtn operatorBtnIndigo"
+                                                    onClick={() => {
+                                                        const awb = orderStatusForm.trackingId || `BD-${Math.floor(10000000 + Math.random() * 90000000)}-IN`;
+                                                        handleAdvanceOrderStage('shipped', `Physical authentication verified. Dispatched via express courier. AWB #${awb}`);
+                                                    }}
+                                                >
+                                                    <Truck size={14} />
+                                                    <span>Pass Authentication & Dispatch (Ship)</span>
+                                                </button>
+                                            )}
+
+                                            {selectedOrder.status === 'shipped' && (
+                                                <button
+                                                    type="button"
+                                                    className="operatorActionBtn operatorBtnEmerald"
+                                                    onClick={() => handleAdvanceOrderStage('delivered', 'Insured delivery completed. Customer signature collected.')}
+                                                >
+                                                    <Package size={14} />
+                                                    <span>Mark as Delivered</span>
+                                                </button>
+                                            )}
+
+                                            {!['shipped', 'delivered', 'cancelled', 'refunded', 'replaced'].includes(selectedOrder.status) && (
+                                                <button
+                                                    type="button"
+                                                    className="operatorActionBtn operatorBtnRed"
+                                                    onClick={() => handleOpenRejectModal(selectedOrder)}
+                                                >
+                                                    <Ban size={14} />
+                                                    <span>Reject Order With Reason</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Courier Partner & Smart AWB Generator */}
+                                    <div className="operatorCourierSection">
+                                        <div className="operatorCourierHeader">
+                                            <span className="operatorQuickLabel">COURIER DISPATCH & AIRWAY BILL (AWB):</span>
+                                        </div>
+                                        <div className="operatorCourierControls">
+                                            <div className="operatorCourierSelectWrap">
+                                                <label className="adminFormLabel">
+                                                    <span>COURIER PARTNER</span>
+                                                    <select
+                                                        className="adminSelect"
+                                                        value={courierPartner}
+                                                        onChange={(e) => setCourierPartner(e.target.value)}
+                                                    >
+                                                        <option value="bluedart">Blue Dart Express (Domestic Air)</option>
+                                                        <option value="delhivery">Delhivery Air Priority</option>
+                                                        <option value="dtdc">DTDC Secure Express</option>
+                                                        <option value="fedex">FedEx Priority International</option>
+                                                    </select>
+                                                </label>
+                                            </div>
+
+                                            <div className="operatorAwbBtnWrap">
+                                                <label className="adminFormLabel"><span>AUTO-GENERATE</span></label>
+                                                <button
+                                                    type="button"
+                                                    className="adminSecondaryButton operatorGenerateAwbBtn"
+                                                    onClick={() => handleGenerateAwb(courierPartner)}
+                                                >
+                                                    <Sparkles size={14} />
+                                                    <span>Generate Courier AWB</span>
+                                                </button>
+                                            </div>
+
+                                            <div className="operatorAwbDisplayWrap">
+                                                <label className="adminFormLabel">
+                                                    <span>CURRENT AWB / TRACKING NUMBER</span>
+                                                    <input
+                                                        type="text"
+                                                        className="adminInput"
+                                                        value={orderStatusForm.trackingId}
+                                                        onChange={(e) => setOrderStatusForm({ ...orderStatusForm, trackingId: e.target.value })}
+                                                        placeholder="e.g. BD-9842109-IN"
+                                                    />
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Shibuya Vault Physical Verification Checklist */}
+                                    <div className="operatorChecklistSection">
+                                        <span className="operatorQuickLabel">SHIBUYA PHYSICAL VERIFICATION CHECKLIST:</span>
+                                        <div className="operatorChecklistGrid">
+                                            <label className="operatorCheckItem">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checklistState.boxBarcode}
+                                                    onChange={(e) => setChecklistState({ ...checklistState, boxBarcode: e.target.checked })}
+                                                />
+                                                <span>Original Box & Japanese Barcode Verified</span>
+                                            </label>
+                                            <label className="operatorCheckItem">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checklistState.insoleUv}
+                                                    onChange={(e) => setChecklistState({ ...checklistState, insoleUv: e.target.checked })}
+                                                />
+                                                <span>Insole, UV Light & Stitching Audit Passed</span>
+                                            </label>
+                                            <label className="operatorCheckItem">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checklistState.nfcTag}
+                                                    onChange={(e) => setChecklistState({ ...checklistState, nfcTag: e.target.checked })}
+                                                />
+                                                <span>SoleThief Anti-Tamper NFC Zip-Tie Attached</span>
+                                            </label>
+                                            <label className="operatorCheckItem">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checklistState.doubleBox}
+                                                    onChange={(e) => setChecklistState({ ...checklistState, doubleBox: e.target.checked })}
+                                                />
+                                                <span>Waterproof Double-Box Packaging Sealed</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {/* Manual Status Transition & Notes (Commit State) */}
                                     <form onSubmit={handleUpdateOrderStatus} className="adminFulfillForm">
                                         <div className="adminFulfillRow">
                                             <label className="adminFormLabel">
-                                                <span>TRANSITION TO STATUS</span>
+                                                <span>MANUAL TRANSITION</span>
                                                 <select
                                                     value={orderStatusForm.status}
                                                     onChange={(e) => setOrderStatusForm({ ...orderStatusForm, status: e.target.value })}
@@ -2661,29 +3609,20 @@ function AdminContent({ user, profile }) {
                                             </label>
 
                                             <label className="adminFormLabel adminFlexGrow">
-                                                <span>AUTHENTICATION / TRACKING NOTES</span>
+                                                <span>AUTHENTICATION / FULFILLMENT NOTES</span>
                                                 <input
                                                     type="text"
                                                     value={orderStatusForm.notes}
                                                     onChange={(e) => setOrderStatusForm({ ...orderStatusForm, notes: e.target.value })}
-                                                    placeholder="e.g. AWB #BLUEDART-889102 dispatched from Shibuya vault"
+                                                    placeholder="e.g. AWB #BD-889102 dispatched from Shibuya vault"
                                                     className="adminInput"
                                                 />
                                             </label>
-                                            <label className="adminFormLabel">
-                                                <span>TRACKING ID / AWB</span>
-                                                <input className="adminInput" value={orderStatusForm.trackingId} onChange={(e) => setOrderStatusForm({ ...orderStatusForm, trackingId: e.target.value })} placeholder="Courier AWB / tracking ID" />
-                                            </label>
 
-                                            <label className="adminFormLabel">
-                                                <span>RETURN / REPLACE REASON</span>
-                                                <input className="adminInput" value={orderStatusForm.returnReason} onChange={(e) => setOrderStatusForm({ ...orderStatusForm, returnReason: e.target.value })} placeholder="Reason for customer return or replacement" />
-                                            </label>
-                                            <button type="button" className="adminSecondaryButton" onClick={handleInitiateReturn}>Initiate {orderStatusForm.returnAction}</button>
                                             <button
                                                 type="submit"
                                                 className="adminPrimaryButton adminCommitStatusBtn"
-                                                disabled={orderStatusForm.status === selectedOrder.status}
+                                                disabled={orderStatusForm.status === selectedOrder.status && orderStatusForm.notes === (selectedOrder.fulfillment_notes || '') && orderStatusForm.trackingId === (selectedOrder.tracking_id || '')}
                                             >
                                                 Commit State
                                             </button>
@@ -2764,6 +3703,123 @@ function AdminContent({ user, profile }) {
                                             </div>
                                         ))}
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* MODAL: Rejection Protocol With Specific Reason */}
+                {rejectModalOrder && (
+                    <div
+                        className="adminModalOverlay"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="reject-order-modal-title"
+                        onClick={() => setRejectModalOrder(null)}
+                    >
+                        <div
+                            className="adminModalCard adminRejectModalCard"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="adminModalHeader">
+                                <div>
+                                    <span className="adminKanjiSub">注文拒否 / REJECTION PROTOCOL</span>
+                                    <h3 id="reject-order-modal-title" className="adminModalTitle">
+                                        REJECT ORDER {rejectModalOrder.id}
+                                    </h3>
+                                </div>
+                                <button
+                                    type="button"
+                                    className="adminModalClose"
+                                    onClick={() => setRejectModalOrder(null)}
+                                    aria-label="Close rejection dialog"
+                                >
+                                    &times;
+                                </button>
+                            </div>
+
+                            <div className="adminRejectModalBody">
+                                <div className="adminRejectOrderSummary">
+                                    <div className="adminRejectSummaryItem">
+                                        <span className="adminRejectLabel">CUSTOMER:</span>
+                                        <strong>{rejectModalOrder.shipping_name || rejectModalOrder.user_email || 'Collector'}</strong>
+                                    </div>
+                                    <div className="adminRejectSummaryItem">
+                                        <span className="adminRejectLabel">TOTAL VALUE:</span>
+                                        <strong>{formatMoney(rejectModalOrder.total_minor ?? rejectModalOrder.total_amount_minor ?? 0)}</strong>
+                                    </div>
+                                    <div className="adminRejectSummaryItem">
+                                        <span className="adminRejectLabel">ALLOCATED ITEMS:</span>
+                                        <span>{(rejectModalOrder.items || []).map((i) => `${i.name} (${i.size})`).join(', ') || '1 Pair'}</span>
+                                    </div>
+                                </div>
+
+                                <div className="adminRejectAlertBox">
+                                    <AlertCircle size={18} />
+                                    <span>
+                                        This specific reason will be recorded on the order ledger and prominently displayed to the customer
+                                        in their Order History under this product.
+                                    </span>
+                                </div>
+
+                                <div className="adminFormLabel">
+                                    <span>SELECT SPECIFIC REJECTION REASON</span>
+                                    <select
+                                        className="adminSelect"
+                                        value={rejectionReason}
+                                        onChange={(e) => setRejectionReason(e.target.value)}
+                                    >
+                                        <option value="Product authenticity failed physical vault inspection">
+                                            Product authenticity failed physical vault inspection
+                                        </option>
+                                        <option value="Item condition failed quality audit (box tear or sole wear)">
+                                            Item condition failed quality audit (box tear or sole wear)
+                                        </option>
+                                        <option value="Requested size out of stock in Shibuya depot">
+                                            Requested size out of stock in Shibuya depot
+                                        </option>
+                                        <option value="Customer shipping destination unserviceable by express air courier">
+                                            Customer shipping destination unserviceable by express air courier
+                                        </option>
+                                        <option value="High-risk transaction flag from payment provider">
+                                            High-risk transaction flag from payment provider
+                                        </option>
+                                        <option value="custom">Other / Custom specific reason...</option>
+                                    </select>
+                                </div>
+
+                                {rejectionReason === 'custom' && (
+                                    <div className="adminFormLabel" style={{ marginTop: '1rem' }}>
+                                        <span>ENTER CUSTOM REJECTION REASON</span>
+                                        <textarea
+                                            className="adminTextarea"
+                                            rows={3}
+                                            value={customRejectionReason}
+                                            onChange={(e) => setCustomRejectionReason(e.target.value)}
+                                            placeholder="Type exact reason to be surfaced to the customer in their account..."
+                                            required
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="adminModalFooter">
+                                    <button
+                                        type="button"
+                                        className="adminSecondaryButton"
+                                        onClick={() => setRejectModalOrder(null)}
+                                        disabled={isSubmittingReject}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="adminDangerButton"
+                                        onClick={handleConfirmRejectOrder}
+                                        disabled={isSubmittingReject || (rejectionReason === 'custom' && !customRejectionReason.trim())}
+                                    >
+                                        {isSubmittingReject ? 'Rejecting Order...' : 'Confirm Rejection'}
+                                    </button>
                                 </div>
                             </div>
                         </div>

@@ -11,13 +11,16 @@ import Account from './pages/Account';
 import Admin from './pages/Admin';
 import CommerceProvider from './commerce/CommerceProvider';
 import { AuthProvider } from './auth/AuthContext.jsx';
+import AdminRoute from './auth/AdminRoute.jsx';
 import { WishlistProvider } from './commerce/WishlistContext.jsx';
+import SaveButtonAnimator from './components/SaveButtonAnimator.jsx';
 
 function App() {
   return (
     <AuthProvider>
       <CommerceProvider>
         <WishlistProvider>
+          <SaveButtonAnimator />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/shop" element={<Shop />} />
@@ -30,7 +33,7 @@ function App() {
             <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
             <Route path="/account" element={<Account />} />
             <Route path="/login" element={<Account initialView="signin" />} />
-            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
           </Routes>
         </WishlistProvider>
       </CommerceProvider>

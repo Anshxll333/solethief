@@ -773,7 +773,16 @@
     gap: .5rem;
     border-bottom: 2px solid rgba(21, 27, 43, 0.2);
     margin-bottom: 2.5rem;
-    overflow-x: auto;
+    flex-wrap: wrap;
+    overflow-x: visible;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.accountNavTabs::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
 }
 
 .accountNavTab {
@@ -1665,6 +1674,78 @@
     background: #fbf7ee;
 }
 
+.checkoutRadioOption.isUnavailable {
+    cursor: not-allowed;
+    opacity: 0.72;
+    background: #f1ede3;
+    border-style: dashed;
+    border-color: rgba(21, 27, 43, 0.35);
+}
+
+.checkoutRadioOption.isUnavailable:hover {
+    background: #f1ede3;
+}
+
+.checkoutRadioOption.isMaintenanceOption {
+    background: #fffdf5;
+    border-color: #f59e0b;
+}
+
+.checkoutRadioOption.isUnavailable input[type="radio"] {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+.checkoutMaintenanceBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.15rem 0.45rem;
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #f59e0b;
+    border-radius: 2px;
+    line-height: 1.2;
+}
+
+.checkoutMaintenanceBadge.isOffline {
+    background: #f3f4f6;
+    color: #4b5563;
+    border-color: #9ca3af;
+}
+
+.checkoutAlertBanner.isMaintenance {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1rem 1.15rem;
+    margin-bottom: 1.25rem;
+    background: #fffbeb;
+    border: 2px solid #f59e0b;
+    color: #92400e;
+}
+
+.checkoutAlertBanner.isMaintenance strong {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+}
+
+.checkoutAlertBanner.isMaintenance p {
+    margin: 0;
+    font-size: 0.825rem;
+    line-height: 1.45;
+    color: #78350f;
+}
+
 .checkoutRadioOption input[type="radio"] {
     margin-top: .25rem;
     width: 18px;
@@ -2270,24 +2351,86 @@
     align-items: center;
     gap: 0.5rem;
     min-height: 44px;
-    padding: 0 1rem;
+    padding: 0 1.15rem;
     background: #151B2B;
     color: #F1EBDD;
-    border: none;
+    border: 1px solid rgba(200, 169, 110, 0.3);
     font-size: 0.8rem;
     font-weight: 600;
     letter-spacing: 0.1em;
     cursor: pointer;
-    transition: background 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s ease;
+    user-select: none;
 }
 
 .adminRefreshButton:hover:not(:disabled) {
-    background: #252e42;
+    background: #20283c;
     color: #C8A96E;
+    border-color: #C8A96E;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+.adminRefreshButton:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+.adminRefreshButton.isSyncing {
+    background: #1a2337;
+    color: #C8A96E;
+    border-color: #C8A96E;
+    box-shadow: 0 0 15px rgba(200, 169, 110, 0.35);
+    cursor: wait;
+}
+
+.adminRefreshButton.isSyncing::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(200, 169, 110, 0.25), transparent);
+    animation: adminSyncShimmer 1.1s infinite ease-in-out;
+}
+
+@keyframes adminSyncShimmer {
+    0% {
+        left: -60%;
+    }
+    100% {
+        left: 140%;
+    }
+}
+
+.adminRefreshButton.isSynced {
+    background: #15271d;
+    color: #8be09b;
+    border-color: #2e6930;
+    box-shadow: 0 0 12px rgba(46, 105, 48, 0.35);
+}
+
+.adminSyncCheckIcon {
+    animation: adminCheckPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes adminCheckPop {
+    0% {
+        transform: scale(0.3);
+        opacity: 0;
+    }
+    70% {
+        transform: scale(1.25);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 .adminSpin {
-    animation: adminSpinKeyframes 1s linear infinite;
+    animation: adminSpinKeyframes 0.85s linear infinite;
 }
 
 @keyframes adminSpinKeyframes {
@@ -2696,6 +2839,12 @@
     border: 1px solid #716955;
 }
 
+.badgeMaintenance {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #f59e0b;
+}
+
 .adminStateSelect {
     min-height: 40px;
     padding: 0.35rem 0.6rem;
@@ -2804,6 +2953,10 @@
     border-color: #151B2B;
     color: #C8A96E;
     transform: translateY(-1px);
+}
+
+.adminIconAction:active {
+    transform: translateY(0);
 }
 
 .adminIconAction.adminDangerAction {
@@ -3748,6 +3901,485 @@ fieldset.adminCard {
     overflow: visible;
 }
 
+/* ==========================================================================
+   Admin Orders & Fulfillment Enhancements
+   ========================================================================== */
+
+.adminTableActionsGroup {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.adminQuickActionBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 38px;
+    padding: 0 0.65rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 0;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.adminAcceptBtn {
+    background: #1e532b;
+    color: #FAF6EF;
+    border-color: #1e532b;
+}
+
+.adminAcceptBtn:hover {
+    background: #2a723b;
+    color: #FFFFFF;
+}
+
+.adminRejectBtn {
+    background: #fff0f0;
+    color: #9c1c1c;
+    border-color: #f5c2c2;
+}
+
+.adminRejectBtn:hover {
+    background: #9c1c1c;
+    color: #FFFFFF;
+    border-color: #9c1c1c;
+}
+
+.adminReplacementBtn {
+    background: #f7efff;
+    color: #632d99;
+    border-color: #dfc2f5;
+}
+
+.adminReplacementBtn:hover {
+    background: #632d99;
+    color: #FFFFFF;
+    border-color: #632d99;
+}
+
+.adminDangerButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 46px;
+    padding: 0 1.5rem;
+    background: #9c1c1c;
+    color: #FFFFFF;
+    border: 1px solid #9c1c1c;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.adminDangerButton:hover:not(:disabled) {
+    background: #bd2626;
+    border-color: #bd2626;
+}
+
+.adminRejectModalCard {
+    width: min(640px, 100%);
+    background: #FAF6EF;
+}
+
+.adminRejectOrderSummary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    background: #F1EBDD;
+    border: 1px solid rgba(21, 27, 43, 0.18);
+    padding: 1.15rem;
+    margin-bottom: 1.25rem;
+}
+
+.adminRejectSummaryItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.84rem;
+}
+
+.adminRejectLabel {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    color: rgba(21, 27, 43, 0.65);
+    font-weight: 600;
+}
+
+.adminRejectAlertBox {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background: #fff4e5;
+    border: 1px solid #ffe2b8;
+    color: #8f5300;
+    padding: 0.85rem 1rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+/* Operator Fulfillment Section Upgrades */
+.operatorSectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.operatorCurrentStatusPill {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.72rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Stepper */
+.operatorLifecycleStepper {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.5rem;
+    background: #F1EBDD;
+    border: 1px solid rgba(21, 27, 43, 0.16);
+    padding: 1.25rem 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.operatorStepItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+}
+
+.operatorStepIndicator {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 0.65rem;
+    position: relative;
+}
+
+.operatorStepCircle {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #e2dbcb;
+    color: rgba(21, 27, 43, 0.6);
+    border: 2px solid rgba(21, 27, 43, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    margin: 0 auto;
+    z-index: 2;
+    transition: all 0.2s ease;
+}
+
+.operatorStepItem.isDone .operatorStepCircle {
+    background: #1e532b;
+    color: #FAF6EF;
+    border-color: #1e532b;
+}
+
+.operatorStepItem.isCurrent .operatorStepCircle {
+    background: #151B2B;
+    color: #C8A96E;
+    border-color: #C8A96E;
+    box-shadow: 0 0 0 3px rgba(200, 169, 110, 0.35);
+}
+
+.operatorStepLine {
+    position: absolute;
+    left: 50%;
+    right: -50%;
+    top: 50%;
+    height: 2px;
+    background: rgba(21, 27, 43, 0.2);
+    z-index: 1;
+}
+
+.operatorStepItem.isDone .operatorStepLine {
+    background: #1e532b;
+}
+
+.operatorStepName {
+    display: block;
+    font-family: 'Anton', sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+    color: #151B2B;
+    line-height: 1.2;
+}
+
+.operatorStepState {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.64rem;
+    color: rgba(21, 27, 43, 0.6);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.operatorStepItem.isCurrent .operatorStepState {
+    color: #9c6d12;
+    font-weight: 700;
+}
+
+/* Alert Dossiers */
+.operatorAlertDossier {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1.15rem;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.operatorAlertDossier.isCancelled {
+    background: #fdf2f2;
+    border-color: #9c1c1c;
+    color: #7a1515;
+}
+
+.operatorAlertDossier.isReplacement {
+    background: #f7efff;
+    border-color: #632d99;
+    color: #3b1763;
+}
+
+.operatorDossierText {
+    margin: 0.25rem 0;
+    font-weight: 500;
+}
+
+.operatorDossierHint {
+    font-size: 0.72rem;
+    opacity: 0.75;
+}
+
+.operatorReplacementContent {
+    flex: 1;
+}
+
+.operatorReplacementHead {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.65rem;
+}
+
+.operatorReplacementBadge {
+    background: #632d99;
+    color: #FFFFFF;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.2rem 0.5rem;
+    letter-spacing: 0.08em;
+}
+
+.operatorReplacementDetailsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+    font-size: 0.82rem;
+}
+
+.operatorReplacementSpanAll {
+    grid-column: 1 / -1;
+}
+
+.operatorLabel {
+    display: block;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.68rem;
+    color: rgba(21, 27, 43, 0.65);
+    letter-spacing: 0.08em;
+    font-weight: 600;
+}
+
+.operatorApproveReplaceBtn {
+    background: #632d99;
+    border-color: #632d99;
+}
+
+.operatorApproveReplaceBtn:hover {
+    background: #4e217a;
+    border-color: #4e217a;
+}
+
+/* Quick Actions */
+.operatorQuickActionsSection {
+    background: #FAF6EF;
+    border: 1px solid rgba(21, 27, 43, 0.16);
+    padding: 1.15rem;
+    margin-bottom: 1.5rem;
+}
+
+.operatorQuickLabel {
+    display: block;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #151B2B;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+}
+
+.operatorQuickButtonsRow {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.operatorActionBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 42px;
+    padding: 0 1rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 0;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.operatorBtnGreen {
+    background: #1e532b;
+    color: #FFFFFF;
+}
+.operatorBtnGreen:hover {
+    background: #2b773e;
+}
+
+.operatorBtnBlue {
+    background: #184c8a;
+    color: #FFFFFF;
+}
+.operatorBtnBlue:hover {
+    background: #2367ba;
+}
+
+.operatorBtnIndigo {
+    background: #151B2B;
+    color: #C8A96E;
+    border-color: #C8A96E;
+}
+.operatorBtnIndigo:hover {
+    background: #252e42;
+    color: #E6C88A;
+}
+
+.operatorBtnEmerald {
+    background: #0f634b;
+    color: #FFFFFF;
+}
+.operatorBtnEmerald:hover {
+    background: #158564;
+}
+
+.operatorBtnRed {
+    background: #9c1c1c;
+    color: #FFFFFF;
+}
+.operatorBtnRed:hover {
+    background: #b82323;
+}
+
+/* Courier & AWB Box */
+.operatorCourierSection {
+    background: #F1EBDD;
+    border: 1px solid rgba(21, 27, 43, 0.16);
+    padding: 1.15rem;
+    margin-bottom: 1.5rem;
+}
+
+.operatorCourierControls {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1.5fr;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.operatorGenerateAwbBtn {
+    width: 100%;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+/* Verification Checklist */
+.operatorChecklistSection {
+    background: #FAF6EF;
+    border: 1px solid rgba(21, 27, 43, 0.16);
+    padding: 1.15rem;
+    margin-bottom: 1.5rem;
+}
+
+.operatorChecklistGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+
+.operatorCheckItem {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.8rem;
+    color: #151B2B;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.operatorCheckItem input[type="checkbox"] {
+    accent-color: #151B2B;
+    width: 16px;
+    height: 16px;
+}
+
+@media (max-width: 768px) {
+    .operatorLifecycleStepper {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    .operatorStepLine {
+        display: none;
+    }
+    .operatorCourierControls {
+        grid-template-columns: 1fr;
+    }
+    .operatorChecklistGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .adminCard>.adminCard {
     background: #151B2B;
     color: #F1EBDD;
@@ -4360,6 +4992,84 @@ fieldset.adminCard {
     margin-top: 0.5rem;
     padding-top: 0.85rem;
     border-top: 1px solid rgba(21, 27, 43, 0.1);
+}
+
+/* Payment Gateway Form Fields & Responsive Alignment */
+.adminPaymentFieldsRow4 {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.25rem;
+    align-items: flex-end;
+    width: 100%;
+    margin-bottom: 1.25rem;
+}
+
+.adminPaymentFieldsRow2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    align-items: flex-end;
+    width: 100%;
+    margin-bottom: 1.25rem;
+}
+
+@media (max-width: 1100px) {
+    .adminPaymentFieldsRow4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .adminPaymentFieldsRow4,
+    .adminPaymentFieldsRow2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+.adminPaymentField {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+.adminPaymentField > span {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #151B2B;
+    text-transform: uppercase;
+    line-height: 1.25;
+    min-height: 2.75rem;
+    display: flex;
+    align-items: flex-end;
+    margin-bottom: 0.5rem;
+    word-break: break-word;
+}
+
+.adminPaymentField .adminInput,
+.adminPaymentField .adminSelect {
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    height: 48px;
+    padding: 0.65rem 0.9rem;
+    background: #F1EBDD;
+    border: 1px solid rgba(21, 27, 43, 0.25);
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: #151B2B;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.adminPaymentField .adminInput:focus,
+.adminPaymentField .adminSelect:focus {
+    border-color: #151B2B;
+    box-shadow: 0 0 0 1px #151B2B;
 }
 
 /* ==========================================================================

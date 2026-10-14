@@ -1,3 +1,5 @@
+import { isPinterestPageUrl, isWebpageUrl } from '../services/remoteImage.js';
+
 export function groupShopProducts(products) {
     const groups = new Map();
     for (const product of products) {
@@ -87,7 +89,15 @@ export function resolveCollectionArtwork(category) {
         ? category
         : (category.image_url || category.artwork_url || '');
     if (custom && typeof custom === 'string' && custom.trim()) {
-        return custom.trim();
+        const trimmed = custom.trim();
+        const slug = typeof category === 'object' && category?.slug ? String(category.slug).toLowerCase().trim() : '';
+        if (isPinterestPageUrl(trimmed) || isWebpageUrl(trimmed)) {
+            if (slug && DEFAULT_COLLECTION_ARTWORK[slug]) {
+                return DEFAULT_COLLECTION_ARTWORK[slug];
+            }
+            return null;
+        }
+        return trimmed;
     }
     const slug = typeof category === 'object' && category?.slug ? String(category.slug).toLowerCase().trim() : '';
     if (slug && DEFAULT_COLLECTION_ARTWORK[slug]) {

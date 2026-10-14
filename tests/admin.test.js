@@ -19,7 +19,6 @@ if (typeof globalThis.window === 'undefined') {
 const {
     ADMIN_STORAGE_DROPS_KEY,
     ADMIN_STORAGE_INVENTORY_KEY,
-    ADMIN_STORAGE_OPERATOR_KEY,
     INVENTORY_STATES,
     VERIFICATION_STATUSES,
     ADMIN_FULFILLMENT_TRANSITIONS,
@@ -53,11 +52,12 @@ const validLiveDrop = {
 };
 
 test('live authorization requires strict boolean true and fails closed on RPC errors', async () => {
+    const adminUser = { id: 'admin', email: 'admin@solethief.in' };
     for (const data of [false, null, undefined, 'true', 1, {}, { role: 'admin' }, [true]]) {
         const service = createAdminService(() => ({
             status: 'configured', client: { rpc: async () => ({ data, error: null }) },
-        }));
-        const access = await service.checkAdminAccess({ user: { id: 'admin' } });
+        }), { adminEmails: ['admin@solethief.in'] });
+        const access = await service.checkAdminAccess({ user: adminUser });
         assert.equal(access.isAdmin, false);
         assert.equal(access.role, null);
     }
@@ -66,8 +66,11 @@ test('live authorization requires strict boolean true and fails closed on RPC er
         async () => { throw new Error('offline'); },
         async () => null,
     ]) {
-        const service = createAdminService(() => ({ status: 'configured', client: { rpc } }));
-        const access = await service.checkAdminAccess({ user: { id: 'admin' } });
+        const service = createAdminService(
+            () => ({ status: 'configured', client: { rpc } }),
+            { adminEmails: ['admin@solethief.in'] },
+        );
+        const access = await service.checkAdminAccess({ user: adminUser });
         assert.equal(access.isAdmin, false);
         assert.equal(access.mode, 'live');
         assert.ok(access.error);
@@ -91,8 +94,6 @@ test('every admin method rejects invalid runtime without touching demo storage o
         const service = createAdminService(() => runtime);
         const invocations = {
             checkAdminAccess: () => service.checkAdminAccess(),
-            getOperatorSession: () => service.getOperatorSession(),
-            setOperatorSession: () => service.setOperatorSession({ isOperator: true }),
             getOperationalMetrics: () => service.getOperationalMetrics(),
             listDrops: () => service.listDrops(),
             createDrop: () => service.createDrop(validLiveDrop),
@@ -129,8 +130,6 @@ test('live create uses only the atomic RPC with explicit ID and migration fields
         },
     }));
     assert.equal(service.generateDropId(), '');
-    assert.throws(() => service.getOperatorSession(), /local demo/);
-    assert.throws(() => service.setOperatorSession({ isOperator: true }), /local demo/);
     assert.equal(await service.createDrop({ ...validLiveDrop, description: 'Not a DB field' }), row);
     assert.deepEqual(calls, [['admin_create_shop_product', {
         p_product: {
@@ -179,7 +178,6 @@ test('live create surfaces conflicts and inventory/RPC failures without fallback
 test('admin domain contracts and constants match schema expectations', () => {
     assert.equal(ADMIN_STORAGE_DROPS_KEY, 'solethief.admin.drops.v1');
     assert.equal(ADMIN_STORAGE_INVENTORY_KEY, 'solethief.admin.inventory.v1');
-    assert.equal(ADMIN_STORAGE_OPERATOR_KEY, 'solethief.admin.operator.v1');
 
     assert.ok(INVENTORY_STATES.includes('available'));
     assert.ok(INVENTORY_STATES.includes('reserved'));
@@ -209,28 +207,39 @@ test('admin domain contracts and constants match schema expectations', () => {
     savePreviewInventory(inventory);
 });
 
-test('operator access control in preview mode toggles correctly', async () => {
+test('preview admin access requires the configured signed-in email', async () => {
     mockStore.clear();
-    const service = createAdminService(() => ({ status: 'missing', client: null }));
+    const service = createAdminService(
+        () => ({ status: 'missing', client: null }),
+        { adminEmails: ['admin@solethief.in'] },
+    );
 
-    // Default session has operator active
-    const accessActive = await service.checkAdminAccess();
-    assert.equal(accessActive.isAdmin, true);
-    assert.equal(accessActive.mode, 'preview');
-    assert.equal(accessActive.role, 'admin');
+    const unauthenticated = await service.checkAdminAccess();
+    assert.equal(unauthenticated.isAdmin, false);
+    assert.match(unauthenticated.error, /Authentication required/i);
 
-    // Toggle off operator
-    service.setOperatorSession({ isOperator: false, role: 'viewer', operatorId: null });
-    const accessInactive = await service.checkAdminAccess();
-    assert.equal(accessInactive.isAdmin, false);
-    assert.equal(accessInactive.mode, 'preview');
-    assert.match(accessInactive.error, /restricted/i);
+    const wrongEmail = await service.checkAdminAccess({
+        user: { id: 'customer', email: 'customer@solethief.in' },
+    });
+    assert.equal(wrongEmail.isAdmin, false);
+    assert.match(wrongEmail.error, /configured administrator email/i);
 
-    // Toggle back on
-    service.setOperatorSession({ isOperator: true, role: 'admin', operatorId: 'op_shibuya_test' });
-    const accessRestored = await service.checkAdminAccess();
-    assert.equal(accessRestored.isAdmin, true);
-    assert.equal(accessRestored.operatorId, 'op_shibuya_test');
+    const unconfiguredService = createAdminService(
+        () => ({ status: 'missing', client: null }),
+        { adminEmails: [] },
+    );
+    const unconfigured = await unconfiguredService.checkAdminAccess({
+        user: { id: 'admin', email: 'admin@solethief.in' },
+    });
+    assert.equal(unconfigured.isAdmin, false);
+    assert.match(unconfigured.error, /No administrator email is configured/i);
+
+    const matchingEmail = await service.checkAdminAccess({
+        user: { id: 'admin', email: '  ADMIN@SOLETHIEF.IN ' },
+    });
+    assert.equal(matchingEmail.isAdmin, true);
+    assert.equal(matchingEmail.mode, 'preview');
+    assert.equal(matchingEmail.operatorId, 'admin');
 });
 
 test('live mode uses the JWT authorization RPC and isolates non-admin users', async () => {
@@ -248,7 +257,7 @@ test('live mode uses the JWT authorization RPC and isolates non-admin users', as
     const liveService = createAdminService(() => ({
         status: 'configured',
         client: fakeClient,
-    }));
+    }), { adminEmails: ['kenji@solethief.in'] });
 
     // 1. Unauthenticated in live mode is rejected
     const unauth = await liveService.checkAdminAccess({ user: null });
@@ -264,9 +273,10 @@ test('live mode uses the JWT authorization RPC and isolates non-admin users', as
     });
     assert.equal(regular.isAdmin, false);
     assert.equal(regular.mode, 'live');
-    assert.match(regular.error, /not granted admin permissions/i);
+    assert.match(regular.error, /configured administrator email/i);
+    assert.equal(calls, 0);
 
-    // Authorization comes from the RPC, not the supplied user object.
+    // A matching email still requires authorization from the RPC.
     authorized = true;
     const adminUser = await liveService.checkAdminAccess({
         user: { id: 'usr_admin_kenji', email: 'kenji@solethief.in' },

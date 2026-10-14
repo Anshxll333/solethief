@@ -4,7 +4,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Reject control characters to mirror the database text constraints.
 // eslint-disable-next-line no-control-regex
 const CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
-const IMAGE = /^(https:\/\/[A-Za-z0-9]+([.-][A-Za-z0-9]+)*(:[0-9]{1,5})?(\/[A-Za-z0-9_./-]*)?|\/[A-Za-z0-9_-][A-Za-z0-9_./-]*)$/;
+const IMAGE = /^(https:\/\/(?!.*@)[A-Za-z0-9.-]+(:[0-9]{1,5})?(\/[A-Za-z0-9_./-]*(\?[A-Za-z0-9_./-?=&%#+-]*)?)?|\/[A-Za-z0-9_-][A-Za-z0-9_./-]*)$/;
 const DATA_IMAGE = /^data:image\/(?:png|jpe?g|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=]+$/;
 const MAX_DATA_IMAGE_LENGTH = 10 * 1024 * 1024;
 const SEEDS = ['Travis Scott', 'Low Dunks', 'Retro 4', 'Air Jordans', 'Leather Shoes', 'Air Forces', 'Adidas', 'New Balance', 'Limited'];

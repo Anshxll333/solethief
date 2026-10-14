@@ -456,8 +456,11 @@ button {
   transition: transform 0.3s ease;
 }
 
-.shoeCard:hover {
-  transform: translateY(-10px);
+@media (hover: hover) and (pointer: fine) {
+  /* Keep the product-card motion on the image only, so metadata stays stable on hover. */
+  .shoeCard:has(.shoeCardImageContainer:hover) {
+    transform: translateY(-10px);
+  }
 }
 
 .shoeCardImageContainer {
@@ -492,16 +495,18 @@ button {
   opacity: 0;
 }
 
-.shoeCard:hover .hasSideImage .shoeImageFront {
-  opacity: 0;
-}
+@media (hover: hover) and (pointer: fine) {
+  .shoeCardImageContainer:hover.hasSideImage .shoeImageFront {
+    opacity: 0;
+  }
 
-.shoeCard:hover .shoeImageSide {
-  opacity: 1;
-}
+  .shoeCardImageContainer:hover .shoeImageSide {
+    opacity: 1;
+  }
 
-.shoeCard:hover .shoeImage {
-  transform: scale(1.05) rotate(-3deg);
+  .shoeCardImageContainer:hover .shoeImage {
+    transform: scale(1.05) rotate(-3deg);
+  }
 }
 
 .shoeCardInfo {
@@ -979,6 +984,29 @@ button:focus-visible,
   cursor: default;
   opacity: 0.9;
   transform: none;
+}
+
+.shoeCardOutStockBadge {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  background: #1a1a1a;
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  z-index: 2;
+  text-transform: uppercase;
+}
+
+.shoeCardActions .shoeAddButton.isSoldOut {
+  background: #f3f4f6;
+  color: #9ca3af;
+  border-color: #e5e7eb;
+  cursor: not-allowed;
+  opacity: 1;
 }
 
 .shoeCardActions .shoeViewButton {
@@ -1627,30 +1655,90 @@ button:focus-visible,
   color: var(--ink);
   border-radius: 4px;
   cursor: pointer;
-  transition: all 200ms ease;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.pairSizePill:hover:not(:disabled):not(.isSoldOut) {
-  border-color: var(--ink);
-  background: rgba(26, 26, 26, 0.04);
+.pairSizeValue {
+  position: relative;
+  z-index: 1;
 }
 
-.pairSizePill.isSelected,
-.pairSizePill[aria-checked='true'] {
-  background: var(--ink);
+@media (hover: hover) and (pointer: fine) {
+  .pairSizePill:hover:not(:disabled):not(.isSoldOut):not(.isSelected):not([aria-checked='true']) {
+    border-color: var(--ink);
+    background: rgba(26, 26, 26, 0.06);
+    transform: translateY(-1px);
+  }
+}
+
+.pairSizePill:active:not(:disabled):not(.isSoldOut) {
+  transform: translateY(0) scale(0.97);
+}
+
+.pairSizePill:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.pairSizePill.isSelected:not(:disabled),
+.pairSizePill[aria-checked='true']:not(:disabled) {
+  background-color: #1A1A1A;
   color: #FFFFFF;
-  border-color: var(--ink);
+  border-color: #1A1A1A;
+}
+
+.pairSizePill.isSelected:not(:disabled) .pairSizeValue,
+.pairSizePill[aria-checked='true']:not(:disabled) .pairSizeValue {
+  color: #FFFFFF;
 }
 
 .pairSizePill.isSoldOut,
 .pairSizePill:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
+  position: relative;
+  min-width: 82px;
+  height: 44px;
+  padding: 4px 8px;
+  flex-direction: column;
+  gap: 1px;
+  opacity: 0.68;
+  cursor: not-allowed !important;
+  color: #6F6F6F;
+  border: 1px dashed rgba(26, 26, 26, 0.28);
+  background: #F4F2EC;
   text-decoration: line-through;
+  overflow: hidden;
+  user-select: none;
+}
+
+.pairSizeStockLabel {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-body);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: #8A3C2A;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pairSizePill.isSoldOut::after,
+.pairSizePill:disabled::after {
+  content: '';
+  position: absolute;
+  top: 43%;
+  left: -20%;
+  right: -20%;
+  height: 1.5px;
+  background: rgba(26, 26, 26, 0.35);
+  transform: rotate(-24deg);
+  pointer-events: none;
 }
 
 .pairSizeNotice {
@@ -1753,6 +1841,14 @@ button:focus-visible,
   opacity: 0.45;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+.pairAddToBagBtn.isSoldOut {
+  background: #6E6B65;
+  border-color: #6E6B65;
+  color: #E2DFD8;
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .pairAddToBagBtn.isInBag {
@@ -2513,4 +2609,66 @@ button:focus-visible,
     transition: none !important;
     transform: none !important;
   }
+}
+
+/* Global Save Button Animation Styles */
+@keyframes saveButtonPulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7); }
+  50% { transform: scale(1.06); box-shadow: 0 0 25px 8px rgba(212, 175, 55, 0.5); filter: brightness(1.15); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
+}
+
+@keyframes saveRippleAnim {
+  0% {
+    transform: scale(0);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes saveSparkleFloat {
+  0% {
+    transform: translateY(0) scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-40px) scale(1.2);
+    opacity: 0;
+  }
+}
+
+.save-button-animated {
+  animation: saveButtonPulse 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.save-ripple-effect {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.8) 0%, rgba(212, 175, 55, 0.4) 50%, transparent 100%);
+  pointer-events: none;
+  transform: scale(0);
+  animation: saveRippleAnim 0.65s linear forwards;
+  z-index: 999999;
+}
+
+.save-floating-badge {
+  position: absolute;
+  z-index: 1000000;
+  background: #1A1A1A;
+  color: #F1EBDD;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  pointer-events: none;
+  animation: saveSparkleFloat 0.7s ease-out forwards;
+  border: 1px solid #D4AF37;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }

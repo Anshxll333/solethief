@@ -3,10 +3,12 @@ import { Menu, X, ShoppingCart, User } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCommerce } from '../commerce/context.js';
 import { useAuth } from '../auth/authContext.js';
+import { isConfiguredAdminUser } from '../auth/adminAccess.js';
 
 export default function Navbar() {
   const { cart } = useCommerce();
-  const { user, profile } = useAuth();
+  const { user, profile, authStatus } = useAuth();
+  const showAdminLink = authStatus === 'authenticated' && isConfiguredAdminUser(user);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButton = useRef(null);
   const location = useLocation();
@@ -56,7 +58,9 @@ export default function Navbar() {
         <Link to="/shop" className={`navLink ${isActive('/shop') ? 'active isActive' : ''}`.trim()}>SHOP</Link>
         <Link to="/new-drops" className={`navLink ${isActive('/new-drops') ? 'active isActive' : ''}`.trim()}>NEW DROPS</Link>
         <Link to="/about" className={`navLink ${isActive('/about') ? 'active isActive' : ''}`.trim()}>ABOUT</Link>
-        <Link to="/admin" className={`navLink ${isActive('/admin') ? 'active isActive' : ''}`.trim()}>ADMIN</Link>
+        {showAdminLink && (
+          <Link to="/admin" className={`navLink ${isActive('/admin') ? 'active isActive' : ''}`.trim()}>ADMIN</Link>
+        )}
       </nav>
       <div className="headerIcons">
         <button ref={menuButton} className="iconButton mobileMenuButton" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} aria-controls="primary-navigation" onClick={() => setMenuOpen(!menuOpen)}>
