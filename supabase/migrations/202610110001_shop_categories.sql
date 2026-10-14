@@ -115,7 +115,7 @@ begin
   end if;
   if exists (
     select 1 from jsonb_object_keys(p_product) as k(key)
-    where key not in ('id', 'name', 'brand', 'size', 'price_minor', 'currency', 'front_image', 'side_image', 'active')
+    where key not in ('id', 'name', 'brand', 'size', 'price_minor', 'currency', 'front_image', 'side_image', 'active', 'description', 'images', 'sizes')
   ) then
     raise exception 'Unknown product field' using errcode = '22023';
   end if;
@@ -139,12 +139,13 @@ begin
     raise exception 'currency must be INR' using errcode = '22023';
   end if;
 
-  insert into public.products (id, name, brand, size, price_minor, currency, front_image, side_image, active)
+  insert into public.products (id, name, brand, size, price_minor, currency, front_image, side_image, active, description, images, sizes)
   values (
     (p_product ->> 'id')::integer, p_product ->> 'name', p_product ->> 'brand',
     p_product ->> 'size', (p_product ->> 'price_minor')::integer,
     coalesce(p_product ->> 'currency', 'INR'), p_product ->> 'front_image',
-    p_product ->> 'side_image', coalesce((p_product ->> 'active')::boolean, false)
+    p_product ->> 'side_image', coalesce((p_product ->> 'active')::boolean, false),
+    coalesce(p_product ->> 'description', ''), coalesce(p_product -> 'images', '[]'::jsonb), coalesce(p_product -> 'sizes', '[]'::jsonb)
   ) returning * into v_product;
   insert into public.inventory_pairs (product_id, state) values (v_product.id, 'unavailable');
   return v_product;

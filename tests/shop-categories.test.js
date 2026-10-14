@@ -197,6 +197,23 @@ test('public live results explicitly filter admin-readable hidden and inactive m
     assert.ok(!live.calls.some(call => call[1] === 'inventory_pairs'));
 });
 
+
+test('public live memberships are not filtered through the Admin product projection', async () => {
+    const categories = getDefaultShopCategories();
+    const products = getPreviewDrops().map(previewDropToRow);
+    products.push({ ...products[0], id: 5, name: 'AIR' });
+    const live = liveMock({
+        categories,
+        products,
+        memberships: [
+            { category_id: categories[3].id, product_id: 3 },
+            { category_id: categories[3].id, product_id: 5 },
+        ],
+    });
+    const publicList = await live.service.list();
+    assert.deepEqual(publicList.memberships.map(row => row.product_id), [3, 5]);
+});
+
 test('preview catalog preserves defaults/physics, reflects edits, and ignores category visibility', async () => {
     const catalog = createCatalogService(missing);
     const initial = await catalog.list({ allowPreview: true });

@@ -1,8 +1,10 @@
+@import '../pages/Account.css';
+
 .commercePage {
     --commerce-ink: #151b2b;
-    width: min(1400px, 100%);
+    width: min(1360px, 100%);
     margin: 0 auto;
-    padding: 5rem 4%;
+    padding: 1.5rem 4% 3rem;
     flex: 1;
     color: var(--commerce-ink);
 }
@@ -11,19 +13,29 @@
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    gap: 1rem;
-    margin-bottom: 2rem;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
     flex-wrap: wrap;
 }
 
 .commerceHeading h1 {
-    font-size: clamp(2.5rem, 6vw, 5rem);
+    font-size: clamp(2.2rem, 4.5vw, 3.5rem);
+    font-family: inherit;
+    font-weight: 700;
+    line-height: 1.1;
+    margin: 0;
+}
+
+.commerceHeadingActions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
 }
 
 .commerceEyebrow {
     letter-spacing: .16em;
     font-size: .75rem;
-    margin-bottom: .75rem;
+    margin-bottom: .4rem;
 }
 
 .commerceNotice,
@@ -148,64 +160,263 @@
 
 .commerceBagLayout {
     display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
-    gap: 3rem;
-    margin-top: 2rem;
+    grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
+    gap: 2.75rem;
+    margin-top: 1.5rem;
+    align-items: start;
 }
 
 .commerceBagList {
     list-style: none;
+    margin: 0;
+    padding: 0;
 }
 
 .commerceBagItem {
     display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    border-top: 1px solid #151b2b40;
-    padding: 1.5rem 0;
+    align-items: flex-start;
+    gap: 1.75rem;
+    border-top: 1px solid rgba(21, 27, 43, 0.2);
+    padding: 1.75rem 0;
+}
+
+.commerceBagThumb {
+    display: block;
+    flex-shrink: 0;
 }
 
 .commerceBagItem img {
     width: 140px;
-    height: 130px;
+    height: 125px;
     object-fit: contain;
+    display: block;
+    background: transparent;
 }
 
+.commerceBagDetails {
+    flex: 1;
+    min-width: 0;
+}
+
+.commerceBagTitle h2,
 .commerceBagItem h2 {
     font-size: 1.35rem;
+    font-weight: 700;
+    margin: 0 0 0.35rem;
+    line-height: 1.25;
+    color: var(--commerce-ink);
 }
 
+.commerceBagMeta,
 .commerceBagItem p {
-    margin: .5rem 0;
-    line-height: 1.6;
+    margin: 0.35rem 0;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #555c6d;
+}
+
+.commerceBagPrice {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--commerce-ink);
+    margin: 0.35rem 0 0.75rem;
+}
+
+.commerceBagActions {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-top: 0.95rem;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.commerceQuantityControls {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    padding: 4px 10px;
+    border-radius: 9999px;
+    background: rgba(21, 27, 43, 0.025);
+}
+
+.commerceQuantityControls .commerceSmall {
+    width: auto;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #6e7687;
+    margin-right: 2px;
+}
+
+.commerceQuantityBtn {
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    color: var(--commerce-ink);
+    font-size: 1.1rem;
+    font-weight: 700;
+    padding: 0 4px;
+    cursor: pointer;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.commerceQuantityBtn:hover:not(:disabled) {
+    color: #987b47;
+}
+
+.commerceQuantityBtn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.commerceQuantityValue {
+    font-weight: 600;
+    min-width: 1.3rem;
+    text-align: center;
+    font-size: 0.88rem;
+    color: var(--commerce-ink);
+}
+
+.commerceItemBuyNowBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: var(--commerce-font-mono, monospace);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: #987B47;
+    color: #FFFFFF;
+    border: 1px solid #987B47;
+    border-radius: 9999px;
+    padding: 7px 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    text-decoration: none;
+    box-shadow: 0 2px 8px rgba(152, 123, 71, 0.22);
+}
+
+.commerceItemBuyNowBtn:hover {
+    background: #806536;
+    border-color: #806536;
+    color: #FFFFFF;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(152, 123, 71, 0.38);
+}
+
+.commerceItemBuyNowBtn:active {
+    transform: translateY(0);
+}
+
+.commerceRemoveBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid #D9D2C3;
+    background: transparent;
+    color: #8A857C;
+    cursor: pointer;
+    transition: all 200ms ease;
+    padding: 0;
+    margin-left: auto;
+}
+
+.commerceRemoveBtn:hover {
+    background: #1A1A1A;
+    color: #ffffff;
+    border-color: #1A1A1A;
+    transform: scale(1.08);
 }
 
 .commerceSummary {
-    border: 1px solid #151b2b50;
-    padding: 1.5rem;
+    border: 1px solid rgba(21, 27, 43, 0.25);
+    background: #f7f2e8;
+    padding: 1.75rem 2rem;
     align-self: start;
+    position: sticky;
+    top: 86px;
+    border-radius: 2px;
+}
+
+.commerceSummary h2 {
+    font-size: 1.45rem;
+    font-weight: 700;
+    margin: 0 0 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.15);
+    line-height: 1.2;
+}
+
+.commerceSummary dl {
+    margin: 0 0 1.25rem;
 }
 
 .commerceSummary dl>div {
     display: flex;
     justify-content: space-between;
     gap: 1rem;
-    margin: 1.5rem 0;
+    margin: 0.85rem 0;
+    font-size: 0.95rem;
+}
+
+.commerceSummary dl>div:first-child {
+    font-size: 1.05rem;
+    font-weight: 600;
 }
 
 .commerceSummary p {
-    font-size: .85rem;
-    line-height: 1.7;
-    margin: 1rem 0;
+    font-size: 0.84rem;
+    line-height: 1.55;
+    margin: 0.85rem 0;
+    color: rgba(21, 27, 43, 0.85);
 }
 
 .commerceSummary .commerceButton {
     width: 100%;
+    min-height: 48px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.navbarCartLink {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .commerceCartCount {
-    font-size: .75rem;
-    min-width: 1rem;
+    position: absolute;
+    top: -6px;
+    right: -8px;
+    background: #1A1A1A;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    padding: 0;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    pointer-events: none;
 }
 
 .commercePage :focus-visible,
@@ -225,9 +436,21 @@
     }
 }
 
+@media (max-width: 880px) {
+    .commerceBagLayout {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .commerceSummary {
+        position: static;
+        margin-top: 1rem;
+    }
+}
+
 @media (max-width: 600px) {
     .commercePage {
-        padding: 3rem 5%;
+        padding: 1.5rem 5% 3rem;
     }
 
     .commerceFilters {
@@ -244,12 +467,16 @@
     }
 
     .commerceBagItem {
-        gap: 1rem;
+        gap: 1.25rem;
     }
 
     .commerceBagItem img {
-        width: 90px;
-        height: 100px;
+        width: 100px;
+        height: 95px;
+    }
+
+    .commerceSummary {
+        padding: 1.5rem;
     }
 
     .commerceToolbar {
@@ -1094,17 +1321,338 @@
     font: inherit;
 }
 
+/* ==========================================================================
+   BRUTALIST LUXURY CHECKOUT - SHIPPING DESTINATION EXPERIENCE
+   ========================================================================== */
+
+.checkoutBlockBrutalist {
+    background: #eae2d1;
+    border: 2px solid #151b2b;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 3px 3px 0 rgba(21, 27, 43, 0.12);
+}
+
+.checkoutBrutalistBlockHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.25rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 2px solid #151b2b;
+    flex-wrap: wrap;
+}
+
+.checkoutHeaderTitleWrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.checkoutTagRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.checkoutTagBadge {
+    background: #151b2b;
+    color: #f7f2e8;
+    padding: 2px 7px;
+    font-family: monospace;
+}
+
+.checkoutTagCourier {
+    color: #ff5e00;
+    font-family: monospace;
+    font-weight: 800;
+}
+
+.checkoutHeaderFlex {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.checkoutHeaderIcon {
+    color: #151b2b;
+    flex-shrink: 0;
+}
+
+.checkoutBrutalistBlockHeader h2 {
+    font-family: 'Anton', sans-serif;
+    font-size: 1.3rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin: 0;
+    color: #151b2b;
+}
+
+.checkoutBlockSubtext {
+    font-size: 0.8rem;
+    color: rgba(21, 27, 43, 0.75);
+    margin: 0;
+    max-width: 580px;
+    line-height: 1.35;
+}
+
+.checkoutInsuredBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: #f7f2e8;
+    border: 1px solid #151b2b;
+    padding: 4px 10px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: #151b2b;
+    white-space: nowrap;
+}
+
+.checkoutProtocolPills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.checkoutProtocolPill {
+    font-family: monospace;
+    font-size: 0.68rem;
+    color: rgba(21, 27, 43, 0.8);
+    background: rgba(21, 27, 43, 0.05);
+    padding: 3px 7px;
+    border: 1px dashed rgba(21, 27, 43, 0.25);
+    letter-spacing: 0.04em;
+}
+
+.checkoutSavedAddrSection {
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px dashed rgba(21, 27, 43, 0.3);
+}
+
+.checkoutSubSectionTitle {
+    font-family: monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #151b2b;
+    margin-bottom: 0.85rem;
+}
+
+.checkoutSavedCardsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+}
+
+.checkoutSavedCard {
+    background: #f7f2e8;
+    border: 1.5px solid rgba(21, 27, 43, 0.25);
+    padding: 1rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-family: inherit;
+    color: #151b2b;
+}
+
+.checkoutSavedCard:hover {
+    border-color: #151b2b;
+    transform: translateY(-2px);
+    box-shadow: 2px 2px 0 rgba(21, 27, 43, 0.15);
+}
+
+.checkoutSavedCard.isSelected {
+    background: #fffdf9;
+    border: 2px solid #ff5e00;
+    box-shadow: 3px 3px 0 rgba(255, 94, 0, 0.2);
+}
+
+.checkoutSavedCardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.checkoutSavedCardTag {
+    font-family: monospace;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: #ff5e00;
+}
+
+.checkoutSavedRecipientName {
+    font-weight: 800;
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+}
+
+.checkoutSavedLines {
+    font-size: 0.82rem;
+    color: rgba(21, 27, 43, 0.8);
+    line-height: 1.35;
+}
+
+.checkoutSelectedBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: monospace;
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: #ff5e00;
+    margin-top: 0.5rem;
+    letter-spacing: 0.05em;
+}
+
+.checkoutNewAddrCard {
+    background: transparent;
+    border: 1.5px dashed rgba(21, 27, 43, 0.4);
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    color: #151b2b;
+    min-height: 130px;
+}
+
+.checkoutNewAddrCard:hover {
+    border-color: #151b2b;
+    background: rgba(21, 27, 43, 0.04);
+}
+
+.checkoutNewAddrCard.isSelected {
+    background: #f7f2e8;
+    border: 2px solid #151b2b;
+    box-shadow: 3px 3px 0 rgba(21, 27, 43, 0.15);
+}
+
+.checkoutNewAddrIcon {
+    font-size: 1.5rem;
+    line-height: 1;
+    font-weight: 300;
+}
+
+.checkoutNewAddrText {
+    font-family: monospace;
+    font-weight: 800;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+}
+
+.checkoutNewAddrSub {
+    font-size: 0.72rem;
+    color: rgba(21, 27, 43, 0.65);
+}
+
+.checkoutBrutalistForm {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.checkoutFieldBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.checkoutFieldHeaderRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.checkoutFieldLabel {
+    font-family: monospace;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: #151b2b;
+    text-transform: uppercase;
+}
+
+.checkoutFieldReqTag {
+    font-family: monospace;
+    font-size: 0.65rem;
+    color: #ff5e00;
+    font-weight: 700;
+}
+
+.checkoutFieldOptionalTag {
+    font-family: monospace;
+    font-size: 0.65rem;
+    color: rgba(21, 27, 43, 0.5);
+    font-weight: 600;
+}
+
+.checkoutBrutalistInput {
+    width: 100%;
+    min-height: 40px;
+    padding: 0.55rem 0.85rem;
+    background: #f7f2e8;
+    border: 1.5px solid #151b2b;
+    color: #151b2b;
+    font-family: inherit;
+    font-size: 0.88rem;
+    border-radius: 0;
+    box-sizing: border-box;
+    transition: all 0.15s ease;
+}
+
+.checkoutBrutalistInput:focus {
+    outline: none;
+    border-color: #ff5e00;
+    background: #fffdf9;
+    box-shadow: 2px 2px 0 #151b2b;
+}
+
+.checkoutBrutalistInput::placeholder {
+    color: rgba(21, 27, 43, 0.45);
+    font-size: 0.88rem;
+}
+
+.checkoutSrOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 .checkoutRadioGroup {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.65rem;
 }
 
 .checkoutRadioOption {
     display: flex;
     align-items: flex-start;
-    gap: 1rem;
-    padding: 1.25rem;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
     background: #f7f2e8;
     border: 1px solid rgba(21, 27, 43, 0.2);
     cursor: pointer;
@@ -1159,18 +1707,18 @@
 .checkoutSummaryBox {
     background: #eae2d1;
     border: 2px solid #151b2b;
-    padding: 2rem;
+    padding: 1.25rem 1.5rem;
     position: sticky;
     top: 6rem;
 }
 
 .checkoutSummaryTitle {
     font-family: 'Anton', sans-serif;
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     text-transform: uppercase;
     letter-spacing: .04em;
-    margin-bottom: 1.5rem;
-    padding-bottom: .75rem;
+    margin-bottom: 1rem;
+    padding-bottom: .5rem;
     border-bottom: 2px solid #151b2b;
 }
 
@@ -1178,9 +1726,9 @@
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
-    margin-bottom: 1.75rem;
-    max-height: 280px;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    max-height: 240px;
     overflow-y: auto;
     padding-right: .5rem;
 }
@@ -1188,14 +1736,14 @@
 .checkoutLineItem {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding-bottom: 1.25rem;
+    gap: 0.75rem;
+    padding-bottom: 0.75rem;
     border-bottom: 1px dashed rgba(21, 27, 43, 0.2);
 }
 
 .checkoutLineThumb {
-    width: 64px;
-    height: 60px;
+    width: 52px;
+    height: 48px;
     object-fit: contain;
     background: #f7f2e8;
     padding: .2rem;
@@ -1231,9 +1779,9 @@
 .checkoutBreakdown {
     display: flex;
     flex-direction: column;
-    gap: .75rem;
-    margin-bottom: 1.75rem;
-    padding-top: 1rem;
+    gap: .5rem;
+    margin-bottom: 1.25rem;
+    padding-top: 0.75rem;
     border-top: 1px solid rgba(21, 27, 43, 0.2);
 }
 
@@ -1259,8 +1807,9 @@
 
 .checkoutPlaceOrderBtn {
     width: 100%;
-    min-height: 52px;
-    font-size: 1rem;
+    min-height: 44px;
+    padding: 0.65rem 1rem;
+    font-size: 0.92rem;
     font-weight: 600;
     letter-spacing: .06em;
     text-transform: uppercase;
@@ -1281,7 +1830,7 @@
 }
 
 .checkoutGuaranteeNotice {
-    margin-top: 1.25rem;
+    margin-top: 0.85rem;
     font-size: .75rem;
     line-height: 1.5;
     opacity: .75;
@@ -1324,6 +1873,18 @@
     letter-spacing: .08em;
     text-transform: uppercase;
     margin-bottom: .75rem;
+}
+
+.confirmStatusBadge.isPending {
+    background: #2a1b05;
+    color: #eab308;
+    border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.confirmStatusBadge.isCancelled {
+    background: #2a0808;
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .confirmOrderIdTitle {
@@ -1593,7 +2154,7 @@
 .adminPageContainer {
     width: min(1440px, 100%);
     margin: 0 auto;
-    padding: 3.5rem 4% 6rem;
+    padding: 2rem 4% 5rem;
 }
 
 .adminHeaderSection {
@@ -2214,22 +2775,57 @@
     gap: 0.5rem;
 }
 
+/* Keep inventory operators distinct and usable without changing their behavior. */
+.adminInventoryActions {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 0.65rem;
+    min-width: 10.5rem;
+    padding: 0.2rem 0;
+}
+
 .adminIconAction {
-    width: 44px;
-    height: 44px;
+    width: 46px;
+    height: 46px;
     display: inline-flex;
+    flex: 0 0 46px;
     align-items: center;
     justify-content: center;
-    background: transparent;
-    border: 1px solid rgba(21, 27, 43, 0.2);
+    border: 1px solid rgba(21, 27, 43, 0.3);
+    border-radius: 0.35rem;
+    background: #FAF6EF;
     color: #151B2B;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
 .adminIconAction:hover {
     background: #151B2B;
+    border-color: #151B2B;
     color: #C8A96E;
+    transform: translateY(-1px);
+}
+
+.adminIconAction.adminDangerAction {
+    border-color: rgba(142, 55, 45, 0.55);
+    background: #F8E8E2;
+    color: #8E372D;
+}
+
+.adminIconAction.adminDangerAction:hover {
+    background: #8E372D;
+    border-color: #8E372D;
+    color: #FAF6EF;
+}
+
+.adminIconAction:focus-visible {
+    outline: 3px solid #C8A96E;
+    outline-offset: 3px;
+}
+
+.adminTable th:last-child,
+.adminTable td:last-child {
+    min-width: 12rem;
 }
 
 .adminOrderLink {
@@ -2717,9 +3313,388 @@
 }
 
 /* Responsive Overrides */
+/* Global control hub refinements */
+.adminSection {
+    width: 100%;
+    color: #151B2B;
+}
+
+.adminSectionToolbar {
+    align-items: flex-end;
+    padding: 1.25rem 1.35rem;
+    margin-bottom: 1.25rem;
+    background: rgba(250, 246, 239, .7);
+    border: 1px solid rgba(21, 27, 43, .14);
+}
+
+.adminSectionToolbar h2 {
+    margin-top: .35rem;
+    font-size: clamp(1.5rem, 2.5vw, 2.15rem);
+    line-height: 1.05;
+}
+
+.adminFormGrid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    align-items: start;
+    gap: 1rem;
+}
+
+.adminFormGrid>.adminCard:nth-child(1),
+.adminFormGrid>.adminCard:nth-child(2) {
+    grid-column: span 6;
+}
+
+.adminFormGrid>.adminCard:nth-child(n+3) {
+    grid-column: span 4;
+}
+
+.adminCard {
+    min-width: 0;
+    padding: 1.25rem;
+    background: #FAF6EF;
+    border: 1px solid rgba(21, 27, 43, .16);
+    box-shadow: 0 8px 24px rgba(21, 27, 43, .045);
+}
+
+fieldset.adminCard {
+    margin: 0;
+}
+
+fieldset.adminCard legend {
+    max-width: 90%;
+    padding: 0 .55rem;
+    color: #151B2B;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    line-height: 1.35;
+    text-transform: uppercase;
+}
+
+.adminFormLabel {
+    margin-bottom: .9rem;
+    font-size: .68rem;
+    line-height: 1.25;
+}
+
+.adminFormLabel>span {
+    display: block;
+    color: rgba(21, 27, 43, .7);
+}
+
+.adminFormLabel .adminInput+.adminInput {
+    margin-top: .5rem;
+}
+
+.adminInput,
+.adminSelect,
+.adminTextarea {
+    min-height: 42px;
+    border-radius: 0;
+    background: #F1EBDD;
+    border-color: rgba(21, 27, 43, .22);
+}
+
+textarea.adminInput,
+.adminTextarea {
+    min-height: 92px;
+    resize: vertical;
+    line-height: 1.45;
+}
+
+.adminInput:hover,
+.adminSelect:hover,
+.adminTextarea:hover {
+    border-color: rgba(21, 27, 43, .45);
+}
+
+.adminCard>p {
+    margin: .75rem 0 1rem;
+    color: rgba(21, 27, 43, .68);
+    font-size: .8rem;
+    line-height: 1.5;
+}
+
+.adminCard>.adminCard {
+    margin-top: 1.15rem;
+    padding: 1.15rem;
+    background: #151B2B;
+    color: #F1EBDD;
+    border-color: #151B2B;
+}
+
+.adminCard>.adminCard strong {
+    display: block;
+    margin-bottom: .65rem;
+    color: #C8A96E;
+    font-size: .7rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+}
+
+.adminCard>.adminCard h3 {
+    margin-bottom: .55rem;
+    color: #F1EBDD;
+    font-size: 1.45rem;
+    line-height: 1.1;
+}
+
+.adminCard>.adminCard p {
+    margin-bottom: 1rem;
+    color: rgba(241, 235, 221, .76);
+}
+
+.adminRowActions {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.25fr) 5.5rem auto;
+    align-items: center;
+    gap: .55rem;
+    padding: .7rem 0;
+    border-bottom: 1px solid rgba(21, 27, 43, .1);
+}
+
+.adminRowActions:last-of-type {
+    border-bottom: 0;
+}
+
+.adminRowActions>label {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    min-height: 42px;
+    color: rgba(21, 27, 43, .72);
+    font-size: .72rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.adminRowActions+.adminSecondaryButton {
+    margin-top: 1rem;
+}
+
+.adminCard input[type="checkbox"] {
+    accent-color: #151B2B;
+}
+
+@media (max-width: 900px) {
+
+    .adminFormGrid>.adminCard:nth-child(1),
+    .adminFormGrid>.adminCard:nth-child(2),
+    .adminFormGrid>.adminCard:nth-child(n+3) {
+        grid-column: span 6;
+    }
+}
+
+@media (max-width: 640px) {
+    .adminSectionToolbar {
+        align-items: stretch;
+    }
+
+    .adminSectionToolbar>.adminPrimaryButton {
+        width: 100%;
+    }
+
+    .adminFormGrid>.adminCard:nth-child(1),
+    .adminFormGrid>.adminCard:nth-child(2),
+    .adminFormGrid>.adminCard:nth-child(n+3) {
+        grid-column: 1 / -1;
+    }
+
+    .adminCard {
+        padding: 1rem;
+    }
+
+    .adminRowActions {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .adminRowActions>.adminInput[type="number"],
+    .adminRowActions>label {
+        grid-column: 1 / -1;
+    }
+}
+
 @media (max-width: 1024px) {
     .adminMetricsGrid {
         grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Admin visibility and responsive safety overrides */
+.adminRoot {
+    overflow-x: hidden;
+}
+
+.adminPageContainer {
+    flex: 1 0 auto;
+    min-width: 0;
+}
+
+.adminTabsNav {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
+
+.adminTabButton {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.adminSection,
+.adminSectionToolbar,
+.adminFormGrid,
+.adminCard,
+.adminTable,
+.adminModalCard {
+    min-width: 0;
+}
+
+.adminFormGrid {
+    align-items: stretch;
+    row-gap: 1.25rem;
+}
+
+.adminFormGrid>.adminCard {
+    height: auto;
+    overflow: visible;
+}
+
+fieldset.adminCard {
+    min-height: 0;
+}
+
+.adminFormLabel>span {
+    min-height: 1.2em;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.adminCard>.adminCard {
+    overflow: visible;
+}
+
+.adminTable {
+    min-width: 760px;
+}
+
+.adminDropsTableContainer,
+.adminOrdersTableContainer {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+}
+
+.adminModalOverlay {
+    overflow-y: auto;
+    align-items: flex-start;
+}
+
+.adminModalCard {
+    max-height: calc(100vh - 4rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+    margin: auto 0;
+}
+
+.adminModalFooter {
+    flex-wrap: wrap;
+}
+
+.adminRoot>footer {
+    flex-shrink: 0;
+    margin-top: 2rem;
+}
+
+@media (max-width: 768px) {
+    .adminPageContainer {
+        padding: 2rem 1rem 4rem;
+    }
+
+    .adminHeaderSection {
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .adminControlsGroup,
+    .adminControlsGroup>* {
+        max-width: 100%;
+    }
+
+    .adminOperatorBadgeGroup {
+        align-items: stretch;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .adminModeToggleButton {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .adminSectionToolbar {
+        align-items: stretch;
+        gap: .85rem;
+        padding: 1rem;
+    }
+
+    .adminSectionToolbar>.adminSearchBox,
+    .adminSectionToolbar>.adminFilterSelect,
+    .adminSectionToolbar>.adminSecondaryButton,
+    .adminSectionToolbar>.adminPrimaryButton {
+        width: 100%;
+        max-width: none;
+    }
+
+    .adminModalOverlay {
+        padding: 1rem;
+    }
+
+    .adminModalCard {
+        max-height: calc(100vh - 2rem);
+        padding: 1.25rem;
+    }
+
+    .adminModalFooter {
+        justify-content: stretch;
+    }
+
+    .adminModalFooter>button {
+        flex: 1 1 180px;
+    }
+}
+
+@media (max-width: 480px) {
+    .adminTitle {
+        font-size: clamp(2rem, 13vw, 3rem);
+    }
+
+    .adminTabsNav {
+        gap: .25rem;
+        margin-right: -1rem;
+        padding-right: 1rem;
+    }
+
+    .adminTabButton {
+        min-height: 44px;
+        padding: 0 .8rem;
+        font-size: .72rem;
+    }
+
+    .adminCard {
+        padding: .9rem;
+    }
+
+    .adminRowActions {
+        grid-template-columns: 1fr;
+    }
+
+    .adminRowActions>.adminInput[type="number"],
+    .adminRowActions>label {
+        grid-column: auto;
     }
 }
 
@@ -2745,5 +3720,880 @@
 
     .adminSearchBox {
         max-width: 100%;
+    }
+}
+
+/* Admin-only contrast and sizing safeguards. */
+.adminRoot,
+.adminRoot button,
+.adminRoot input,
+.adminRoot select,
+.adminRoot textarea {
+    color-scheme: light;
+}
+
+.adminRoot button:disabled {
+    color: rgba(241, 235, 221, .72);
+    cursor: not-allowed;
+}
+
+.adminCard,
+.adminMetricCard,
+.adminRestrictedCard,
+.adminLoadingCard,
+.adminDropsTableContainer,
+.adminOrdersTableContainer,
+.adminModalCard {
+    color: #151B2B;
+    overflow: visible;
+}
+
+.adminCard>.adminCard {
+    background: #151B2B;
+    color: #F1EBDD;
+}
+
+.adminCard>.adminCard strong {
+    color: #C8A96E;
+}
+
+.adminCard>.adminCard h3 {
+    color: #F1EBDD;
+}
+
+.adminCard>.adminCard p {
+    color: rgba(241, 235, 221, .82);
+}
+
+.adminCard>.adminCard .adminSecondaryButton {
+    background: #F1EBDD;
+    color: #151B2B;
+    border-color: #C8A96E;
+}
+
+.adminInput,
+.adminSelect,
+.adminTextarea,
+.adminFilterSelect,
+.adminStateSelect {
+    color: #151B2B;
+    caret-color: #151B2B;
+}
+
+.adminInput::placeholder,
+.adminTextarea::placeholder,
+.adminSearchBox input::placeholder {
+    color: rgba(21, 27, 43, .62);
+    opacity: 1;
+}
+
+.adminInput[type="file"] {
+    color: #151B2B;
+}
+
+.adminInput[type="file"]::file-selector-button {
+    color: #F1EBDD;
+    background: #151B2B;
+    border: 0;
+    padding: .45rem .7rem;
+    margin-right: .65rem;
+}
+
+.adminTabsNav,
+.adminSectionToolbar,
+.adminFormGrid,
+.adminOrderDetailsGrid,
+.adminOrderModalBody,
+.adminModalCard {
+    height: auto;
+    max-height: none;
+}
+
+.adminModalCard {
+    max-height: calc(100vh - 2rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.adminModalOverlay {
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .adminInventoryActions {
+        gap: 0.5rem;
+        min-width: 10rem;
+    }
+
+    .adminModalCard {
+        max-height: calc(100vh - 2rem);
+    }
+}
+
+/* Keep the drop editor independent from the dashboard's responsive grids. */
+.adminModalOverlay {
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.adminModalCard {
+    box-sizing: border-box;
+    width: min(980px, 100%);
+    max-width: 100%;
+    max-height: calc(100vh - 2rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.adminDropForm {
+    min-width: 0;
+}
+
+.adminDropForm>.adminFormGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.adminDropForm>.adminFormGrid>.adminFormLabel,
+.adminDropForm>.adminFormLabel {
+    min-width: 0;
+}
+
+.adminDropForm .adminInput,
+.adminDropForm .adminSelect,
+.adminDropForm .adminTextarea {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.adminDropForm .adminSelect[multiple] {
+    min-height: 7rem;
+}
+
+.adminDropForm .adminQuickImagePicks {
+    gap: .5rem;
+}
+
+.adminDropForm .adminImagePickBtn,
+.adminDropForm .adminSecondaryButton,
+.adminDropForm .adminPrimaryButton {
+    min-width: 0;
+    white-space: normal;
+}
+
+.adminDropForm .adminSizeEditor {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(7rem, .75fr);
+    align-items: end;
+    gap: .75rem;
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid rgba(21, 27, 43, .14);
+    background: rgba(241, 235, 221, .55);
+}
+
+.adminDropForm .adminSizeEditor .adminCheckboxLabel {
+    grid-column: 1 / -1;
+    min-height: 2.5rem;
+}
+
+.adminDropForm .adminSizeEditor>.adminSecondaryButton {
+    grid-column: 1 / -1;
+    justify-self: start;
+    min-height: 40px;
+    padding-inline: 1rem;
+}
+
+.adminDropForm>.adminFormGrid:has(.adminSizeEditor) {
+    grid-template-columns: 1fr;
+    gap: .75rem;
+}
+
+.adminDropForm>.adminFormGrid:has(.adminSizeEditor)>.adminSecondaryButton {
+    justify-self: start;
+}
+
+.adminDropForm .adminModalFooter {
+    align-items: center;
+}
+
+@media (max-width: 700px) {
+    .adminModalOverlay {
+        padding: 1rem;
+    }
+
+    .adminModalCard {
+        max-height: calc(100vh - 2rem);
+        padding: 1.25rem;
+    }
+
+    .adminDropForm>.adminFormGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .adminDropForm .adminSizeEditor {
+        grid-template-columns: minmax(0, 1fr) minmax(6rem, .7fr);
+    }
+}
+
+@media (max-width: 460px) {
+    .adminDropForm .adminSizeEditor {
+        grid-template-columns: 1fr;
+    }
+
+    .adminDropForm .adminSizeEditor .adminCheckboxLabel,
+    .adminDropForm .adminSizeEditor>.adminSecondaryButton {
+        grid-column: auto;
+    }
+
+    .adminDropForm .adminModalFooter {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .adminDropForm .adminModalFooter>button {
+        width: 100%;
+    }
+}
+
+/* ==========================================================================
+   Admin Additional Images Visual Manager
+   ========================================================================== */
+
+.adminAdditionalManager {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.35rem;
+}
+
+.adminAdditionalEmpty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 1.25rem 1rem;
+    background: #FAF6EF;
+    border: 1px dashed rgba(21, 27, 43, 0.22);
+    color: rgba(21, 27, 43, 0.55);
+    font-size: 0.8rem;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.adminAdditionalEmptyIcon {
+    opacity: 0.6;
+}
+
+.adminAdditionalGallery {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.adminAdditionalItem {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.6rem 0.85rem;
+    background: #FAF6EF;
+    border: 1px solid rgba(21, 27, 43, 0.16);
+    transition: border-color 0.15s ease;
+}
+
+.adminAdditionalItem:hover {
+    border-color: rgba(21, 27, 43, 0.35);
+}
+
+.adminAdditionalThumb {
+    width: 52px;
+    height: 52px;
+    border: 1px solid rgba(21, 27, 43, 0.18);
+    background: #F1EBDD;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px;
+}
+
+.adminAdditionalThumbImg {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+}
+
+.adminAdditionalInfo {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.adminAdditionalBadge {
+    display: inline-block;
+    align-self: flex-start;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #ff5e00;
+}
+
+.adminAdditionalMeta {
+    font-size: 0.75rem;
+    color: rgba(21, 27, 43, 0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: normal;
+    text-transform: none;
+    font-family: monospace;
+}
+
+.adminAdditionalRemoveBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.65rem;
+    background: transparent;
+    border: 1px solid rgba(139, 37, 37, 0.3);
+    color: #8b2525;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+}
+
+.adminAdditionalRemoveBtn:hover {
+    background: #f8e5e5;
+    border-color: #8b2525;
+    color: #701c1c;
+}
+
+.adminAdditionalControls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.adminAdditionalUploadRow {
+    display: flex;
+}
+
+.adminAdditionalUploadBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    min-height: 38px;
+    cursor: pointer;
+    font-size: 0.76rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.adminAdditionalDivider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: #7A8191;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.adminAdditionalDivider::before,
+.adminAdditionalDivider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.12);
+}
+
+.adminAdditionalDivider span {
+    padding: 0 0.65rem;
+}
+
+.adminAdditionalUrlRow {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.adminAdditionalUrlInput {
+    flex: 1;
+    min-width: 0;
+}
+
+.adminAdditionalAddBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0 1rem;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.adminAdditionalStatus {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+    color: #ff5e00;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+.adminAdditionalError {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+    color: #ef4444;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+/* ==========================================================================
+   Admin Storefront Control Hub & Global Configuration
+   ========================================================================== */
+
+.adminGlobalHubGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-top: 0.5rem;
+}
+
+.adminGlobalCard {
+    background: #FAF6EF;
+    border: 1px solid rgba(21, 27, 43, 0.15);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    position: relative;
+}
+
+.adminGlobalSpan2 {
+    grid-column: span 2;
+}
+
+.adminGlobalCardHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.1);
+}
+
+.adminGlobalCardTitle {
+    font-family: var(--font-heading, "Syne", sans-serif);
+    font-size: 1.05rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #151B2B;
+    margin: 0.2rem 0 0;
+}
+
+.adminBannerSplitLayout {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 1.75rem;
+    align-items: start;
+}
+
+.adminBannerInputs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.adminBannerPreviewBox {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.adminBannerPreviewLabel {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(21, 27, 43, 0.6);
+}
+
+.adminBannerLiveCard {
+    background: #151B2B;
+    color: #FAF6EF;
+    padding: 1.75rem 1.5rem;
+    border-radius: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
+    border-left: 3px solid #ff5e00;
+}
+
+.adminBannerLiveEyebrow {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: #ff5e00;
+}
+
+.adminBannerLiveTitle {
+    font-family: var(--font-heading, "Syne", sans-serif);
+    font-size: 1.25rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #FAF6EF;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.adminBannerLiveBody {
+    font-size: 0.82rem;
+    color: rgba(250, 246, 239, 0.78);
+    line-height: 1.45;
+    margin: 0;
+}
+
+.adminBannerLiveBtn {
+    display: inline-block;
+    align-self: flex-start;
+    margin-top: 0.65rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #151B2B;
+    background: #FAF6EF;
+    padding: 0.45rem 1rem;
+    border-radius: 2px;
+    transition: all 0.2s ease;
+}
+
+.adminNavBuilderList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.adminNavBuilderRow {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    background: #F3EFE6;
+    padding: 0.6rem 0.85rem;
+    border: 1px solid rgba(21, 27, 43, 0.12);
+}
+
+.adminNavOrderBadge {
+    font-family: monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #ff5e00;
+    padding: 0.25rem 0.5rem;
+    background: rgba(255, 94, 0, 0.08);
+    border: 1px solid rgba(255, 94, 0, 0.2);
+    white-space: nowrap;
+    border-radius: 2px;
+}
+
+.adminNavOrderInput {
+    width: 75px !important;
+    flex: 0 0 75px !important;
+    text-align: center;
+}
+
+.adminGlobalFieldsCol {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.adminPaymentSecurityNote {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 0.78rem;
+    color: #2e7d32;
+    background: rgba(46, 125, 50, 0.08);
+    border: 1px solid rgba(46, 125, 50, 0.22);
+    padding: 0.75rem 1rem;
+    margin-top: 0.25rem;
+    border-radius: 2px;
+}
+
+.adminPaymentControlActions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgba(21, 27, 43, 0.1);
+}
+
+/* ==========================================================================
+   Admin Customer Profiles & User Modals
+   ========================================================================== */
+
+.adminCustomerAvatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #151B2B;
+    color: #FAF6EF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.82rem;
+    flex-shrink: 0;
+    letter-spacing: normal;
+}
+
+.adminCustomerAvatar.large {
+    width: 44px;
+    height: 44px;
+    font-size: 1.1rem;
+    background: #ff5e00;
+}
+
+.adminCustomerModalCard {
+    max-width: 660px;
+    width: 100%;
+}
+
+.adminCustomerModalBody {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1.5rem;
+}
+
+.adminCustomerStatsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.85rem;
+}
+
+.adminCustomerStatBox {
+    background: #F5EFE4;
+    border: 1px solid rgba(21, 27, 43, 0.12);
+    padding: 0.85rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.adminCustomerStatLabel {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(21, 27, 43, 0.55);
+}
+
+.adminCustomerStatVal {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #151B2B;
+    word-break: break-all;
+}
+
+.adminCustomerStatVal.price {
+    font-family: var(--font-heading, "Syne", sans-serif);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #ff5e00;
+}
+
+.adminCustomerHistorySection {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.adminCustomerOrdersList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 240px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.adminCustomerOrderRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: #FBF8F2;
+    border: 1px solid rgba(21, 27, 43, 0.12);
+}
+
+/* ==========================================================================
+   Admin Support Ticket Inquiries & Dispatch Modals
+   ========================================================================== */
+
+.adminTicketModalCard {
+    max-width: 680px;
+    width: 100%;
+}
+
+.adminTicketModalBody {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.5rem;
+}
+
+.adminTicketThreadContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    max-height: 340px;
+    overflow-y: auto;
+    padding: 1rem;
+    background: #F5EFE4;
+    border: 1px solid rgba(21, 27, 43, 0.12);
+}
+
+.adminTicketMsgBubble {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    max-width: 82%;
+    padding: 0.75rem 1rem;
+    border-radius: 2px;
+}
+
+.adminTicketMsgBubble.isAdminMsg {
+    align-self: flex-end;
+    background: #151B2B;
+    color: #FAF6EF;
+    border: 1px solid #151B2B;
+}
+
+.adminTicketMsgBubble.isCustomerMsg {
+    align-self: flex-start;
+    background: #FAF6EF;
+    color: #151B2B;
+    border: 1px solid rgba(21, 27, 43, 0.18);
+}
+
+.adminTicketMsgHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.adminTicketMsgBubble.isAdminMsg .adminTicketMsgAuthor {
+    color: #ff5e00;
+}
+
+.adminTicketMsgBubble.isCustomerMsg .adminTicketMsgAuthor {
+    color: rgba(21, 27, 43, 0.6);
+}
+
+.adminTicketMsgBubble.isAdminMsg .adminTicketMsgTime {
+    color: rgba(250, 246, 239, 0.55);
+}
+
+.adminTicketMsgBubble.isCustomerMsg .adminTicketMsgTime {
+    color: rgba(21, 27, 43, 0.45);
+}
+
+.adminTicketMsgBody {
+    font-size: 0.86rem;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+.adminTicketReplyComposer,
+.adminTicketReplyArea {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.adminTicketComposerActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+/* ==========================================================================
+   Admin Mobile & Responsive Media Queries
+   ========================================================================== */
+
+@media (max-width: 900px) {
+    .adminGlobalHubGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .adminGlobalSpan2 {
+        grid-column: span 1;
+    }
+
+    .adminBannerSplitLayout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .adminNavBuilderRow {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .adminNavOrderInput {
+        width: 100% !important;
+        flex: 1 1 auto !important;
+    }
+
+    .adminCustomerOrderRow {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .adminTicketMsgBubble {
+        max-width: 95%;
     }
 }

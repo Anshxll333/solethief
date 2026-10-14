@@ -2,11 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
     isDataUrl,
+    isOnlineImageUrl,
     isPinterestPageUrl,
     isWebpageUrl,
     extractPinterestImageCandidates,
     normalizeImageDataUrl,
     downloadImageAsDataUrl,
+    downloadAndOptimizeRemoteImage,
+    fetchAndOptimizeRemoteImage,
 } from '../src/services/remoteImage.js';
 
 test('remoteImage: isDataUrl identifies valid and invalid data URLs', () => {
@@ -17,6 +20,22 @@ test('remoteImage: isDataUrl identifies valid and invalid data URLs', () => {
     assert.equal(isDataUrl('/shoes/shoe-1-front.png'), false);
     assert.equal(isDataUrl(''), false);
     assert.equal(isDataUrl(null), false);
+});
+
+test('remoteImage: isOnlineImageUrl detects remote HTTP and HTTPS links', () => {
+    assert.equal(isOnlineImageUrl('https://images.unsplash.com/photo-1542291026-7eec264c27ff'), true);
+    assert.equal(isOnlineImageUrl('http://example.com/shoe.png'), true);
+    assert.equal(isOnlineImageUrl('https://i.pinimg.com/originals/ab/cd/ef/sample.jpg'), true);
+    assert.equal(isOnlineImageUrl('https://example.com/sneaker.webp?w=1200'), true);
+
+    // Negative cases
+    assert.equal(isOnlineImageUrl('/shoes/transparent/shoe-1-front.png'), false);
+    assert.equal(isOnlineImageUrl('shoe-1-front.png'), false);
+    assert.equal(isOnlineImageUrl('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA'), false);
+    assert.equal(isOnlineImageUrl(''), false);
+    assert.equal(isOnlineImageUrl('   '), false);
+    assert.equal(isOnlineImageUrl(null), false);
+    assert.equal(isOnlineImageUrl(undefined), false);
 });
 
 test('remoteImage: isPinterestPageUrl accurately identifies Pinterest pins and boards', () => {
@@ -85,4 +104,84 @@ test('remoteImage: downloadImageAsDataUrl returns immediately when passed an exi
 
     assert.equal(res.dataUrl, sampleDataUrl);
     assert.equal(statusCalled, false);
+});
+
+test('remoteImage: downloadAndOptimizeRemoteImage passes through data URL with optional custom compression', async () => {
+    const sampleDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+    let compressCalled = false;
+
+    const result = await downloadAndOptimizeRemoteImage(sampleDataUrl, {
+        compressFn: async (dataUri) => {
+            compressCalled = true;
+            return dataUri;
+        },
+    });
+
+    assert.equal(result, sampleDataUrl);
+    assert.equal(compressCalled, true);
+});
+
+test('remoteImage: downloadAndOptimizeRemoteImage handles alias and invalid URL gracefully', async () => {
+    assert.equal(downloadAndOptimizeRemoteImage, fetchAndOptimizeRemoteImage);
+
+    // Empty URL rejection
+    await assert.rejects(
+        async () => {
+            await downloadAndOptimizeRemoteImage('');
+        },
+        /Image URL is required/
+    );
+
+    await assert.rejects(
+        async () => {
+            await downloadAndOptimizeRemoteImage(null);
+        },
+        /Image URL is required/
+    );
+});
+
+test('remoteImage: downloadAndOptimizeRemoteImage downloads mock remote image and compresses it', async () => {
+    const originalFetch = globalThis.fetch;
+    const tinyPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+    const tinyPngBuffer = Buffer.from(tinyPngBase64, 'base64');
+
+    globalThis.fetch = async (url) => {
+        if (typeof url === 'string' && url.includes('/api/proxy-image')) {
+            return {
+                ok: false,
+                status: 404,
+                json: async () => ({ success: false }),
+            };
+        }
+        return {
+            ok: true,
+            status: 200,
+            headers: {
+                get: (header) => (header.toLowerCase() === 'content-type' ? 'image/png' : null),
+            },
+            blob: async () => ({
+                size: tinyPngBuffer.length,
+                type: 'image/png',
+                arrayBuffer: async () => tinyPngBuffer.buffer.slice(tinyPngBuffer.byteOffset, tinyPngBuffer.byteOffset + tinyPngBuffer.byteLength),
+            }),
+            arrayBuffer: async () => tinyPngBuffer.buffer.slice(tinyPngBuffer.byteOffset, tinyPngBuffer.byteOffset + tinyPngBuffer.byteLength),
+            json: async () => ({}),
+        };
+    };
+
+    try {
+        const statuses = [];
+        const result = await downloadAndOptimizeRemoteImage('https://example.com/test-shoe.png', {
+            onStatus: (msg) => statuses.push(msg),
+            compressFn: async (dataUri) => {
+                // simulated compression
+                return dataUri.replace('image/png', 'image/webp');
+            },
+        });
+
+        assert.ok(result.startsWith('data:image/webp;base64,'));
+        assert.ok(statuses.length > 0);
+    } finally {
+        globalThis.fetch = originalFetch;
+    }
 });

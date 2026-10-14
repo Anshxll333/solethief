@@ -3,14 +3,14 @@
     --shop-gold: #987b47;
     width: min(1400px, 100%);
     margin: 0 auto;
-    padding: 8rem 4% 5rem;
+    padding: 2.25rem 4% 4.5rem;
     flex: 1;
     color: var(--shop-ink);
 }
 
 .shopPage .shopIntro {
-    margin-bottom: 1.75rem;
-    font-size: clamp(1.25rem, 3vw, 2.5rem);
+    margin-bottom: 1.25rem;
+    font-size: clamp(1.15rem, 2.4vw, 2rem);
     line-height: 1.2;
 }
 
@@ -18,7 +18,7 @@
 .shopPage .shopProducts {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: clamp(1.25rem, 2.2vw, 2rem);
+    gap: clamp(1rem, 1.8vw, 1.6rem);
     width: 100%;
 }
 
@@ -26,7 +26,7 @@
     list-style: none;
     width: 100%;
     margin: 0 auto;
-    gap: clamp(1.5rem, 2.5vw, 2.25rem);
+    gap: clamp(1.15rem, 2vw, 1.75rem);
 }
 
 .shopPage .shopGroups>li {
@@ -39,9 +39,9 @@
     flex-direction: column;
     justify-content: flex-end;
     isolation: isolate;
-    min-height: 380px;
-    aspect-ratio: 4 / 5;
-    padding: clamp(1.1rem, 2vw, 1.75rem);
+    min-height: 330px;
+    aspect-ratio: 4 / 4.9;
+    padding: clamp(0.95rem, 1.6vw, 1.4rem);
     overflow: hidden;
     border: none !important;
     border-color: transparent !important;
@@ -95,7 +95,7 @@
 }
 
 .shopPage .shopGroupTile.hasArtwork:hover .shopGroupArch,
-.shopPage .shopGroupTile:hover .shopGroupArch.hasArtwork {
+.shopPage .shopGroupTile.hasArtwork:hover .shopGroupArch.hasArtwork {
     border: none !important;
     border-color: transparent !important;
     background: transparent !important;
@@ -104,8 +104,8 @@
 .shopPage .shopGroupArtwork,
 .shopPage .shopGroupArch img,
 .shopPage .shopGroupTile img {
-    max-width: calc(86% * 1.5);
-    max-height: calc(86% * 1.5);
+    max-width: calc(82% * 1.32);
+    max-height: calc(82% * 1.32);
     width: auto;
     height: auto;
     object-fit: contain;
@@ -135,7 +135,7 @@
 .shopPage .shopGroupTile:hover .shopGroupArtwork,
 .shopPage .shopGroupTile:hover .shopGroupArch img,
 .shopPage .shopGroupTile:hover img {
-    transform: scale(1.05);
+    transform: scale(1.04);
 }
 
 /* New Balance group profile artwork: cushioned with padding so it doesn't overlap on any side, with slightly reduced height to fit cleanly */
@@ -152,19 +152,19 @@
 .shopPage .shopGroupTile[data-group="new-balance"] .shopGroupArch img,
 .shopPage .shopGroupTile[data-group="new-balance"] img {
     max-height: 100%;
-    transform: translateY(-8px) scale(1.26);
+    transform: translateY(-6px) scale(1.12);
     transform-origin: center center;
 }
 
 .shopPage .shopGroupTile[data-group="new-balance"]:hover .shopGroupArtwork,
 .shopPage .shopGroupTile[data-group="new-balance"]:hover .shopGroupArch img,
 .shopPage .shopGroupTile[data-group="new-balance"]:hover img {
-    transform: translateY(-8px) scale(calc(1.26 * 1.05));
+    transform: translateY(-6px) scale(calc(1.12 * 1.04));
 }
 
 .shopPage .shopGroupLabel {
     position: relative;
-    font-size: clamp(1.75rem, 3.2vw, 3.25rem);
+    font-size: clamp(1.4rem, 2.5vw, 2.4rem);
     line-height: 1.05;
     letter-spacing: .025em;
     overflow-wrap: anywhere;
@@ -175,10 +175,10 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    margin-top: 1rem;
-    padding-top: 0.85rem;
+    margin-top: 0.75rem;
+    padding-top: 0.65rem;
     border-top: 1px solid #987b4766;
-    font-size: .68rem;
+    font-size: .62rem;
     font-weight: 600;
     letter-spacing: .14em;
 }
@@ -206,8 +206,8 @@
 }
 
 .shopPage .shopCollectionTitle {
-    margin-bottom: 1.5rem;
-    font-size: clamp(2rem, 4vw, 3rem);
+    margin-bottom: 1.25rem;
+    font-size: clamp(1.6rem, 3vw, 2.3rem);
     overflow-wrap: anywhere;
 }
 
@@ -226,30 +226,30 @@
     .shopPage .shopGroups,
     .shopPage .shopProducts {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: clamp(1.25rem, 2.5vw, 1.75rem);
+        gap: clamp(1rem, 2vw, 1.5rem);
     }
 
     .shopPage .shopGroupTile {
-        min-height: 320px;
+        min-height: 290px;
     }
 }
 
 @media (max-width: 560px) {
     .shopPage {
-        padding: 7rem 5% 3rem;
+        padding: 1.75rem 5% 3rem;
     }
 
     .shopPage .shopGroups,
     .shopPage .shopProducts {
         grid-template-columns: minmax(0, 1fr);
-        gap: 1.25rem;
+        gap: 1.15rem;
     }
 
     .shopPage .shopGroupTile {
-        min-height: 320px;
+        min-height: 270px;
     }
 
     .shopPage .shopGroupLabel {
-        font-size: 2.5rem;
+        font-size: 2.1rem;
     }
 }

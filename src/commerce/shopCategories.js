@@ -8,9 +8,17 @@ const IMAGE = /^(https:\/\/[A-Za-z0-9]+([.-][A-Za-z0-9]+)*(:[0-9]{1,5})?(\/[A-Za
 const DATA_IMAGE = /^data:image\/(?:png|jpe?g|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=]+$/;
 const MAX_DATA_IMAGE_LENGTH = 10 * 1024 * 1024;
 const SEEDS = ['Travis Scott', 'Low Dunks', 'Retro 4', 'Air Jordans', 'Leather Shoes', 'Air Forces', 'Adidas', 'New Balance', 'Limited'];
+// Keep the default directory fully populated with assets that are present in public/.
 const DEFAULT_CATEGORY_IMAGES = {
-    'new-balance': '/shoes/transparent/new-balance.png',
+    'travis-scott': '/shoes/transparent/shoe-1-front.png',
+    'low-dunks': '/shoes/transparent/shoe-2-front.png',
+    'retro-4': '/shoes/transparent/shoe-3-front.png',
+    'air-jordans': '/shoes/transparent/shoe-4-front.png',
+    'leather-shoes': '/shoes/transparent/shoe-5-front.png',
+    'air-forces': '/shoes/transparent/shoe-1-side.png',
     'adidas': '/shoes/transparent/adidas.png',
+    'new-balance': '/shoes/transparent/new-balance.png',
+    'limited': '/shoes/transparent/shoe-2-side.png',
 };
 
 export function assertCategoryId(id) {

@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
     ShieldCheck,
     Truck,
@@ -17,6 +17,7 @@ import { validateAddress } from '../commerce/address.js';
 import { calculateOrderTotals, SHIPPING_OPTIONS } from '../commerce/orders.js';
 import { createOrdersService } from '../services/orders.js';
 import { getSupabaseRuntime } from '../lib/supabase.js';
+import { shoesData } from '../data/shoes.js';
 
 const INDIAN_STATES = [
     'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
@@ -29,14 +30,117 @@ const INDIAN_STATES = [
 
 const ordersService = createOrdersService(getSupabaseRuntime);
 
+function loadRazorpayScript() {
+    return new Promise((resolve) => {
+        if (typeof window !== 'undefined' && window.Razorpay) {
+            resolve(true);
+            return;
+        }
+        if (typeof document === 'undefined') {
+            resolve(false);
+            return;
+        }
+        const existing = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+        if (existing) {
+            existing.addEventListener('load', () => resolve(true));
+            existing.addEventListener('error', () => resolve(false));
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+    });
+}
+
 export default function Checkout() {
     const navigate = useNavigate();
-    const { user, addresses, defaultAddressId, previewMode, runtimeMessage } = useAuth();
-    const { catalog, cart, clear: clearCart } = useCommerce();
+    const location = useLocation();
+    const [searchParams] = useSearchParams();
+    const { user, addresses, defaultAddressId, previewMode, runtimeMessage, authStatus } = useAuth();
+    const { catalog, cart, clear: clearCart, remove } = useCommerce();
+
+    // Check for single-item buy now parameters
+    const buyItemParam = searchParams.get('buyItem') || location.state?.buyItem;
+    const buyNowParam = searchParams.get('buyNow') || location.state?.buyNow;
+    const sizeParam = searchParams.get('size') || location.state?.size;
+    const qtyParam = Math.max(1, parseInt(searchParams.get('qty') || location.state?.qty || '1', 10));
+
+    const isSingleItemCheckout = Boolean(buyItemParam || buyNowParam);
+
+    // Guard: Require authenticated user so orders always link to user account history
+    useEffect(() => {
+        if (authStatus !== 'loading' && (!user || authStatus === 'unauthenticated')) {
+            const returnUrl = encodeURIComponent(location.pathname + location.search);
+            navigate(`/account?return=${returnUrl}`, { replace: true });
+        }
+    }, [user, authStatus, navigate, location]);
 
     // Resolve cart line items
     const lines = useMemo(() => resolveCart(cart, catalog), [cart, catalog]);
-    const validLines = useMemo(() => lines.filter(l => Boolean(l.product)), [lines]);
+
+    // Single item from existing cart line
+    const singleLineFromCart = useMemo(() => {
+        if (!isSingleItemCheckout) return null;
+        if (buyItemParam) {
+            return lines.find(l =>
+                l.lineId === buyItemParam ||
+                String(l.id) === String(buyItemParam) ||
+                (l.size && `${l.id}:${l.size}` === buyItemParam)
+            );
+        }
+        if (buyNowParam) {
+            return lines.find(l =>
+                String(l.id) === String(buyNowParam) &&
+                (!sizeParam || l.size === sizeParam)
+            );
+        }
+        return null;
+    }, [isSingleItemCheckout, buyItemParam, buyNowParam, sizeParam, lines]);
+
+    // Direct product resolution if user came directly from product page
+    const directProduct = useMemo(() => {
+        if (!isSingleItemCheckout || singleLineFromCart) return null;
+        const targetId = buyNowParam || String(buyItemParam).split(':')[0];
+        const numId = Number(targetId);
+        const catalogProd = catalog.products?.find(p => p.id === numId || String(p.id) === String(targetId));
+        if (catalogProd) return catalogProd;
+        const fallbackRaw = shoesData.find(s => s.id === numId || String(s.id) === String(targetId));
+        if (fallbackRaw) {
+            return {
+                ...fallbackRaw,
+                priceMinor: fallbackRaw.priceMinor || 1800000,
+                currency: fallbackRaw.currency || 'INR',
+            };
+        }
+        return null;
+    }, [isSingleItemCheckout, singleLineFromCart, buyNowParam, buyItemParam, catalog.products]);
+
+    // Effective lines for this checkout session
+    const effectiveLines = useMemo(() => {
+        if (isSingleItemCheckout) {
+            if (singleLineFromCart && singleLineFromCart.product) {
+                return [{
+                    ...singleLineFromCart,
+                    quantity: qtyParam || singleLineFromCart.quantity || 1,
+                }];
+            }
+            if (directProduct) {
+                return [{
+                    id: directProduct.id,
+                    lineId: sizeParam ? `${directProduct.id}:${sizeParam}` : String(directProduct.id),
+                    product: directProduct,
+                    size: sizeParam || directProduct.size,
+                    quantity: qtyParam,
+                }];
+            }
+        }
+        return lines;
+    }, [isSingleItemCheckout, singleLineFromCart, directProduct, sizeParam, qtyParam, lines]);
+
+    const validLines = useMemo(() => effectiveLines.filter(l => Boolean(l.product)), [effectiveLines]);
     const hasItems = validLines.length > 0;
 
     // Default address resolution
@@ -70,42 +174,9 @@ export default function Checkout() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState('');
 
-    // Handle switching between saved addresses
-    const handleSavedAddressChange = (e) => {
-        const addrId = e.target.value;
-        setSelectedSavedAddrId(addrId);
-        if (addrId === 'custom') {
-            setAddressForm({
-                recipient: '',
-                phone: '',
-                line1: '',
-                line2: '',
-                city: '',
-                region: 'Maharashtra',
-                postal_code: '',
-                country_code: 'IN',
-            });
-        } else {
-            const found = addresses.find(a => a.id === addrId);
-            if (found) {
-                setAddressForm({
-                    recipient: found.recipient,
-                    phone: found.phone,
-                    line1: found.line1,
-                    line2: found.line2 || '',
-                    city: found.city,
-                    region: found.region,
-                    postal_code: found.postal_code,
-                    country_code: 'IN',
-                });
-                setAddressErrors({});
-            }
-        }
-    };
-
     // Subtotal and Totals
     const subtotalMinor = useMemo(() => {
-        return validLines.reduce((sum, line) => sum + (line.product?.priceMinor || 0), 0);
+        return validLines.reduce((sum, line) => sum + (line.product?.priceMinor || 0) * (line.quantity || 1), 0);
     }, [validLines]);
 
     const totals = useMemo(() => {
@@ -145,7 +216,11 @@ export default function Checkout() {
         setIsSubmitting(true);
 
         try {
-            const itemsToOrder = validLines.map(l => l.product);
+            const itemsToOrder = validLines.map(l => ({
+                ...l.product,
+                size: l.size || l.product?.size,
+                quantity: Number.isInteger(l.quantity) && l.quantity > 0 ? l.quantity : 1,
+            }));
 
             const result = await ordersService.createOrder({
                 items: itemsToOrder,
@@ -157,8 +232,50 @@ export default function Checkout() {
             });
 
             if (result.success && result.order) {
-                // Clear cart locally
-                clearCart();
+                if (isSingleItemCheckout) {
+                    // Remove ONLY the purchased item from the bag, safely preserving the user's remaining items
+                    const itemToRemove = buyItemParam || (singleLineFromCart?.lineId || (singleLineFromCart?.size ? `${singleLineFromCart.id}:${singleLineFromCart.size}` : singleLineFromCart?.id));
+                    if (itemToRemove) {
+                        remove(itemToRemove);
+                    }
+                } else {
+                    // Clear cart locally
+                    clearCart();
+                }
+
+                // If live mode with online payment and active Razorpay credentials, open official modal
+                if (result.mode === 'live' && paymentMethod === 'online' && result.razorpayKeyId && result.providerOrderId) {
+                    const loaded = await loadRazorpayScript();
+                    if (loaded && typeof window !== 'undefined' && window.Razorpay) {
+                        const rzp = new window.Razorpay({
+                            key: result.razorpayKeyId,
+                            amount: result.order.total_minor,
+                            currency: 'INR',
+                            name: 'SOLETHIEF ARCHIVE',
+                            description: `Archival Allocation #${result.order.id}`,
+                            order_id: result.providerOrderId,
+                            prefill: {
+                                name: validation.clean.recipient,
+                                contact: validation.clean.phone,
+                                email: user?.email,
+                            },
+                            theme: {
+                                color: '#151b2b',
+                            },
+                            handler: function () {
+                                navigate(`/order-confirmation/${result.order.id}`);
+                            },
+                            modal: {
+                                ondismiss: function () {
+                                    navigate(`/order-confirmation/${result.order.id}`);
+                                },
+                            },
+                        });
+                        rzp.open();
+                        return;
+                    }
+                }
+
                 // Navigate to Order Confirmation
                 navigate(`/order-confirmation/${result.order.id}`);
             } else {
@@ -171,6 +288,30 @@ export default function Checkout() {
         }
     };
 
+    if (authStatus === 'loading') {
+        return (
+            <div className="pageContainer">
+                <Navbar />
+                <main className="commercePage">
+                    <p className="commerceState" role="status">Checking authentication...</p>
+                </main>
+                <Footer />
+            </div>
+        );
+    }
+
+    if (!user || authStatus === 'unauthenticated') {
+        return (
+            <div className="pageContainer">
+                <Navbar />
+                <main className="commercePage">
+                    <p className="commerceState" role="status">Redirecting to sign in...</p>
+                </main>
+                <Footer />
+            </div>
+        );
+    }
+
     return (
         <div className="pageContainer">
             <Navbar />
@@ -181,9 +322,29 @@ export default function Checkout() {
                     <h1>Secure Checkout</h1>
                     <Link to="/cart" className="commerceTextLink">
                         <ArrowLeft size={16} aria-hidden="true" />
-                        <span>Return to Bag</span>
+                        <span>Return to Bag{cart.ids?.length ? ` (${cart.ids.length})` : ''}</span>
                     </Link>
                 </div>
+
+                {isSingleItemCheckout && (
+                    <div
+                        className="accountPreviewNotice"
+                        style={{
+                            borderColor: 'rgba(152, 123, 71, 0.45)',
+                            background: 'rgba(152, 123, 71, 0.08)',
+                            marginBottom: '1.25rem',
+                        }}
+                        role="status"
+                    >
+                        <div className="accountPreviewNoticeHeader">
+                            <Lock size={18} color="#987B47" aria-hidden="true" />
+                            <strong style={{ color: '#11151F' }}>DIRECT ITEM CHECKOUT</strong>
+                        </div>
+                        <p style={{ color: '#4A463F', fontSize: '0.86rem', margin: '4px 0 0' }}>
+                            You are checking out 1 specific item ({validLines[0]?.product?.name || 'Selected item'}{validLines[0]?.size ? ` • Size: ${validLines[0].size}` : ''}). {cart.ids?.length > 1 ? 'Other items in your bag will remain safely preserved.' : ''}
+                        </p>
+                    </div>
+                )}
 
                 {previewMode && (
                     <div className="accountPreviewNotice" role="region" aria-label="Preview Mode Notice">
@@ -210,109 +371,214 @@ export default function Checkout() {
                         {/* Main Left: Address, Shipping Option, Payment Method */}
                         <div className="checkoutMain">
                             {/* Section 1: Shipping Destination */}
-                            <section className="checkoutBlock" aria-labelledby="shipping-heading">
-                                <div className="checkoutBlockHeader">
-                                    <Truck size={20} aria-hidden="true" />
-                                    <h2 id="shipping-heading">1. Shipping Destination</h2>
+                            <section className="checkoutBlockBrutalist" aria-labelledby="shipping-heading">
+                                <div className="checkoutBrutalistBlockHeader">
+                                    <div className="checkoutHeaderTitleWrap">
+                                        <div className="checkoutTagRow">
+                                            <span className="checkoutTagBadge">SECURE DISPATCH</span>
+                                            <span className="checkoutTagCourier">DOMESTIC COURIER</span>
+                                        </div>
+                                        <div className="checkoutHeaderFlex">
+                                            <Truck size={22} className="checkoutHeaderIcon" aria-hidden="true" />
+                                            <h2 id="shipping-heading">1. Shipping Destination</h2>
+                                        </div>
+                                        <p className="checkoutBlockSubtext">
+                                            All streetwear shipments are insured and dispatched within 24 hours in tamper-evident packaging.
+                                        </p>
+                                    </div>
+                                    <div className="checkoutInsuredBadge">
+                                        <ShieldCheck size={16} aria-hidden="true" />
+                                        <span>100% TRANSIT INSURED</span>
+                                    </div>
                                 </div>
 
-                                {user && addresses.length > 0 && (
-                                    <div className="checkoutSavedAddrSelect">
-                                        <label htmlFor="saved-addr-select">Use Saved Address</label>
-                                        <select
-                                            id="saved-addr-select"
-                                            value={selectedSavedAddrId}
-                                            onChange={handleSavedAddressChange}
-                                        >
-                                            {addresses.map(addr => (
-                                                <option key={addr.id} value={addr.id}>
-                                                    {addr.recipient} - {addr.city}, {addr.region} ({addr.postal_code})
-                                                </option>
-                                            ))}
-                                            <option value="custom">+ Enter New Shipping Address</option>
-                                        </select>
+                                <div className="checkoutProtocolPills">
+                                    <span className="checkoutProtocolPill">AIR CARGO / SURFACE</span>
+                                    <span className="checkoutProtocolPill">PAN-INDIA 2-5 DAYS</span>
+                                    <span className="checkoutProtocolPill">SIGNATURE REQUIRED</span>
+                                </div>
+
+                                {user && addresses && addresses.length > 0 && (
+                                    <div className="checkoutSavedAddrSection">
+                                        <div className="checkoutSubSectionTitle">Select Saved Delivery Point</div>
+                                        <div className="checkoutSavedCardsGrid">
+                                            {addresses.map(addr => {
+                                                const isSelected = selectedSavedAddrId === addr.id;
+                                                return (
+                                                    <button
+                                                        type="button"
+                                                        key={addr.id}
+                                                        className={`checkoutSavedCard ${isSelected ? 'isSelected' : ''}`}
+                                                        onClick={() => {
+                                                            setSelectedSavedAddrId(addr.id);
+                                                            setAddressForm({
+                                                                recipient: addr.recipient,
+                                                                phone: addr.phone,
+                                                                line1: addr.line1,
+                                                                line2: addr.line2 || '',
+                                                                city: addr.city,
+                                                                region: addr.region,
+                                                                postal_code: addr.postal_code,
+                                                                country_code: 'IN',
+                                                            });
+                                                            setAddressErrors({});
+                                                        }}
+                                                    >
+                                                        <div className="checkoutSavedCardHeader">
+                                                            <span className="checkoutSavedCardTag">{addr.city?.toUpperCase()}</span>
+                                                            {addr.id === defaultAddressId && (
+                                                                <span className="checkoutTagBadge">DEFAULT</span>
+                                                            )}
+                                                        </div>
+                                                        <span className="checkoutSavedRecipientName">{addr.recipient}</span>
+                                                        <span className="checkoutSavedLines">
+                                                            {addr.line1}{addr.line2 ? `, ${addr.line2}` : ''}<br />
+                                                            {addr.city}, {addr.region} — {addr.postal_code}
+                                                        </span>
+                                                        {isSelected && (
+                                                            <span className="checkoutSelectedBadge">
+                                                                ✓ SELECTED FOR DISPATCH
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                            <button
+                                                type="button"
+                                                className={`checkoutNewAddrCard ${selectedSavedAddrId === 'custom' ? 'isSelected' : ''}`}
+                                                onClick={() => {
+                                                    setSelectedSavedAddrId('custom');
+                                                    setAddressForm({
+                                                        recipient: '',
+                                                        phone: '',
+                                                        line1: '',
+                                                        line2: '',
+                                                        city: '',
+                                                        region: 'Maharashtra',
+                                                        postal_code: '',
+                                                        country_code: 'IN',
+                                                    });
+                                                }}
+                                            >
+                                                <span className="checkoutNewAddrIcon">+</span>
+                                                <span className="checkoutNewAddrText">Add Custom Address</span>
+                                                <span className="checkoutNewAddrSub">Ship to new destination</span>
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
 
-                                <div className="accountForm">
+                                <div className="checkoutBrutalistForm">
                                     <div className="accountFormGrid">
-                                        <label>
-                                            Recipient Full Name *
+                                        <div className="checkoutFieldBlock">
+                                            <div className="checkoutFieldHeaderRow">
+                                                <label className="checkoutFieldLabel" htmlFor="checkout-recipient">Recipient Full Name</label>
+                                                <span className="checkoutFieldReqTag">REQUIRED</span>
+                                            </div>
                                             <input
+                                                id="checkout-recipient"
                                                 type="text"
                                                 required
                                                 maxLength={120}
+                                                className="checkoutBrutalistInput"
                                                 value={addressForm.recipient}
                                                 onChange={e => setAddressForm({ ...addressForm, recipient: e.target.value })}
-                                                placeholder="Arjun Rao"
+                                                placeholder="Your Name"
                                             />
                                             {addressErrors.recipient && (
                                                 <span className="accountFieldError">{addressErrors.recipient}</span>
                                             )}
-                                        </label>
-                                        <label>
-                                            Phone Number *
+                                        </div>
+
+                                        <div className="checkoutFieldBlock">
+                                            <div className="checkoutFieldHeaderRow">
+                                                <label className="checkoutFieldLabel" htmlFor="checkout-phone">Contact Phone</label>
+                                                <span className="checkoutFieldReqTag">REQUIRED</span>
+                                            </div>
                                             <input
+                                                id="checkout-phone"
                                                 type="tel"
                                                 required
                                                 maxLength={32}
+                                                className="checkoutBrutalistInput"
                                                 value={addressForm.phone}
                                                 onChange={e => setAddressForm({ ...addressForm, phone: e.target.value })}
-                                                placeholder="+91 98200 12345"
+                                                placeholder="Phone Number"
                                             />
                                             {addressErrors.phone && (
                                                 <span className="accountFieldError">{addressErrors.phone}</span>
                                             )}
-                                        </label>
+                                        </div>
                                     </div>
 
-                                    <label>
-                                        Address Line 1 (Street, Building, Flat) *
+                                    <div className="checkoutFieldBlock">
+                                        <div className="checkoutFieldHeaderRow">
+                                            <label className="checkoutFieldLabel" htmlFor="checkout-line1">Address Line 1 (Street, Building, Flat)</label>
+                                            <span className="checkoutFieldReqTag">REQUIRED</span>
+                                        </div>
                                         <input
+                                            id="checkout-line1"
                                             type="text"
                                             required
                                             maxLength={200}
+                                            className="checkoutBrutalistInput"
                                             value={addressForm.line1}
                                             onChange={e => setAddressForm({ ...addressForm, line1: e.target.value })}
-                                            placeholder="Flat 402, Sea View Apartments, Carter Road"
+                                            placeholder="Enter your address"
                                         />
                                         {addressErrors.line1 && (
                                             <span className="accountFieldError">{addressErrors.line1}</span>
                                         )}
-                                    </label>
+                                    </div>
 
-                                    <label>
-                                        Address Line 2 (Landmark, Suite - Optional)
+                                    <div className="checkoutFieldBlock">
+                                        <div className="checkoutFieldHeaderRow">
+                                            <label className="checkoutFieldLabel" htmlFor="checkout-line2">Address Line 2 (Landmark, Suite)</label>
+                                            <span className="checkoutFieldOptionalTag">OPTIONAL</span>
+                                        </div>
                                         <input
+                                            id="checkout-line2"
                                             type="text"
                                             maxLength={200}
+                                            className="checkoutBrutalistInput"
                                             value={addressForm.line2}
                                             onChange={e => setAddressForm({ ...addressForm, line2: e.target.value })}
-                                            placeholder="Near Joggers Park"
+                                            placeholder="Apartment, suite, landmark (optional)"
                                         />
                                         {addressErrors.line2 && (
                                             <span className="accountFieldError">{addressErrors.line2}</span>
                                         )}
-                                    </label>
+                                    </div>
 
                                     <div className="accountFormGrid">
-                                        <label>
-                                            City *
+                                        <div className="checkoutFieldBlock">
+                                            <div className="checkoutFieldHeaderRow">
+                                                <label className="checkoutFieldLabel" htmlFor="checkout-city">City</label>
+                                                <span className="checkoutFieldReqTag">REQUIRED</span>
+                                            </div>
                                             <input
+                                                id="checkout-city"
                                                 type="text"
                                                 required
                                                 maxLength={100}
+                                                className="checkoutBrutalistInput"
                                                 value={addressForm.city}
                                                 onChange={e => setAddressForm({ ...addressForm, city: e.target.value })}
-                                                placeholder="Mumbai"
+                                                placeholder="City"
                                             />
                                             {addressErrors.city && (
                                                 <span className="accountFieldError">{addressErrors.city}</span>
                                             )}
-                                        </label>
-                                        <label>
-                                            State / Region *
+                                        </div>
+
+                                        <div className="checkoutFieldBlock">
+                                            <div className="checkoutFieldHeaderRow">
+                                                <label className="checkoutFieldLabel" htmlFor="checkout-region">State / Region</label>
+                                                <span className="checkoutFieldReqTag">REQUIRED</span>
+                                            </div>
                                             <select
+                                                id="checkout-region"
+                                                className="checkoutBrutalistInput"
                                                 value={addressForm.region}
                                                 onChange={e => setAddressForm({ ...addressForm, region: e.target.value })}
                                             >
@@ -323,34 +589,44 @@ export default function Checkout() {
                                             {addressErrors.region && (
                                                 <span className="accountFieldError">{addressErrors.region}</span>
                                             )}
-                                        </label>
+                                        </div>
                                     </div>
 
                                     <div className="accountFormGrid">
-                                        <label>
-                                            Postal PIN Code (6 digits) *
+                                        <div className="checkoutFieldBlock">
+                                            <div className="checkoutFieldHeaderRow">
+                                                <label className="checkoutFieldLabel" htmlFor="checkout-postal">Postal PIN Code (6 digits)</label>
+                                                <span className="checkoutFieldReqTag">REQUIRED</span>
+                                            </div>
                                             <input
+                                                id="checkout-postal"
                                                 type="text"
                                                 required
                                                 maxLength={6}
                                                 pattern="[0-9]{6}"
+                                                className="checkoutBrutalistInput"
                                                 value={addressForm.postal_code}
                                                 onChange={e => setAddressForm({ ...addressForm, postal_code: e.target.value })}
-                                                placeholder="400050"
+                                                placeholder="Postal Code"
                                             />
                                             {addressErrors.postal_code && (
                                                 <span className="accountFieldError">{addressErrors.postal_code}</span>
                                             )}
-                                        </label>
-                                        <label>
-                                            Country
+                                        </div>
+
+                                        <div className="checkoutFieldBlock">
+                                            <div className="checkoutFieldHeaderRow">
+                                                <label className="checkoutFieldLabel" htmlFor="checkout-country">Country</label>
+                                                <span className="checkoutFieldOptionalTag">LOCKED</span>
+                                            </div>
                                             <input
+                                                id="checkout-country"
                                                 type="text"
                                                 disabled
                                                 value="India (IN)"
-                                                className="accountDisabledInput"
+                                                className="checkoutBrutalistInput accountDisabledInput"
                                             />
-                                        </label>
+                                        </div>
                                     </div>
                                 </div>
                             </section>
@@ -465,28 +741,39 @@ export default function Checkout() {
                             <h2 className="checkoutSummaryTitle">Order Review</h2>
 
                             <ul className="checkoutLineItemsList">
-                                {validLines.map(({ id, product }) => (
-                                    <li key={id} className="checkoutLineItem">
-                                        <img
-                                            src={product.frontImage}
-                                            alt={`${product.name}, ${product.size}`}
-                                            className="checkoutLineThumb"
-                                        />
-                                        <div className="checkoutLineDetails">
-                                            <h3>{product.name}</h3>
-                                            <p>{product.brand} • Size: {product.size}</p>
-                                            <p>Qty: 1 (Single Pair)</p>
-                                        </div>
-                                        <span className="checkoutLinePrice">
-                                            {formatMoney(product.priceMinor)}
-                                        </span>
-                                    </li>
-                                ))}
+                                {validLines.map(({ id, lineId, product, size, quantity }) => {
+                                    const qty = Number.isInteger(quantity) && quantity > 0 ? quantity : 1;
+                                    const lineTotal = (product.priceMinor || 0) * qty;
+                                    const displaySize = size || product?.size;
+                                    const itemKey = lineId || (displaySize ? `${id}:${displaySize}` : String(id));
+                                    return (
+                                        <li key={itemKey} className="checkoutLineItem">
+                                            <img
+                                                src={product.frontImage}
+                                                alt={`${product.name}, ${displaySize || ''}`}
+                                                className="checkoutLineThumb"
+                                            />
+                                            <div className="checkoutLineDetails">
+                                                <h3>{product.name}</h3>
+                                                <p>{product.brand} • Size: {displaySize}</p>
+                                                <p>Qty: {qty} {qty === 1 ? '(Single Pair)' : `(${qty} Pairs)`}</p>
+                                            </div>
+                                            <span className="checkoutLinePrice">
+                                                {formatMoney(lineTotal)}
+                                            </span>
+                                        </li>
+                                    );
+                                })}
                             </ul>
 
                             <div className="checkoutBreakdown">
                                 <div className="checkoutBreakdownRow">
-                                    <span>Subtotal ({validLines.length} {validLines.length === 1 ? 'pair' : 'pairs'})</span>
+                                    <span>
+                                        Subtotal (
+                                        {validLines.reduce((s, l) => s + (l.quantity || 1), 0)}{' '}
+                                        {validLines.reduce((s, l) => s + (l.quantity || 1), 0) === 1 ? 'pair' : 'pairs'}
+                                        )
+                                    </span>
                                     <span>{formatMoney(totals.subtotalMinor)}</span>
                                 </div>
                                 <div className="checkoutBreakdownRow">

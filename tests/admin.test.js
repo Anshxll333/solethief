@@ -23,6 +23,7 @@ const {
     INVENTORY_STATES,
     VERIFICATION_STATUSES,
     ADMIN_FULFILLMENT_TRANSITIONS,
+    normalizeAdminOrderFilter,
     isValidAdminStatusTransition,
     validateDropInput,
     validateInventoryPairState,
@@ -31,6 +32,11 @@ const {
     savePreviewDrops,
     getPreviewInventory,
     savePreviewInventory,
+    compressImage,
+    compressImageFile,
+    isOnlineImageUrl,
+    downloadAndOptimizeRemoteImage,
+    fetchAndOptimizeRemoteImage,
 } = await import('../src/commerce/admin.js');
 
 const { createAdminService } = await import('../src/services/admin.js');
@@ -95,6 +101,10 @@ test('every admin method rejects invalid runtime without touching demo storage o
             updateInventoryPair: () => service.updateInventoryPair(1, { state: 'available' }),
             listOrders: () => service.listOrders(),
             updateOrderStatus: () => service.updateOrderStatus('ST-2026-SHIB', 'shipped'),
+            listUsers: () => service.listUsers(),
+            setUserBlocked: () => service.setUserBlocked('user-1', true),
+            listSupportTickets: () => service.listSupportTickets(),
+            replyToSupportTicket: () => service.replyToSupportTicket('ticket-1', 'reply'),
             generateDropId: () => service.generateDropId(),
         };
         assert.deepEqual(Object.keys(invocations).sort(), Object.keys(service).sort());
@@ -323,6 +333,35 @@ test('validateDropInput strictly enforces fields and prevents invalid pricing or
     assert.equal(emptyFields.valid, false);
     assert.ok(emptyFields.errors.name);
     assert.ok(emptyFields.errors.frontImage);
+
+    // Drop update with comparePriceMinor: null and comparePrice: '' should be valid
+    const updateWithNullCompare = validateDropInput({
+        id: 5,
+        name: 'GEL-KAYANO 14 RETRO',
+        brand: 'SoleThief ASICS',
+        size: 'US 10.5',
+        price: '21500.00',
+        frontImage: '/shoes/transparent/shoe-1-front.png',
+        sideImage: '/shoes/transparent/shoe-1-side.png',
+        comparePriceMinor: null,
+        comparePrice: '',
+    }, true);
+    assert.equal(updateWithNullCompare.valid, true);
+    assert.equal(updateWithNullCompare.normalized.comparePriceMinor, null);
+
+    // Drop update with updated comparePrice string should parse correctly
+    const updateWithComparePrice = validateDropInput({
+        id: 5,
+        name: 'GEL-KAYANO 14 RETRO',
+        brand: 'SoleThief ASICS',
+        size: 'US 10.5',
+        price: '21500.00',
+        frontImage: '/shoes/transparent/shoe-1-front.png',
+        sideImage: '/shoes/transparent/shoe-1-side.png',
+        comparePrice: '25000.00',
+    }, true);
+    assert.equal(updateWithComparePrice.valid, true);
+    assert.equal(updateWithComparePrice.normalized.comparePriceMinor, 2500000);
 });
 
 test('inventory & drops mutations create, update, and toggle inventory states', async () => {
@@ -353,13 +392,30 @@ test('inventory & drops mutations create, update, and toggle inventory states', 
     assert.ok(found);
     assert.equal(found.name, 'TOKYO STREET V1');
 
-    // Update drop metadata
+    // Update drop metadata with modal fields
     const updated = await service.updateDrop(99, {
-        priceMinor: 2750000,
+        price: '28000.00',
+        comparePrice: '',
         active: false,
+        status: 'draft',
+        sizes: [
+            { value: 'US 11', quantity: 2, sold: false },
+            { value: 'US 12', quantity: 1, sold: true },
+        ],
+        description: 'Rare Tokyo archive drop.',
+        upperMaterial: 'Full grain leather',
+        soleMaterial: 'Vibram rubber',
+        careInstructions: 'Spot clean only.',
     });
-    assert.equal(updated.priceMinor, 2750000);
+    assert.equal(updated.priceMinor, 2800000);
     assert.equal(updated.active, false);
+    assert.equal(updated.status, 'draft');
+    assert.equal(updated.comparePriceMinor, null);
+    assert.equal(updated.sizes.length, 2);
+    assert.equal(updated.description, 'Rare Tokyo archive drop.');
+    assert.equal(updated.upperMaterial, 'Full grain leather');
+    assert.equal(updated.soleMaterial, 'Vibram rubber');
+    assert.equal(updated.careInstructions, 'Spot clean only.');
 
     // Check inventory state mutation
     const invMap = await service.listInventory();
@@ -422,6 +478,18 @@ test('order fulfillment operations enforce streetwear lifecycle transitions', as
     );
 });
 
+test('admin order filters and return/replace preview history are persisted', async () => {
+    assert.deepEqual(normalizeAdminOrderFilter('pending'), ['pending_payment', 'paid', 'confirmed', 'authenticating', 'processing']);
+    assert.deepEqual(normalizeAdminOrderFilter('packed'), ['confirmed', 'authenticating', 'processing']);
+    mockStore.clear();
+    const service = createAdminService(() => ({ status: 'missing', client: null }));
+    const order = (await service.listOrders())[0];
+    const returned = await service.initiateOrderReturn(order.id, { action: 'return', reason: 'Damaged box' });
+    assert.equal(returned.status, 'returned');
+    assert.match(returned.fulfillment_notes, /Damaged box/);
+    await assert.rejects(service.initiateOrderReturn(order.id, { action: 'replace', reason: '' }), /reason is required/);
+});
+
 test('calculateOperationalMetrics accurately calculates executive KPIs', () => {
     const drops = [
         { id: 1, active: true },
@@ -451,4 +519,228 @@ test('calculateOperationalMetrics accurately calculates executive KPIs', () => {
     // Pending shipments: paid + authenticating = 2
     assert.equal(kpis.pendingShipmentsCount, 2);
     assert.equal(kpis.totalOrdersCount, 4);
+});
+
+test('validateDropInput synchronizes active status and heals legacy desynchronized drop payloads', () => {
+    // When status is active, active must normalize to true even if drop.active was false
+    const activeDrop = validateDropInput({
+        id: 5,
+        name: 'AIR',
+        brand: 'NIKE',
+        size: 'US 10',
+        priceMinor: 3500000,
+        frontImage: '/shoe.png',
+        sideImage: '/shoe.png',
+        status: 'active',
+        active: false,
+    });
+    assert.equal(activeDrop.valid, true);
+    assert.equal(activeDrop.normalized.status, 'active');
+    assert.equal(activeDrop.normalized.active, true);
+
+    // When status is draft, active must normalize to false
+    const draftDrop = validateDropInput({
+        id: 6,
+        name: 'DRAFT SHOE',
+        brand: 'NIKE',
+        size: 'US 10',
+        priceMinor: 2000000,
+        frontImage: '/shoe.png',
+        sideImage: '/shoe.png',
+        status: 'draft',
+        active: true,
+    });
+    assert.equal(draftDrop.valid, true);
+    assert.equal(draftDrop.normalized.status, 'draft');
+    assert.equal(draftDrop.normalized.active, false);
+
+    // getPreviewDrops heals existing drops stored in localStorage with status: 'active', active: false
+    mockStore.clear();
+    const storedDrops = [
+        {
+            id: 5,
+            name: 'AIR',
+            brand: 'NIKE',
+            size: 'US 10',
+            priceMinor: 3500000,
+            currency: 'INR',
+            frontImage: '/shoes/shoe-5-front.png',
+            sideImage: '/shoes/shoe-5-side.png',
+            active: false,
+            status: 'active',
+        },
+    ];
+    mockStore.set(ADMIN_STORAGE_DROPS_KEY, JSON.stringify(storedDrops));
+    const healed = getPreviewDrops();
+    assert.equal(healed.length, 1);
+    assert.equal(healed[0].id, 5);
+    assert.equal(healed[0].active, true);
+    assert.equal(healed[0].status, 'active');
+
+    // And verify local storage was updated with healed active flag
+    const reloaded = JSON.parse(mockStore.get(ADMIN_STORAGE_DROPS_KEY));
+    assert.equal(reloaded[0].active, true);
+});
+
+test('validateDropInput parses multiline additionalImages, whitespace, and validates image URIs', () => {
+    const dropWithExtra = validateDropInput({
+        id: 10,
+        name: 'AIR JORDAN 1 RETRO',
+        brand: 'JORDAN',
+        size: 'US 10',
+        priceMinor: 2500000,
+        frontImage: '/shoes/transparent/shoe-1-front.png',
+        sideImage: '/shoes/transparent/shoe-1-side.png',
+        additionalImages: '  https://images.nike.com/pic1.jpg  \n\n  data:image/png;base64,iVBORw0KGgo  \n  /custom/heel.png\n',
+    });
+    assert.equal(dropWithExtra.valid, true);
+    assert.equal(dropWithExtra.normalized.images.length, 5);
+    assert.equal(dropWithExtra.normalized.images[2], 'https://images.nike.com/pic1.jpg');
+    assert.equal(dropWithExtra.normalized.images[3], 'data:image/png;base64,iVBORw0KGgo');
+    assert.equal(dropWithExtra.normalized.images[4], '/custom/heel.png');
+
+    const invalidDrop = validateDropInput({
+        id: 11,
+        name: 'BAD IMAGE DROP',
+        brand: 'TEST',
+        size: 'US 9',
+        priceMinor: 100000,
+        frontImage: '/shoe.png',
+        sideImage: '/shoe.png',
+        additionalImages: 'ftp://invalid-scheme.com/img.jpg\nnot-even-a-url',
+    });
+    assert.equal(invalidDrop.valid, false);
+    assert.ok(invalidDrop.errors.images);
+});
+
+test('savePreviewDrops converts QuotaExceededError into actionable error for Base64 and standard payloads', () => {
+    mockStore.clear();
+    const originalSetItem = storageMock.setItem;
+
+    // Simulate browser QuotaExceededError
+    storageMock.setItem = () => {
+        const quotaError = new Error('The quota has been exceeded.');
+        quotaError.name = 'QuotaExceededError';
+        quotaError.code = 22;
+        throw quotaError;
+    };
+
+    try {
+        const largeDrop = {
+            id: 20,
+            name: 'LARGE BASE64 DROP',
+            brand: 'TEST',
+            size: 'US 9',
+            priceMinor: 100000,
+            currency: 'INR',
+            frontImage: 'data:image/png;base64,' + 'A'.repeat(500),
+            sideImage: '/shoe.png',
+            active: true,
+        };
+        assert.throws(
+            () => savePreviewDrops([largeDrop]),
+            /Base64 images are too large for browser preview storage/
+        );
+    } finally {
+        storageMock.setItem = originalSetItem;
+    }
+});
+
+test('savePreviewDrops succeeds with resilient IndexedDB fallback when localStorage throws QuotaExceededError', async () => {
+    mockStore.clear();
+    const originalSetItem = storageMock.setItem;
+    const originalIDB = globalThis.indexedDB;
+
+    // Simulate browser QuotaExceededError
+    storageMock.setItem = () => {
+        const quotaError = new Error('The quota has been exceeded.');
+        quotaError.name = 'QuotaExceededError';
+        quotaError.code = 22;
+        throw quotaError;
+    };
+
+    const mockIdbStore = new Map();
+    globalThis.indexedDB = {
+        open: () => {
+            const req = {
+                result: {
+                    objectStoreNames: { contains: () => true },
+                    transaction: () => ({
+                        objectStore: () => ({
+                            put: (val, key) => mockIdbStore.set(key, val),
+                            get: (key) => ({
+                                set onsuccess(cb) { cb({ target: { result: mockIdbStore.get(key) } }); },
+                            }),
+                        }),
+                        set oncomplete(cb) { cb(); },
+                        set onerror(cb) { },
+                        set onabort(cb) { },
+                    }),
+                },
+                set onsuccess(cb) { cb({ target: this }); },
+                set onerror(cb) { },
+            };
+            return req;
+        },
+    };
+
+    try {
+        const testDrop = {
+            id: 25,
+            name: 'INDEXEDDB RESILIENT DROP',
+            brand: 'ARCHIVE',
+            size: 'US 10',
+            priceMinor: 150000,
+            currency: 'INR',
+            frontImage: 'data:image/webp;base64,AAA123',
+            sideImage: '/shoe.png',
+            active: true,
+        };
+        // Must not throw QuotaExceededError when IndexedDB fallback is available
+        const result = savePreviewDrops([testDrop]);
+        assert.ok(Array.isArray(result));
+        assert.equal(result[0].id, 25);
+    } finally {
+        storageMock.setItem = originalSetItem;
+        if (originalIDB === undefined) {
+            delete globalThis.indexedDB;
+        } else {
+            globalThis.indexedDB = originalIDB;
+        }
+    }
+});
+
+test('compressImage and compressImageFile safely handle URLs, short data URIs, and non-DOM inputs', async () => {
+    // 1. Regular URL path strings return unchanged
+    const urlPath = '/shoes/transparent/shoe-1-front.png';
+    assert.equal(await compressImage(urlPath), urlPath);
+
+    const httpUrl = 'https://images.nike.com/sneaker.png';
+    assert.equal(await compressImage(httpUrl), httpUrl);
+
+    // 2. Small data URL returns unchanged
+    const smallDataUri = 'data:image/png;base64,iVBORw0KGgo';
+    assert.equal(await compressImage(smallDataUri), smallDataUri);
+
+    // 3. Null / empty inputs
+    assert.equal(await compressImage(''), '');
+    assert.equal(await compressImage(null), null);
+    assert.equal(await compressImageFile(null), '');
+});
+
+test('admin re-exports remote image optimization utilities and handles online URLs', async () => {
+    // 1. Verify re-exports exist
+    assert.equal(typeof isOnlineImageUrl, 'function');
+    assert.equal(typeof downloadAndOptimizeRemoteImage, 'function');
+    assert.equal(typeof fetchAndOptimizeRemoteImage, 'function');
+
+    // 2. Test isOnlineImageUrl
+    assert.equal(isOnlineImageUrl('https://example.com/shoes/nike.jpg'), true);
+    assert.equal(isOnlineImageUrl('http://example.com/shoes/adidas.png'), true);
+    assert.equal(isOnlineImageUrl('/shoes/transparent/shoe-1-front.png'), false);
+
+    // 3. Test downloadAndOptimizeRemoteImage with data URL
+    const sampleDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+    const result = await downloadAndOptimizeRemoteImage(sampleDataUrl);
+    assert.equal(result, sampleDataUrl);
 });

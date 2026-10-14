@@ -70,10 +70,7 @@ export function createMouseInteraction(engine, shoeBodies, interactionArea, hove
         const forceFactor = (interactionRadius - dist) / interactionRadius;
         const forceMagnitude = forceFactor * maxForce;
 
-        Matter.Body.applyForce(shoeBody, {
-          x: bodyPos.x + (Math.random() * 10 - 5),
-          y: bodyPos.y + (Math.random() * 10 - 5)
-        }, {
+        Matter.Body.applyForce(shoeBody, bodyPos, {
           x: (dx / dist) * forceMagnitude,
           y: (dy / dist) * forceMagnitude
         });

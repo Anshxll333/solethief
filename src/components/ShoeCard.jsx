@@ -1,3 +1,5 @@
+import TransparentArtwork from './TransparentArtwork';
+import { normalizeShoeAssetPath } from '../services/transparentArtwork.js';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart } from 'lucide-react';
@@ -29,18 +31,20 @@ export default function ShoeCard({
   const brand = propBrand || item.brand;
   const size = propSize || item.size;
   const price = propPrice ?? item.price;
-  const frontImage = propFrontImage || item.frontImage;
-  const sideImage = propSideImage || item.sideImage;
+  const frontImage = normalizeShoeAssetPath(propFrontImage || item.frontImage);
+  const sideImage = normalizeShoeAssetPath(propSideImage || item.sideImage);
 
   const inWishlist = id ? isInWishlist(id) : false;
 
   const handleCardClick = (event) => {
-    if (onClick) {
+    if (onAddClick) {
+      onAddClick(event);
+    } else if (onDetailsClick) {
+      onDetailsClick(event);
+    } else if (onClick) {
       onClick(event);
-    } else if (onViewClick) {
-      onViewClick(event);
     } else if (id) {
-      navigate(`/product/${id}/images`);
+      navigate(`/product/${id}`);
     }
   };
 
@@ -48,8 +52,6 @@ export default function ShoeCard({
     event.stopPropagation();
     if (onViewClick) {
       onViewClick(event);
-    } else if (onClick) {
-      onClick(event);
     } else if (id) {
       navigate(`/product/${id}/images`);
     }
@@ -61,6 +63,8 @@ export default function ShoeCard({
       onAddClick(event);
     } else if (onDetailsClick) {
       onDetailsClick(event);
+    } else if (onClick) {
+      onClick(event);
     } else if (id) {
       navigate(`/product/${id}`);
     }
@@ -87,14 +91,14 @@ export default function ShoeCard({
         </button>
       )}
       <div className={`shoeCardImageContainer ${sideImage ? 'hasSideImage' : ''}`}>
-        <img
+        <TransparentArtwork
           src={frontImage}
           alt={`${name} front`}
           className="shoeImage shoeImageFront"
           loading="lazy"
         />
         {sideImage && (
-          <img
+          <TransparentArtwork
             src={sideImage}
             alt={`${name} side`}
             className="shoeImage shoeImageSide"
@@ -113,29 +117,29 @@ export default function ShoeCard({
           <div className="shoeCardActions">
             <button
               type="button"
-              className="shopButton"
-              aria-label={`View ${name}`}
-              onClick={handleViewPair}
-            >
-              VIEW PAIR
-            </button>
-            <button
-              type="button"
               className="shopButton shoeAddButton"
               aria-label={`Add+: open details for ${name}`}
               onClick={handleAdd}
             >
               Add+
             </button>
+            <button
+              type="button"
+              className="shopButton shoeViewButton"
+              aria-label={`View ${name}`}
+              onClick={handleViewPair}
+            >
+              VIEW PAIR
+            </button>
           </div>
         ) : (
           <button
             type="button"
-            className="shopButton"
-            aria-label={`View ${name}`}
-            onClick={handleViewPair}
+            className="shopButton shoeAddButton"
+            aria-label={`Add+: open details for ${name}`}
+            onClick={handleAdd}
           >
-            VIEW PAIR
+            Add+
           </button>
         )}
       </div>

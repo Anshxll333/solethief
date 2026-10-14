@@ -4,9 +4,9 @@
   --about-muted: #555555;
   --about-border: rgba(21, 27, 43, 0.12);
   --about-card-bg: rgba(255, 255, 255, 0.45);
-  width: min(1280px, 100%);
+  width: min(1200px, 100%);
   margin: 0 auto;
-  padding: 8rem 4% 5rem;
+  padding: 2.25rem 4% 4rem;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -19,8 +19,8 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  max-width: 780px;
-  margin-bottom: 3.5rem;
+  max-width: 760px;
+  margin-bottom: 2.25rem;
 }
 
 .aboutBadge {
@@ -161,11 +161,11 @@
 
 @media (max-width: 768px) {
   .aboutPage {
-    padding: 6.5rem 1.25rem 4rem;
+    padding: 1.5rem 1.25rem 3rem;
   }
 
   .aboutHero {
-    margin-bottom: 2.5rem;
+    margin-bottom: 2rem;
   }
 
   .aboutGrid {

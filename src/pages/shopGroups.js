@@ -66,8 +66,15 @@ export function resolveCategorySelection({ categories = [], memberships = [], pr
 }
 
 export const DEFAULT_COLLECTION_ARTWORK = Object.freeze({
-    'new-balance': '/shoes/transparent/new-balance.png',
+    'travis-scott': '/shoes/transparent/shoe-1-front.png',
+    'low-dunks': '/shoes/transparent/shoe-2-front.png',
+    'retro-4': '/shoes/transparent/shoe-3-front.png',
+    'air-jordans': '/shoes/transparent/shoe-4-front.png',
+    'leather-shoes': '/shoes/transparent/shoe-5-front.png',
+    'air-forces': '/shoes/transparent/shoe-1-side.png',
     'adidas': '/shoes/transparent/adidas.png',
+    'new-balance': '/shoes/transparent/new-balance.png',
+    'limited': '/shoes/transparent/shoe-2-side.png',
 });
 
 /**

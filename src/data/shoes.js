@@ -17,7 +17,7 @@ export const shoesData = [
     size: "US 9",
     frontImage: "/shoes/transparent/shoe-2-front.png",
     sideImage: "/shoes/transparent/shoe-2-side.png",
-    physics: { mass: 3, stiffness: 0.015, initialRotation: 20 }
+    physics: { mass: 4, stiffness: 0.02, initialRotation: 20 }
   },
   {
     id: 3,
@@ -27,7 +27,7 @@ export const shoesData = [
     size: "US 10",
     frontImage: "/shoes/transparent/shoe-3-front.png",
     sideImage: "/shoes/transparent/shoe-3-side.png",
-    physics: { mass: 8, frictionAir: 0.06, initialRotation: 10 }
+    physics: { mass: 4, stiffness: 0.02, initialRotation: 10 }
   },
   {
     id: 4,
@@ -37,6 +37,6 @@ export const shoesData = [
     size: "US 8",
     frontImage: "/shoes/transparent/shoe-4-front.png",
     sideImage: "/shoes/transparent/shoe-4-side.png",
-    physics: { mass: 3, restitution: 0.6, initialRotation: -25 }
+    physics: { mass: 4, stiffness: 0.02, initialRotation: -25 }
   }
 ];

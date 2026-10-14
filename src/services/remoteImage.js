@@ -16,6 +16,15 @@ export function isDataUrl(url) {
 }
 
 /**
+ * Checks if a string is an online HTTP(S) image URL
+ */
+export function isOnlineImageUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    const trimmed = url.trim();
+    return /^https?:\/\//i.test(trimmed);
+}
+
+/**
  * Checks if a URL is a Pinterest pin or webpage link
  */
 export function isPinterestPageUrl(url) {
@@ -99,19 +108,56 @@ export function extractPinterestImageCandidates(html) {
 }
 
 /**
- * Converts a Blob to a standard Base64 data URL
+ * Converts a Blob to a standard Base64 data URL with Node/browser compatibility
  */
-export function blobToDataUrl(blob) {
+export async function blobToDataUrl(blob) {
+    if (typeof FileReader !== 'undefined') {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Failed to convert image to Data URL.'));
+            reader.readAsDataURL(blob);
+        });
+    }
+    const buffer = await blob.arrayBuffer();
+    const base64 = typeof Buffer !== 'undefined'
+        ? Buffer.from(buffer).toString('base64')
+        : btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    const type = blob.type || 'image/jpeg';
+    return `data:${type};base64,${base64}`;
+}
+
+/**
+ * Loads an image URL via Image element into canvas with CORS support
+ */
+export function loadImageToDataUrlViaCanvas(url) {
+    if (typeof window === 'undefined' || typeof Image === 'undefined' || typeof document === 'undefined') {
+        return Promise.reject(new Error('Canvas fallback unavailable in non-browser environment'));
+    }
     return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error('Failed to convert image to Data URL.'));
-        reader.readAsDataURL(blob);
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth || img.width;
+                canvas.height = img.naturalHeight || img.height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) throw new Error('Canvas 2D context unavailable');
+                ctx.drawImage(img, 0, 0);
+                const dataUrl = canvas.toDataURL('image/webp', 0.85);
+                resolve(dataUrl);
+            } catch (err) {
+                reject(err);
+            }
+        };
+        img.onerror = () => reject(new Error('Failed to load image element'));
+        img.src = url;
     });
 }
 
 /**
- * Normalizes a Data URL to strictly conform to data:image/(png|jpeg|jpg|webp|gif|svg+xml);base64,...
+ * Normalizes a Data URL to strictly conform to data:image/(png|jpeg|jpg|webp|gif|svg+xml|svg|avif);base64,...
  */
 export function normalizeImageDataUrl(dataUrl) {
     if (!dataUrl || typeof dataUrl !== 'string') {
@@ -132,7 +178,7 @@ export function normalizeImageDataUrl(dataUrl) {
         throw new Error('Invalid image data URL encoding: Must be base64 encoded.');
     }
     const type = match[1].toLowerCase();
-    const validTypes = ['png', 'jpeg', 'jpg', 'webp', 'gif', 'svg+xml'];
+    const validTypes = ['png', 'jpeg', 'jpg', 'webp', 'gif', 'svg+xml', 'svg', 'avif'];
     if (!validTypes.includes(type)) {
         throw new Error(`Unsupported image type: image/${type}`);
     }
@@ -269,5 +315,222 @@ export async function downloadImageAsDataUrl(inputUrl, { onStatus } = {}) {
         }
     }
 
+    // Browser Image element canvas fallback if fetch was blocked by CORS
+    if (typeof window !== 'undefined' && typeof Image !== 'undefined' && typeof document !== 'undefined') {
+        const canvasCandidates = [
+            targetImageUrl,
+            `https://images.weserv.nl/?url=${encodeURIComponent(targetImageUrl)}`,
+        ];
+        for (const candidate of canvasCandidates) {
+            try {
+                const canvasData = await loadImageToDataUrlViaCanvas(candidate);
+                if (canvasData) {
+                    onStatus?.('Image rendered via canvas fallback.');
+                    return {
+                        dataUrl: normalizeImageDataUrl(canvasData),
+                        source: 'canvas-fallback',
+                        resolvedFrom: candidate,
+                    };
+                }
+            } catch {
+                // Continue to next candidate
+            }
+        }
+    }
+
     throw new Error(lastError?.message || 'Failed to download image. The image may be protected or unreachable. You can right-click the image to copy the direct link or use "Upload from Device".');
 }
+
+export async function compressImage(source, {
+    maxDimension = 1200,
+    quality = 0.8,
+    mimeType = 'image/webp',
+} = {}) {
+    if (!source) return source;
+
+    if (typeof source === 'string') {
+        if (!source.startsWith('data:')) {
+            return source;
+        }
+        if (source.length < 25000) {
+            return source;
+        }
+    }
+
+    const hasDom = typeof document !== 'undefined' && typeof Image !== 'undefined';
+    if (!hasDom) {
+        return typeof source === 'string' ? source : '';
+    }
+
+    return new Promise((resolve) => {
+        let objectUrl = null;
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+
+        const cleanup = () => {
+            if (objectUrl && typeof URL !== 'undefined' && URL.revokeObjectURL) {
+                try {
+                    URL.revokeObjectURL(objectUrl);
+                } catch {
+                    // ignore
+                }
+            }
+        };
+
+        img.onload = () => {
+            try {
+                let renderW = img.naturalWidth || img.width;
+                let renderH = img.naturalHeight || img.height;
+
+                if (!renderW || !renderH) {
+                    cleanup();
+                    resolve(typeof source === 'string' ? source : '');
+                    return;
+                }
+
+                if (renderW > maxDimension || renderH > maxDimension) {
+                    if (renderW > renderH) {
+                        renderH = Math.round((renderH * maxDimension) / renderW);
+                        renderW = maxDimension;
+                    } else {
+                        renderW = Math.round((renderW * maxDimension) / renderH);
+                        renderH = maxDimension;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = renderW;
+                canvas.height = renderH;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    cleanup();
+                    resolve(typeof source === 'string' ? source : '');
+                    return;
+                }
+
+                ctx.drawImage(img, 0, 0, renderW, renderH);
+
+                const isJpeg = (typeof source === 'object' && source?.type === 'image/jpeg')
+                    || (typeof source === 'string' && source.startsWith('data:image/jpeg'));
+
+                let targetFormat = isJpeg ? 'image/jpeg' : mimeType;
+                let result = canvas.toDataURL(targetFormat, quality);
+
+                if (!isJpeg && targetFormat === 'image/webp' && !result.startsWith('data:image/webp')) {
+                    result = canvas.toDataURL('image/jpeg', quality);
+                }
+
+                cleanup();
+                resolve(result);
+            } catch {
+                cleanup();
+                resolve(typeof source === 'string' ? source : '');
+            }
+        };
+
+        img.onerror = () => {
+            cleanup();
+            resolve(typeof source === 'string' ? source : '');
+        };
+
+        try {
+            if (typeof source === 'string') {
+                img.src = source;
+            } else if (source instanceof Blob || (typeof Blob !== 'undefined' && source && typeof source.slice === 'function')) {
+                if (typeof URL !== 'undefined' && URL.createObjectURL) {
+                    objectUrl = URL.createObjectURL(source);
+                    img.src = objectUrl;
+                } else if (typeof FileReader !== 'undefined') {
+                    const reader = new FileReader();
+                    reader.onload = () => { img.src = reader.result; };
+                    reader.onerror = () => { resolve(''); };
+                    reader.readAsDataURL(source);
+                } else {
+                    resolve('');
+                }
+            } else {
+                resolve('');
+            }
+        } catch {
+            cleanup();
+            resolve(typeof source === 'string' ? source : '');
+        }
+    });
+}
+
+export async function compressImageFile(file, options = {}) {
+    if (!file) return '';
+    return compressImage(file, options);
+}
+
+/**
+ * Downloads a remote image (handling CORS, proxies, and canvas fallback)
+ * and compresses it using client-side canvas logic into an optimized Data URI.
+ *
+ * @param {string} inputUrl - Remote URL (http(s)://) or data URL
+ * @param {object} options
+ * @param {(status: string) => void} [options.onStatus] - Status update callback
+ * @param {number} [options.maxDimension] - Max dimension (default 1200)
+ * @param {number} [options.quality] - Compression quality (default 0.8)
+ * @param {string} [options.mimeType] - Mime type (default 'image/webp')
+ * @param {Function} [options.compressFn] - Optional custom compress function
+ * @returns {Promise<string>} Clean optimized Data URI
+ */
+export async function downloadAndOptimizeRemoteImage(inputUrl, options = {}) {
+    if (!inputUrl || typeof inputUrl !== 'string') {
+        throw new Error('Image URL is required.');
+    }
+
+    const trimmed = inputUrl.trim();
+    if (!trimmed) {
+        throw new Error('Image URL cannot be empty.');
+    }
+
+    // 1. If already a data URL, optimize if compress function or DOM available
+    if (isDataUrl(trimmed)) {
+        if (typeof options.compressFn === 'function') {
+            const compressed = await options.compressFn(trimmed);
+            return normalizeImageDataUrl(compressed || trimmed);
+        }
+        if (typeof document !== 'undefined' && typeof Image !== 'undefined') {
+            try {
+                const compressed = await compressImage(trimmed, {
+                    maxDimension: options.maxDimension ?? 1200,
+                    quality: options.quality ?? 0.8,
+                    mimeType: options.mimeType ?? 'image/webp',
+                });
+                return normalizeImageDataUrl(compressed || trimmed);
+            } catch {
+                return normalizeImageDataUrl(trimmed);
+            }
+        }
+        return normalizeImageDataUrl(trimmed);
+    }
+
+    // 2. Download remote image
+    options.onStatus?.('Downloading image bytes...');
+    const res = await downloadImageAsDataUrl(trimmed, options);
+    const dataUrl = res?.dataUrl || res;
+
+    // 3. Compress using compressFn or canvas compression
+    options.onStatus?.('Optimizing image client-side...');
+    let compressed = null;
+    if (typeof options.compressFn === 'function') {
+        compressed = await options.compressFn(dataUrl);
+    } else if (typeof document !== 'undefined' && typeof Image !== 'undefined') {
+        try {
+            compressed = await compressImage(dataUrl, {
+                maxDimension: options.maxDimension ?? 1200,
+                quality: options.quality ?? 0.8,
+                mimeType: options.mimeType ?? 'image/webp',
+            });
+        } catch {
+            compressed = null;
+        }
+    }
+
+    const finalResult = compressed || dataUrl;
+    return normalizeImageDataUrl(finalResult);
+}
+
+export const fetchAndOptimizeRemoteImage = downloadAndOptimizeRemoteImage;

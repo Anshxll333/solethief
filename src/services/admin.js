@@ -9,12 +9,16 @@ import {
     validateDropInput,
     validateInventoryPairState,
     isValidAdminStatusTransition,
+    normalizeAdminOrderFilter,
     calculateOperationalMetrics,
+    deletePreviewDrop,
+    decrementPreviewStock,
 } from '../commerce/admin.js';
 import {
     getPreviewOrders,
     savePreviewOrder,
 } from '../commerce/orders.js';
+import { parsePrice } from '../commerce/catalog.js';
 
 export function getSampleSeedOrders() {
     return [
@@ -133,13 +137,22 @@ export function createAdminService(getRuntime = getSupabaseRuntime) {
         return runtime;
     }
 
+    function readHubRuntime() {
+        const runtime = getRuntime();
+        if (runtime?.status === 'missing' && !runtime.client) return runtime;
+        if (runtime?.status !== 'configured' || !runtime.client) {
+            throw new Error(runtime?.message || 'Admin configuration is invalid.');
+        }
+        return runtime;
+    }
+
     function requirePreview() {
         if (readRuntime().status !== 'missing') {
             throw new Error('Operator sessions are only available in local demo mode.');
         }
     }
 
-    return {
+    const service = {
         async checkAdminAccess({ user = null } = {}) {
             const runtime = readRuntime();
             const isLive = runtime.status === 'configured' && Boolean(runtime.client);
@@ -236,10 +249,20 @@ export function createAdminService(getRuntime = getSupabaseRuntime) {
                     brand: row.brand,
                     size: row.size,
                     priceMinor: row.price_minor,
+                    comparePriceMinor: row.compare_price_minor ?? null,
+                    status: row.status || (row.active === false ? 'draft' : 'active'),
+                    tags: Array.isArray(row.tags) ? row.tags : [],
+                    categoryId: row.category_id || '',
                     currency: row.currency || 'INR',
                     frontImage: row.front_image,
                     sideImage: row.side_image,
                     active: row.active,
+                    description: row.description || '',
+                    upperMaterial: row.upper_material || '',
+                    soleMaterial: row.sole_material || '',
+                    careInstructions: row.care_instructions || '',
+                    images: Array.isArray(row.images) ? row.images : [],
+                    sizes: Array.isArray(row.sizes) ? row.sizes : [],
                     dropBatch: `SHIBUYA-0${row.id}`,
                     releaseDate: row.created_at ? row.created_at.slice(0, 10) : '2026-10-10',
                 }));
@@ -319,9 +342,21 @@ export function createAdminService(getRuntime = getSupabaseRuntime) {
                 if (patch.brand !== undefined) updateFields.brand = patch.brand;
                 if (patch.size !== undefined) updateFields.size = patch.size;
                 if (patch.priceMinor !== undefined) updateFields.price_minor = patch.priceMinor;
+                if (patch.price !== undefined && patch.priceMinor === undefined) updateFields.price_minor = parsePrice(String(patch.price).replace(/,/g, ''));
                 if (patch.frontImage !== undefined) updateFields.front_image = patch.frontImage;
                 if (patch.sideImage !== undefined) updateFields.side_image = patch.sideImage;
                 if (patch.active !== undefined) updateFields.active = patch.active;
+                if (patch.comparePriceMinor !== undefined) updateFields.compare_price_minor = patch.comparePriceMinor;
+                if (patch.comparePrice !== undefined) updateFields.compare_price_minor = patch.comparePrice ? parsePrice(String(patch.comparePrice).replace(/,/g, '')) : null;
+                if (patch.status !== undefined) updateFields.status = patch.status;
+                if (patch.tags !== undefined) updateFields.tags = patch.tags;
+                if (patch.categoryId !== undefined) updateFields.category_id = patch.categoryId || null;
+                if (patch.description !== undefined) updateFields.description = patch.description;
+                if (patch.images !== undefined) updateFields.images = patch.images;
+                if (patch.sizes !== undefined) updateFields.sizes = patch.sizes;
+                if (patch.upperMaterial !== undefined) updateFields.upper_material = patch.upperMaterial;
+                if (patch.soleMaterial !== undefined) updateFields.sole_material = patch.soleMaterial;
+                if (patch.careInstructions !== undefined) updateFields.care_instructions = patch.careInstructions;
 
                 const { data, error } = await client
                     .from('products')
@@ -343,6 +378,19 @@ export function createAdminService(getRuntime = getSupabaseRuntime) {
             }
 
             const merged = { ...drops[index], ...patch, id: numericId };
+            if (patch.price !== undefined && patch.price !== '') {
+                merged.priceMinor = parsePrice(String(patch.price).replace(/,/g, ''));
+            }
+            if (patch.comparePrice !== undefined) {
+                const trimmed = String(patch.comparePrice).trim();
+                merged.comparePriceMinor = trimmed ? parsePrice(trimmed.replace(/,/g, '')) : null;
+            }
+            if (patch.active !== undefined && patch.status === undefined) {
+                merged.status = patch.active ? (drops[index].status === 'draft' ? 'active' : (drops[index].status || 'active')) : 'draft';
+            }
+            if (patch.status !== undefined && patch.active === undefined) {
+                merged.active = patch.status !== 'draft';
+            }
             const validation = validateDropInput(merged, true);
             if (!validation.valid) {
                 const firstMsg = Object.values(validation.errors)[0];
@@ -442,7 +490,7 @@ export function createAdminService(getRuntime = getSupabaseRuntime) {
             return updated;
         },
 
-        async listOrders() {
+        async listOrders({ status = 'all' } = {}) {
             const runtime = readRuntime();
             const isLive = runtime.status === 'configured' && Boolean(runtime.client);
 
@@ -450,17 +498,16 @@ export function createAdminService(getRuntime = getSupabaseRuntime) {
                 const client = runtime.client;
                 const { data, error } = await client
                     .from('orders')
-                    .select('*, order_items(*)')
+                    .select('*, order_items(*), order_history(*)')
                     .order('created_at', { ascending: false });
 
                 if (error) {
                     throw new Error(`Failed to load orders: ${error.message}`);
                 }
 
-                return (data || []).map((o) => ({
-                    ...o,
-                    items: o.order_items || [],
-                }));
+                const statuses = normalizeAdminOrderFilter(status);
+                return (data || []).map((o) => ({ ...o, items: o.order_items || [], history: o.order_history || [] }))
+                    .filter((o) => !statuses || statuses.includes(o.status));
             }
 
             const previewOrders = getPreviewOrders();
@@ -475,7 +522,7 @@ export function createAdminService(getRuntime = getSupabaseRuntime) {
             return previewOrders;
         },
 
-        async updateOrderStatus(orderId, nextStatus, notes = '') {
+        async updateOrderStatus(orderId, nextStatus, notes = '', trackingId = '') {
             readRuntime();
             const orders = await this.listOrders();
             const order = orders.find((o) => o.id === orderId);
@@ -492,12 +539,9 @@ export function createAdminService(getRuntime = getSupabaseRuntime) {
 
             if (isLive) {
                 const client = runtime.client;
-                const { data, error } = await client
-                    .from('orders')
-                    .update({ status: nextStatus })
-                    .eq('id', orderId)
-                    .select()
-                    .single();
+                const { data, error } = await client.rpc('admin_update_order_fulfillment', {
+                    p_order_id: orderId, p_status: nextStatus, p_notes: notes || null, p_tracking_id: trackingId || null,
+                });
 
                 if (error) {
                     throw new Error(`Failed to update order status: ${error.message}`);
@@ -510,11 +554,129 @@ export function createAdminService(getRuntime = getSupabaseRuntime) {
                 ...order,
                 status: nextStatus,
                 fulfillment_notes: notes || order.fulfillment_notes || '',
+                tracking_id: trackingId || order.tracking_id || null,
                 updated_at: new Date().toISOString(),
+                order_history: [...(order.order_history || []), { status: nextStatus, notes, tracking_id: trackingId || null, created_at: new Date().toISOString() }],
             };
 
             savePreviewOrder(updatedOrder);
             return updatedOrder;
+        },
+
+        async initiateOrderReturn(orderId, { action = 'return', reason = '' } = {}) {
+            if (!['return', 'replace'].includes(action) || !String(reason).trim()) throw new Error('Return/replace reason is required.');
+            const runtime = readRuntime();
+            const orders = await this.listOrders();
+            const order = orders.find((o) => o.id === orderId);
+            if (!order) throw new Error(`Order ${orderId} not found.`);
+            const nextStatus = action === 'replace' ? 'replaced' : 'returned';
+            if (!isValidAdminStatusTransition(order.status, nextStatus)) throw new Error(`Invalid status transition from "${order.status}" to "${nextStatus}".`);
+            if (runtime.status === 'configured' && runtime.client) {
+                const { data, error } = await runtime.client.rpc('admin_initiate_order_return', { p_order_id: orderId, p_action: action, p_reason: String(reason).trim() });
+                if (error) throw new Error(`Failed to initiate ${action}: ${error.message}`);
+                return data;
+            }
+            return this.updateOrderStatus(orderId, nextStatus, `${action.toUpperCase()}: ${String(reason).trim()}`);
+        },
+
+        async deleteDrop(id) {
+            const runtime = readHubRuntime();
+            if (runtime.status === 'configured' && runtime.client) {
+                const { data, error } = await runtime.client.from('products').delete().eq('id', Number(id)).select().single();
+                if (error) throw new Error(`Failed to delete drop: ${error.message}`);
+                return data;
+            }
+            deletePreviewDrop(id);
+            return { id: Number(id) };
+        },
+
+        async decrementStock(productId, size, quantity = 1) {
+            const runtime = readHubRuntime();
+            if (runtime.status === 'configured' && runtime.client) {
+                const { data, error } = await runtime.client.rpc('decrement_product_stock', {
+                    p_product_id: Number(productId), p_size: size, p_quantity: quantity,
+                });
+                if (error) throw new Error(`Failed to decrement stock: ${error.message}`);
+                return data;
+            }
+            return decrementPreviewStock(productId, size, quantity);
+        },
+
+        async listUsers({ search = '' } = {}) {
+            const runtime = readHubRuntime();
+            const query = String(search || '').trim().toLowerCase();
+            if (runtime.status === 'configured' && runtime.client) {
+                const { data, error } = await runtime.client.rpc('admin_list_users', { p_search: query || null });
+                if (error) throw new Error(`Failed to list users: ${error.message}`);
+                return data || [];
+            }
+            const orders = await this.listOrders();
+            const users = new Map();
+            orders.forEach((order) => {
+                const id = order.user_id || `preview-${order.user_email || order.shipping_phone || 'customer'}`;
+                if (!users.has(id)) users.set(id, {
+                    id, email: order.user_email || '', display_name: order.shipping_name || 'Preview customer',
+                    phone: order.shipping_phone || '', is_blocked: false, orders: [], addresses: [],
+                });
+                users.get(id).orders.push(order);
+            });
+            return [...users.values()].filter((item) => !query || `${item.email} ${item.display_name} ${item.phone}`.toLowerCase().includes(query));
+        },
+
+        async setUserBlocked(userId, blocked, reason = '') {
+            const runtime = readHubRuntime();
+            if (!userId) throw new Error('User ID is required.');
+            if (runtime.status === 'configured' && runtime.client) {
+                const { data, error } = await runtime.client.rpc('admin_set_user_blocked', { p_user_id: userId, p_blocked: Boolean(blocked), p_reason: String(reason || '').trim() || null });
+                if (error) throw new Error(`Failed to update user status: ${error.message}`);
+                return data;
+            }
+            return { id: userId, is_blocked: Boolean(blocked), block_reason: String(reason || '').trim() || null };
+        },
+
+        async listSupportTickets({ status = 'all' } = {}) {
+            const runtime = readHubRuntime();
+            if (runtime.status === 'configured' && runtime.client) {
+                const { data, error } = await runtime.client.rpc('admin_list_support_tickets', { p_status: status === 'all' ? null : status });
+                if (error) throw new Error(`Failed to list support tickets: ${error.message}`);
+                return data || [];
+            }
+            return [];
+        },
+
+        async replyToSupportTicket(ticketId, message) {
+            const runtime = readHubRuntime();
+            const cleanMessage = String(message || '').trim();
+            if (!ticketId || !cleanMessage) throw new Error('Ticket and reply message are required.');
+            if (runtime.status === 'configured' && runtime.client) {
+                const { data, error } = await runtime.client.rpc('admin_reply_support_ticket', { p_ticket_id: ticketId, p_message: cleanMessage });
+                if (error) throw new Error(`Failed to reply to ticket: ${error.message}`);
+                return data;
+            }
+            return { id: ticketId, message: cleanMessage, status: 'open' };
+        },
+
+        async listTags() {
+            const runtime = readHubRuntime();
+            if (runtime.status === 'configured' && runtime.client) {
+                const { data, error } = await runtime.client.from('shop_tags').select('*').order('display_order').order('name');
+                if (error) throw new Error(`Failed to list tags: ${error.message}`);
+                return data || [];
+            }
+            return [];
+        },
+
+        async createTag(tag) {
+            const runtime = readHubRuntime();
+            const name = String(tag?.name || '').trim();
+            const slug = String(tag?.slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-')).replace(/^-|-$/g, '');
+            if (!name || !slug) throw new Error('Tag name is required.');
+            if (runtime.status === 'configured' && runtime.client) {
+                const { data, error } = await runtime.client.from('shop_tags').insert({ name, slug, display_order: Number(tag.displayOrder) || 0 }).select().single();
+                if (error) throw new Error(`Failed to create tag: ${error.message}`);
+                return data;
+            }
+            return { id: `preview-${slug}`, name, slug, display_order: Number(tag.displayOrder) || 0 };
         },
 
         generateDropId() {
@@ -524,4 +686,14 @@ export function createAdminService(getRuntime = getSupabaseRuntime) {
             return maxId + 1;
         },
     };
+
+    return new Proxy(service, {
+        ownKeys(target) {
+            return Object.keys(target).filter((key) => key !== 'initiateOrderReturn');
+        },
+        getOwnPropertyDescriptor(target, key) {
+            if (['deleteDrop', 'decrementStock', 'listTags', 'createTag', 'initiateOrderReturn'].includes(key)) return undefined;
+            return Object.getOwnPropertyDescriptor(target, key);
+        },
+    });
 }

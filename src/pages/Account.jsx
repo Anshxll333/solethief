@@ -1,7 +1,32 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { isAllowedAuthReturnPath, sanitizeAuthReturnPath } from '../auth/authConstants.js';
-import { User, MapPin, Heart, Package, LogOut, Plus, Edit2, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+    User,
+    MapPin,
+    Heart,
+    Package,
+    LogOut,
+    Plus,
+    Edit2,
+    Trash2,
+    CheckCircle2,
+    AlertCircle,
+    Lock,
+    Search,
+    ShieldCheck,
+    Truck,
+    Clock,
+    Download,
+    HelpCircle,
+    Copy,
+    Check,
+    X,
+    XCircle,
+    FileText,
+    ArrowRight,
+    Sparkles,
+} from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useAuth } from '../auth/authContext.js';
@@ -11,6 +36,8 @@ import { resolveWishlist } from '../commerce/wishlist.js';
 import { formatMoney } from '../commerce/cart.js';
 import { validateAddress } from '../commerce/address.js';
 import { createOrdersService } from '../services/orders.js';
+import { canCancelOrder } from '../commerce/orders.js';
+import './Account.css';
 
 const INDIAN_STATES = [
     'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
@@ -20,6 +47,85 @@ const INDIAN_STATES = [
     'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
     'Delhi', 'Jammu and Kashmir', 'Ladakh'
 ];
+
+const TRACKER_STEPS = [
+    { key: 'placed', label: 'Order Confirmed', icon: CheckCircle2 },
+    { key: 'authenticating', label: 'Authenticating', icon: ShieldCheck },
+    { key: 'shipped', label: 'Express Transit', icon: Truck },
+    { key: 'delivered', label: 'Delivered', icon: Package },
+];
+
+function getStatusTone(status) {
+    if (status === 'delivered') return 'delivered';
+    if (status === 'shipped') return 'shipped';
+    if (status === 'processing' || status === 'paid') return 'processing';
+    if (['cancelled', 'refunded', 'expired'].includes(status)) return 'cancelled';
+    return 'pending';
+}
+
+function getStatusLabel(status) {
+    switch (status) {
+        case 'delivered': return 'DELIVERED & AUTHENTICATED';
+        case 'shipped': return 'SHIPPED / IN TRANSIT';
+        case 'processing': return 'AUTHENTICATING & PACKING';
+        case 'paid': return 'PAID & ALLOCATED';
+        case 'pending_payment': return 'AWAITING PAYMENT';
+        case 'cancelled': return 'ORDER CANCELLED';
+        case 'refunded': return 'PAYMENT REFUNDED';
+        case 'expired': return 'ALLOCATION EXPIRED';
+        default: return (status || 'PROCESSING').replace(/_/g, ' ').toUpperCase();
+    }
+}
+
+function getStepState(status, stepIndex) {
+    if (['cancelled', 'refunded', 'expired'].includes(status)) {
+        return 'cancelled';
+    }
+    if (status === 'delivered') return 'completed';
+    if (status === 'shipped') {
+        if (stepIndex < 2) return 'completed';
+        if (stepIndex === 2) return 'current';
+        return 'upcoming';
+    }
+    if (status === 'processing' || status === 'paid') {
+        if (stepIndex === 0) return 'completed';
+        if (stepIndex === 1) return 'current';
+        return 'upcoming';
+    }
+    if (status === 'pending_payment') {
+        if (stepIndex === 0) return 'current';
+        return 'upcoming';
+    }
+    return stepIndex === 0 ? 'completed' : 'upcoming';
+}
+
+function resolveOrderFinancials(order) {
+    const totalMinor = Number.isSafeInteger(order?.total_amount_minor)
+        ? order.total_amount_minor
+        : (Number.isSafeInteger(order?.total_minor) ? order.total_minor : 0);
+
+    const shippingMinor = Number.isSafeInteger(order?.shipping_amount_minor)
+        ? order.shipping_amount_minor
+        : (Number.isSafeInteger(order?.shipping_minor) ? order.shipping_minor : 0);
+
+    const taxMinor = Number.isSafeInteger(order?.tax_amount_minor)
+        ? order.tax_amount_minor
+        : (Number.isSafeInteger(order?.tax_minor) ? order.tax_minor : 0);
+
+    const discountMinor = Number.isSafeInteger(order?.discount_minor) ? order.discount_minor : 0;
+
+    const subtotalMinor = Number.isSafeInteger(order?.subtotal_minor)
+        ? order.subtotal_minor
+        : Math.max(0, totalMinor - shippingMinor - taxMinor + discountMinor);
+
+    return {
+        totalMinor,
+        shippingMinor,
+        taxMinor,
+        discountMinor,
+        subtotalMinor,
+    };
+}
 
 export default function Account({ initialView = 'signin' }) {
     const {
@@ -107,32 +213,145 @@ export default function Account({ initialView = 'signin' }) {
     const [orders, setOrders] = useState([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [ordersError, setOrdersError] = useState(null);
+    const [orderFilterTab, setOrderFilterTab] = useState('all'); // 'all' | 'in_progress' | 'delivered' | 'cancelled'
+    const [orderSearch, setOrderSearch] = useState('');
+    const [activeModal, setActiveModal] = useState(null); // { type: 'invoice' | 'support', order: Object }
+    const [copiedOrderId, setCopiedOrderId] = useState(null);
+    const [supportCategory, setSupportCategory] = useState('tracking');
+    const [supportMessage, setSupportMessage] = useState('');
+    const [supportSubmitted, setSupportSubmitted] = useState(false);
+
+    // Order Cancellation State (24-Hour Policy)
+    const [cancelReason, setCancelReason] = useState('Changed mind');
+    const [cancelCustomNotes, setCancelCustomNotes] = useState('');
+    const [cancelSubmitting, setCancelSubmitting] = useState(false);
+    const [cancelError, setCancelError] = useState('');
+    const [cancelSuccess, setCancelSuccess] = useState('');
 
     const ordersService = useMemo(() => createOrdersService(() => ({ previewMode })), [previewMode]);
 
+    const loadOrders = useCallback(() => {
+        setOrdersLoading(true);
+        setOrdersError(null);
+        let isCancelled = false;
+        ordersService.listOrders({ user, allowPreview: previewMode }).then(({ data, error }) => {
+            if (!isCancelled) {
+                if (error) {
+                    setOrdersError(error.message || 'Failed to load order history');
+                } else {
+                    setOrders(data || []);
+                }
+                setOrdersLoading(false);
+            }
+        }).catch((err) => {
+            if (!isCancelled) {
+                setOrdersError(err.message || 'Error loading order history');
+                setOrdersLoading(false);
+            }
+        });
+        return () => {
+            isCancelled = true;
+        };
+    }, [ordersService, user, previewMode]);
+
     useEffect(() => {
         if (accountTab === 'orders') {
-            let isCancelled = false;
-            ordersService.listOrders().then(({ data, error }) => {
-                if (!isCancelled) {
-                    if (error) {
-                        setOrdersError(error.message || 'Failed to load order history');
-                    } else {
-                        setOrders(data || []);
-                    }
-                    setOrdersLoading(false);
-                }
-            }).catch((err) => {
-                if (!isCancelled) {
-                    setOrdersError(err.message || 'Error loading order history');
-                    setOrdersLoading(false);
-                }
-            });
-            return () => {
-                isCancelled = true;
-            };
+            const cleanup = loadOrders();
+            return cleanup;
         }
-    }, [accountTab, ordersService]);
+    }, [accountTab, loadOrders]);
+
+    const handleCopyOrderId = (e, orderId) => {
+        e.stopPropagation();
+        try {
+            if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                navigator.clipboard.writeText(orderId);
+            }
+        } catch {
+            // ignore
+        }
+        setCopiedOrderId(orderId);
+        setTimeout(() => setCopiedOrderId(prev => (prev === orderId ? null : prev)), 2000);
+    };
+
+    const handleConfirmCancelOrder = async (orderId) => {
+        if (!orderId) return;
+        setCancelSubmitting(true);
+        setCancelError('');
+        try {
+            const finalReason = cancelReason === 'Other' && cancelCustomNotes.trim()
+                ? `Other: ${cancelCustomNotes.trim()}`
+                : cancelReason;
+
+            await ordersService.cancelOrder(orderId, {
+                reason: finalReason,
+                user,
+                allowPreview: previewMode,
+            });
+
+            setOrders((prev) =>
+                prev.map((ord) =>
+                    ord.id === orderId
+                        ? {
+                            ...ord,
+                            status: 'cancelled',
+                            cancel_reason: finalReason,
+                            cancelled_at: new Date().toISOString(),
+                        }
+                        : ord
+                )
+            );
+
+            setCancelSuccess(`Order #${orderId} was successfully cancelled.`);
+        } catch (err) {
+            setCancelError(err.message || 'Failed to cancel order.');
+        } finally {
+            setCancelSubmitting(false);
+        }
+    };
+
+    const filteredOrders = useMemo(() => {
+        return orders.filter((order) => {
+            if (orderFilterTab === 'in_progress') {
+                if (!['paid', 'processing', 'shipped'].includes(order.status)) return false;
+            } else if (orderFilterTab === 'delivered') {
+                if (order.status !== 'delivered') return false;
+            } else if (orderFilterTab === 'cancelled') {
+                if (!['cancelled', 'refunded', 'expired'].includes(order.status)) return false;
+            }
+
+            if (orderSearch.trim()) {
+                const query = orderSearch.trim().toLowerCase();
+                const matchesId = (order.id || '').toLowerCase().includes(query);
+                const matchesDest = (order.shipping_name || order.shipping_address?.recipient || '').toLowerCase().includes(query) ||
+                    (order.shipping_city || order.shipping_address?.city || '').toLowerCase().includes(query);
+                const matchesItem = (order.items || []).some((item) =>
+                    (item.name || '').toLowerCase().includes(query) ||
+                    (item.brand || '').toLowerCase().includes(query) ||
+                    String(item.size || '').toLowerCase().includes(query)
+                );
+                if (!matchesId && !matchesDest && !matchesItem) return false;
+            }
+
+            return true;
+        });
+    }, [orders, orderFilterTab, orderSearch]);
+
+    const orderCounts = useMemo(() => {
+        return {
+            all: orders.length,
+            in_progress: orders.filter((o) => ['paid', 'processing', 'shipped'].includes(o.status)).length,
+            delivered: orders.filter((o) => o.status === 'delivered').length,
+            cancelled: orders.filter((o) => ['cancelled', 'refunded', 'expired'].includes(o.status)).length,
+        };
+    }, [orders]);
+
+    const totalOrdersValueMinor = useMemo(() => {
+        return orders.reduce((sum, o) => {
+            const t = Number.isSafeInteger(o.total_amount_minor) ? o.total_amount_minor : (Number.isSafeInteger(o.total_minor) ? o.total_minor : 0);
+            return sum + t;
+        }, 0);
+    }, [orders]);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -273,6 +492,25 @@ export default function Account({ initialView = 'signin' }) {
                             <h1>Customer Portal</h1>
                             <p>Access your saved kicks, shipping destinations, and drop archive.</p>
                         </div>
+
+                        {searchParams.get('return') === '/checkout' && (
+                            <div className="accountCheckoutNotice" style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.65rem',
+                                background: 'rgba(152, 123, 71, 0.1)',
+                                border: '1px solid #987b47',
+                                color: '#151B2B',
+                                padding: '0.85rem 1.25rem',
+                                borderRadius: '4px',
+                                fontSize: '0.85rem',
+                                marginBottom: '1.25rem',
+                                fontWeight: 500
+                            }}>
+                                <Lock size={16} color="#987b47" aria-hidden="true" />
+                                <span>Please sign in or create an account to proceed to checkout and secure your order history.</span>
+                            </div>
+                        )}
 
                         {previewMode && (
                             <div className="accountPreviewNotice" role="region" aria-label="Preview Mode Notice">
@@ -461,35 +699,6 @@ export default function Account({ initialView = 'signin' }) {
                                 <span>Sign Out</span>
                             </button>
                         </header>
-
-                        {previewMode && (
-                            <div className="accountPreviewBar">
-                                <span>Preview Profile Switcher:</span>
-                                <div className="accountPreviewBarButtons">
-                                    <button
-                                        type="button"
-                                        className="accountMiniBtn"
-                                        onClick={() => switchMockProfile('collector')}
-                                    >
-                                        Arjun Rao
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="accountMiniBtn"
-                                        onClick={() => switchMockProfile('sneakerhead')}
-                                    >
-                                        Priya Sharma
-                                    </button>
-                                    <Link
-                                        to="/admin"
-                                        className="accountMiniBtn"
-                                        style={{ textDecoration: 'none', background: '#151B2B', color: '#C8A96E' }}
-                                    >
-                                        Shibuya Command
-                                    </Link>
-                                </div>
-                            </div>
-                        )}
 
                         {/* Navigation Tabs */}
                         <nav className="accountNavTabs" role="tablist" aria-label="Account sections">
@@ -952,18 +1161,113 @@ export default function Account({ initialView = 'signin' }) {
                             </section>
                         )}
 
-                        {/* Tab Content: Order History */}
+                        {/* Tab Content: Modernized Order History */}
                         {accountTab === 'orders' && (
-                            <section className="accountSection" aria-labelledby="orders-heading">
-                                <div className="accountSectionHeader">
-                                    <h2 id="orders-heading">Archive Order History</h2>
-                                    <p>Track historical drops, confirmed pair allocations, and fulfillment status.</p>
+                            <section className="accountSection accountOrdersSection" aria-labelledby="orders-heading">
+                                <div className="accountSectionHeader accountOrdersHeaderWrap">
+                                    <div>
+                                        <div className="accountOrdersHeaderEyebrow">
+                                            <Sparkles size={14} aria-hidden="true" />
+                                            <span>SOLETHIEF AUTHENTICATED VAULT</span>
+                                        </div>
+                                        <h2 id="orders-heading" className="accountOrdersHeading">ARCHIVE ORDER VAULT</h2>
+                                        <p className="accountOrdersSubtitle">
+                                            Track confirmed pair allocations, real-time dispatch logistics, and historical drops.
+                                        </p>
+                                    </div>
+
+                                    {/* High-level vault metrics */}
+                                    <div className="accountOrdersVaultMetrics" aria-label="Order Vault Metrics">
+                                        <div className="vaultMetricCard">
+                                            <span className="vaultMetricLabel">TOTAL DROPS</span>
+                                            <span className="vaultMetricValue">{orders.length}</span>
+                                        </div>
+                                        <div className="vaultMetricCard">
+                                            <span className="vaultMetricLabel">IN TRANSIT</span>
+                                            <span className="vaultMetricValue gold">{orderCounts.active}</span>
+                                        </div>
+                                        <div className="vaultMetricCard">
+                                            <span className="vaultMetricLabel">VAULT INVESTMENT</span>
+                                            <span className="vaultMetricValue">{formatMoney(totalOrdersValueMinor)}</span>
+                                        </div>
+                                    </div>
                                 </div>
 
+                                {/* Order Utility Controls: Filter Tabs & Live Search */}
+                                {orders.length > 0 && (
+                                    <div className="accountOrdersControls">
+                                        <div className="accountOrdersFilterTabs" role="tablist" aria-label="Filter orders by status">
+                                            <button
+                                                type="button"
+                                                role="tab"
+                                                aria-selected={orderFilterTab === 'all'}
+                                                className={`orderFilterPill ${orderFilterTab === 'all' ? 'isActive' : ''}`}
+                                                onClick={() => setOrderFilterTab('all')}
+                                            >
+                                                <span>All Drops</span>
+                                                <span className="filterCountBadge">{orderCounts.all}</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                role="tab"
+                                                aria-selected={orderFilterTab === 'active'}
+                                                className={`orderFilterPill ${orderFilterTab === 'active' ? 'isActive' : ''}`}
+                                                onClick={() => setOrderFilterTab('active')}
+                                            >
+                                                <span>In Transit & Active</span>
+                                                <span className="filterCountBadge">{orderCounts.active}</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                role="tab"
+                                                aria-selected={orderFilterTab === 'delivered'}
+                                                className={`orderFilterPill ${orderFilterTab === 'delivered' ? 'isActive' : ''}`}
+                                                onClick={() => setOrderFilterTab('delivered')}
+                                            >
+                                                <span>Delivered</span>
+                                                <span className="filterCountBadge">{orderCounts.delivered}</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                role="tab"
+                                                aria-selected={orderFilterTab === 'cancelled'}
+                                                className={`orderFilterPill ${orderFilterTab === 'cancelled' ? 'isActive' : ''}`}
+                                                onClick={() => setOrderFilterTab('cancelled')}
+                                            >
+                                                <span>Cancelled / Voided</span>
+                                                <span className="filterCountBadge">{orderCounts.cancelled}</span>
+                                            </button>
+                                        </div>
+
+                                        <div className="accountOrdersSearchWrap">
+                                            <Search size={16} className="searchIcon" aria-hidden="true" />
+                                            <input
+                                                type="text"
+                                                className="accountOrdersSearchInput"
+                                                placeholder="Search by Order ID, shoe title, or city..."
+                                                value={orderSearch}
+                                                onChange={(e) => setOrderSearch(e.target.value)}
+                                                aria-label="Search orders"
+                                            />
+                                            {orderSearch && (
+                                                <button
+                                                    type="button"
+                                                    className="clearSearchBtn"
+                                                    onClick={() => setOrderSearch('')}
+                                                    aria-label="Clear order search"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {ordersLoading && (
-                                    <p role="status" className="checkoutStatusPending" style={{ padding: '2rem 0' }}>
-                                        Loading your archive orders...
-                                    </p>
+                                    <div className="ordersLoadingState" role="status">
+                                        <div className="ordersLoadingSpinner" />
+                                        <span>DECRYPTING VAULT RECORDS...</span>
+                                    </div>
                                 )}
 
                                 {ordersError && (
@@ -973,70 +1277,635 @@ export default function Account({ initialView = 'signin' }) {
                                     </div>
                                 )}
 
+                                {/* Premium Empty State: No drops at all */}
                                 {!ordersLoading && !orders.length && (
-                                    <div className="accountEmptyState accountOrdersPrep">
-                                        <Package size={36} aria-hidden="true" />
-                                        <h3>No archived orders yet</h3>
-                                        <p>
-                                            When you check out and claim rare drops, your order confirmations, serial IDs, and tracking status will appear here.
+                                    <div className="accountOrdersEmptyVault">
+                                        <div className="emptyVaultIconWrap">
+                                            <Package size={42} aria-hidden="true" />
+                                        </div>
+                                        <span className="emptyVaultEyebrow">COLLECTION UNLOCKED</span>
+                                        <h3 className="emptyVaultHeading">NO DROPS COPPED YET</h3>
+                                        <p className="emptyVaultDesc">
+                                            Your personal vault is waiting. When you cop rare silhouettes, verify allocations, and checkout, your authenticated orders, digital receipts, and live GPS courier tracking will appear here.
                                         </p>
-                                        <Link to="/shop" className="commerceButton accountShopLink">
-                                            Browse Active Archive
-                                        </Link>
+                                        <div className="emptyVaultActions">
+                                            <Link to="/shop" className="emptyVaultCtaBtn">
+                                                <span>EXPLORE ACTIVE DROPS</span>
+                                                <ArrowRight size={16} aria-hidden="true" />
+                                            </Link>
+                                        </div>
                                     </div>
                                 )}
 
-                                {!ordersLoading && orders.length > 0 && (
-                                    <div className="accountOrdersList" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                                        {orders.map((order) => (
-                                            <article key={order.id} className="accountOrderCard">
-                                                <div className="accountOrderHeader">
-                                                    <div>
-                                                        <span className="accountOrderId">{order.id}</span>
-                                                        <span className="accountOrderDate">
-                                                            {new Date(order.created_at).toLocaleDateString('en-IN', {
-                                                                day: 'numeric',
-                                                                month: 'short',
-                                                                year: 'numeric'
-                                                            })}
-                                                        </span>
-                                                    </div>
-                                                    <div className="accountOrderHeaderRight">
-                                                        <span className={`accountOrderStatusBadge status-${order.status}`}>
-                                                            {order.status.replace('_', ' ').toUpperCase()}
-                                                        </span>
-                                                        <Link to={`/order-confirmation/${order.id}`} className="commerceTextLink accountOrderViewLink">
-                                                            View Tracker &rarr;
-                                                        </Link>
-                                                    </div>
-                                                </div>
+                                {/* Filter Empty State: Orders exist, but query matches 0 */}
+                                {!ordersLoading && orders.length > 0 && filteredOrders.length === 0 && (
+                                    <div className="ordersFilterEmpty">
+                                        <Package size={32} aria-hidden="true" />
+                                        <h4>NO MATCHING ORDERS FOUND</h4>
+                                        <p>
+                                            No drops matched your query {orderSearch ? `"${orderSearch}"` : ''} under status "{orderFilterTab}".
+                                        </p>
+                                        <button
+                                            type="button"
+                                            className="resetFilterBtn"
+                                            onClick={() => {
+                                                setOrderFilterTab('all');
+                                                setOrderSearch('');
+                                            }}
+                                        >
+                                            Reset Filter & Search
+                                        </button>
+                                    </div>
+                                )}
 
-                                                <div className="accountOrderDetails">
-                                                    <div className="accountOrderItemsSummary">
-                                                        {order.items?.map((item, idx) => (
-                                                            <div key={item.id || idx} className="accountOrderItemRow">
-                                                                {item.image_url && (
-                                                                    <img src={item.image_url} alt={item.name} className="accountOrderItemThumb" />
-                                                                )}
-                                                                <div>
-                                                                    <span className="accountOrderItemName">{item.brand} {item.name}</span>
-                                                                    <span className="accountOrderItemMeta">Size {item.size} &bull; Qty {item.quantity || 1} &bull; {formatMoney(item.unit_price_minor)}</span>
-                                                                </div>
+                                {/* Modernized Order Card List */}
+                                {!ordersLoading && filteredOrders.length > 0 && (
+                                    <div className="accountOrdersListModern">
+                                        {filteredOrders.map((order) => {
+                                            const tone = getStatusTone(order.status);
+                                            const isCancelled = ['cancelled', 'refunded', 'expired'].includes(order.status);
+                                            const isCopied = copiedOrderId === order.id;
+
+                                            return (
+                                                <article key={order.id} className="orderVaultCard">
+                                                    {/* Card Header Bar */}
+                                                    <div className="orderVaultCardHeader">
+                                                        <div className="orderHeaderLeft">
+                                                            <div className="orderIdRow">
+                                                                <span className="orderIdSerial">{order.id}</span>
+                                                                <button
+                                                                    type="button"
+                                                                    className="orderCopyIdBtn"
+                                                                    onClick={(e) => handleCopyOrderId(e, order.id)}
+                                                                    title="Copy Order Serial"
+                                                                    aria-label="Copy Order Serial"
+                                                                >
+                                                                    {isCopied ? (
+                                                                        <>
+                                                                            <Check size={12} className="copySuccessIcon" />
+                                                                            <span className="copyLabel">COPIED</span>
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <Copy size={12} />
+                                                                            <span className="copyLabel">COPY</span>
+                                                                        </>
+                                                                    )}
+                                                                </button>
                                                             </div>
-                                                        ))}
+
+                                                            <div className="orderMetaRow">
+                                                                <span className="orderMetaDate">
+                                                                    <Clock size={12} aria-hidden="true" />
+                                                                    {order.created_at
+                                                                        ? new Date(order.created_at).toLocaleDateString('en-IN', {
+                                                                            day: 'numeric',
+                                                                            month: 'short',
+                                                                            year: 'numeric'
+                                                                        })
+                                                                        : 'Recently'}
+                                                                </span>
+                                                                <span className="orderPaymentPill">
+                                                                    {order.payment_method === 'razorpay'
+                                                                        ? 'PREPAID // RAZORPAY'
+                                                                        : 'COD // ARCHIVE RESERVE'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="orderHeaderRight">
+                                                            <span className={`orderStatusBadgeModern ${tone}`}>
+                                                                <span className="statusDot" />
+                                                                <span>{getStatusLabel(order.status)}</span>
+                                                            </span>
+                                                            <Link
+                                                                to={`/order-confirmation/${order.id}`}
+                                                                className="orderLiveTrackerBtn"
+                                                                title="View full confirmation and live tracker"
+                                                            >
+                                                                <span>View Tracker</span>
+                                                                <ArrowRight size={13} aria-hidden="true" />
+                                                            </Link>
+                                                        </div>
                                                     </div>
-                                                    <div className="accountOrderFooter">
-                                                        <div className="accountOrderShippingMeta">
-                                                            <span>Delivering to: {order.shipping_name}, {order.shipping_city}</span>
-                                                            <span className="accountOrderPaymentMeta">Payment: {order.payment_method === 'razorpay' ? 'Prepaid (Razorpay)' : 'Archive Reserve (COD)'}</span>
+
+                                                    {/* Order Timeline Progress Tracker */}
+                                                    {!isCancelled ? (
+                                                        <div className="orderProgressTrackerWrap" aria-label="Delivery progress timeline">
+                                                            <div className="trackerStepsGrid">
+                                                                {TRACKER_STEPS.map((step, idx) => {
+                                                                    const stepState = getStepState(order.status, idx);
+                                                                    return (
+                                                                        <div key={step.key} className={`trackerStepNode ${stepState}`}>
+                                                                            <div className="trackerStepIndicator">
+                                                                                <div className="trackerStepDot">
+                                                                                    {stepState === 'completed' && <Check size={10} />}
+                                                                                    {(stepState === 'active' || stepState === 'current') && <div className="pulseRing" />}
+                                                                                </div>
+                                                                                {idx < TRACKER_STEPS.length - 1 && (
+                                                                                    <div className="trackerStepLine" />
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="trackerStepContent">
+                                                                                <span className="trackerStepLabel">{step.label}</span>
+                                                                                <span className="trackerStepSub">
+                                                                                    {stepState === 'completed'
+                                                                                        ? 'Verified'
+                                                                                        : (stepState === 'active' || stepState === 'current')
+                                                                                            ? 'In Progress'
+                                                                                            : 'Pending'}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
                                                         </div>
-                                                        <div className="accountOrderTotal">
-                                                            <span>Total: <strong>{formatMoney(order.total_amount_minor)}</strong></span>
+                                                    ) : (
+                                                        <div className="orderCancelledBanner">
+                                                            <AlertCircle size={15} />
+                                                            <span>
+                                                                THIS ALLOCATION WAS {order.status === 'refunded' ? 'REFUNDED' : 'CANCELLED'}. REACH OUT TO CONCIERGE IF YOU HAVE QUESTIONS.
+                                                            </span>
                                                         </div>
+                                                    )}
+
+                                                    {/* Rich Sneaker Items List */}
+                                                    <div className="orderItemsContainer">
+                                                        <div className="orderItemsGrid">
+                                                            {(order.items || []).map((item, idx) => (
+                                                                <div key={item.id || idx} className="orderSneakerCard">
+                                                                    <div className="orderSneakerThumb">
+                                                                        {item.image_url ? (
+                                                                            <img
+                                                                                src={item.image_url}
+                                                                                alt={item.name}
+                                                                                loading="lazy"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="orderSneakerPlaceholder">
+                                                                                <Package size={24} />
+                                                                            </div>
+                                                                        )}
+                                                                        <span className="orderVerifiedPill">
+                                                                            <ShieldCheck size={10} />
+                                                                            VERIFIED
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div className="orderSneakerDetails">
+                                                                        <div className="orderSneakerBrand">
+                                                                            {item.brand || 'SOLETHIEF'}
+                                                                        </div>
+                                                                        <Link
+                                                                            to={`/shop`}
+                                                                            className="orderSneakerNameLink"
+                                                                            title={item.name}
+                                                                        >
+                                                                            {item.name}
+                                                                        </Link>
+                                                                        <div className="orderSneakerPills">
+                                                                            <span className="orderSpecPill">SIZE US {item.size}</span>
+                                                                            <span className="orderSpecPill">QTY {item.quantity || 1}</span>
+                                                                            <span className="orderSpecPill unitPrice">
+                                                                                {formatMoney(item.unit_price_minor)}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="orderSneakerLineTotal">
+                                                                        <span className="lineTotalLabel">SUBTOTAL</span>
+                                                                        <span className="lineTotalValue">
+                                                                            {formatMoney((item.unit_price_minor || 0) * (item.quantity || 1))}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Card Action Bar Footer */}
+                                                    <div className="orderVaultCardFooter">
+                                                        <div className="orderFooterRightActions">
+                                                            <button
+                                                                type="button"
+                                                                className="orderActionBtn orderCancelBtn"
+                                                                disabled={!canCancelOrder(order)}
+                                                                title={
+                                                                    !canCancelOrder(order)
+                                                                        ? 'Cancellation is only allowed within 24 hours of order placement'
+                                                                        : 'Cancel this order'
+                                                                }
+                                                                onClick={() => {
+                                                                    if (!canCancelOrder(order)) return;
+                                                                    setCancelError('');
+                                                                    setCancelSuccess('');
+                                                                    setCancelReason('Changed mind');
+                                                                    setCancelCustomNotes('');
+                                                                    setActiveModal({ type: 'cancel', order });
+                                                                }}
+                                                            >
+                                                                <XCircle size={13} />
+                                                                <span>Cancel Order</span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="orderActionBtn"
+                                                                onClick={() => setActiveModal({ type: 'invoice', order })}
+                                                            >
+                                                                <FileText size={13} />
+                                                                <span>Invoice & Receipt</span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="orderActionBtn"
+                                                                onClick={() => {
+                                                                    setSupportSubmitted(false);
+                                                                    setSupportMessage('');
+                                                                    setActiveModal({ type: 'support', order });
+                                                                }}
+                                                            >
+                                                                <HelpCircle size={13} />
+                                                                <span>Concierge Support</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </article>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* Interactive Modal: Printable Invoice / Receipt */}
+                                {activeModal?.type === 'invoice' && activeModal.order && (
+                                    <div className="orderModalOverlay" onClick={() => setActiveModal(null)} role="dialog" aria-modal="true" aria-labelledby="modal-invoice-title">
+                                        <div className="orderModalContent printInvoiceDoc" onClick={(e) => e.stopPropagation()}>
+                                            <div className="orderModalHeader">
+                                                <div className="invoiceBranding">
+                                                    <span className="invoiceBrandLogo">SOLETHIEF</span>
+                                                    <span className="invoiceSubLogo">AUTHENTICATED ARCHIVE RECEIPT</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="orderModalCloseBtn"
+                                                    onClick={() => setActiveModal(null)}
+                                                    aria-label="Close invoice"
+                                                >
+                                                    <X size={18} />
+                                                </button>
+                                            </div>
+
+                                            <div className="invoiceDossierHeader">
+                                                <div className="invoiceDossierCol">
+                                                    <span className="invoiceLabel">INVOICE SERIAL</span>
+                                                    <span className="invoiceValue mono">{activeModal.order.id}</span>
+                                                    <span className="invoiceLabel" style={{ marginTop: '0.5rem' }}>ORDER DATE</span>
+                                                    <span className="invoiceValue">
+                                                        {activeModal.order.created_at
+                                                            ? new Date(activeModal.order.created_at).toLocaleDateString('en-IN', {
+                                                                day: 'numeric',
+                                                                month: 'long',
+                                                                year: 'numeric'
+                                                            })
+                                                            : 'Recently'}
+                                                    </span>
+                                                </div>
+                                                <div className="invoiceDossierCol">
+                                                    <span className="invoiceLabel">BILLED / SHIPPED TO</span>
+                                                    <span className="invoiceValue highlight">{activeModal.order.shipping_name || 'Member'}</span>
+                                                    <span className="invoiceValue">
+                                                        {[
+                                                            activeModal.order.shipping_address,
+                                                            activeModal.order.shipping_city,
+                                                            activeModal.order.shipping_state,
+                                                            activeModal.order.shipping_postal_code
+                                                        ].filter(Boolean).join(', ')}
+                                                    </span>
+                                                    {activeModal.order.shipping_phone && (
+                                                        <span className="invoiceValue mono">Tel: {activeModal.order.shipping_phone}</span>
+                                                    )}
+                                                </div>
+                                                <div className="invoiceDossierCol">
+                                                    <span className="invoiceLabel">STATUS</span>
+                                                    <span className="invoiceValue highlight">{getStatusLabel(activeModal.order.status)}</span>
+                                                    <span className="invoiceLabel" style={{ marginTop: '0.5rem' }}>PAYMENT METHOD</span>
+                                                    <span className="invoiceValue">
+                                                        {activeModal.order.payment_method === 'razorpay' ? 'Prepaid (Razorpay Gateway)' : 'COD (Archive Reserve)'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <table className="invoiceItemsTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>ITEM DESCRIPTION</th>
+                                                        <th>SIZE</th>
+                                                        <th>QTY</th>
+                                                        <th>RATE</th>
+                                                        <th>LINE TOTAL</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {(activeModal.order.items || []).map((item, idx) => (
+                                                        <tr key={idx}>
+                                                            <td>
+                                                                <div className="invoiceItemTitle">{item.brand} {item.name}</div>
+                                                                <div className="invoiceItemAuthenticity">Verified Authentic 100%</div>
+                                                            </td>
+                                                            <td>US {item.size}</td>
+                                                            <td>{item.quantity || 1}</td>
+                                                            <td>{formatMoney(item.unit_price_minor)}</td>
+                                                            <td>{formatMoney((item.unit_price_minor || 0) * (item.quantity || 1))}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+
+                                            {(() => {
+                                                const financials = resolveOrderFinancials(activeModal.order);
+                                                return (
+                                                    <div className="invoiceTotalsBreakdown">
+                                                        <div className="invoiceTotalsRow">
+                                                            <span>Subtotal</span>
+                                                            <span>{formatMoney(financials.subtotal)}</span>
+                                                        </div>
+                                                        <div className="invoiceTotalsRow">
+                                                            <span>Courier Dispatch Freight</span>
+                                                            <span>{financials.shipping === 0 ? 'FREE' : formatMoney(financials.shipping)}</span>
+                                                        </div>
+                                                        <div className="invoiceTotalsRow">
+                                                            <span>GST Tax (18% inclusive)</span>
+                                                            <span>{formatMoney(financials.tax)}</span>
+                                                        </div>
+                                                        <div className="invoiceTotalsRow invoiceTotalFinal">
+                                                            <span>Total Paid / Due</span>
+                                                            <span className="finalTotalValue">{formatMoney(financials.total)}</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
+
+                                            <div className="invoiceModalActions no-print">
+                                                <button
+                                                    type="button"
+                                                    className="printInvoiceBtn"
+                                                    onClick={() => window.print()}
+                                                >
+                                                    <Download size={15} />
+                                                    <span>PRINT OR SAVE PDF</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="closeModalBtn"
+                                                    onClick={() => setActiveModal(null)}
+                                                >
+                                                    Close
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Interactive Modal: Concierge Support */}
+                                {activeModal?.type === 'support' && activeModal.order && (
+                                    <div className="orderModalOverlay" onClick={() => setActiveModal(null)} role="dialog" aria-modal="true" aria-labelledby="modal-support-title">
+                                        <div className="orderModalContent supportModalContent" onClick={(e) => e.stopPropagation()}>
+                                            <div className="orderModalHeader">
+                                                <div>
+                                                    <h3 id="modal-support-title" className="supportModalTitle">SOLETHIEF CONCIERGE</h3>
+                                                    <span className="supportModalSub">Dedicated Support &bull; Order {activeModal.order.id}</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="orderModalCloseBtn"
+                                                    onClick={() => setActiveModal(null)}
+                                                    aria-label="Close concierge"
+                                                >
+                                                    <X size={18} />
+                                                </button>
+                                            </div>
+
+                                            {supportSubmitted ? (
+                                                <div className="supportSuccessState">
+                                                    <CheckCircle2 size={40} className="supportSuccessIcon" />
+                                                    <h4>TICKET SUBMITTED TO CONCIERGE</h4>
+                                                    <p>
+                                                        Our authentication and dispatch desk has logged ticket for Order <code>{activeModal.order.id}</code>. A representative will contact you via email within 2-4 hours.
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        className="commerceButton"
+                                                        onClick={() => setActiveModal(null)}
+                                                    >
+                                                        Done
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <form
+                                                    className="supportModalForm"
+                                                    onSubmit={(e) => {
+                                                        e.preventDefault();
+                                                        setSupportSubmitted(true);
+                                                    }}
+                                                >
+                                                    <div className="supportField">
+                                                        <label htmlFor="supportCategory">Reason for Inquiry</label>
+                                                        <select
+                                                            id="supportCategory"
+                                                            value={supportCategory}
+                                                            onChange={(e) => setSupportCategory(e.target.value)}
+                                                            className="supportSelect"
+                                                        >
+                                                            <option value="tracking">Delivery & Tracking Status</option>
+                                                            <option value="authenticity">Physical Authentication & Verification</option>
+                                                            <option value="size">Size Exchange / Fit Inquiry</option>
+                                                            <option value="cancellation">Cancellation / Refund Request</option>
+                                                            <option value="other">Other Inquiry</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div className="supportField">
+                                                        <label htmlFor="supportMessage">Details for our Concierge</label>
+                                                        <textarea
+                                                            id="supportMessage"
+                                                            rows={4}
+                                                            required
+                                                            placeholder="Describe any questions regarding your pair, dispatch address, or courier status..."
+                                                            value={supportMessage}
+                                                            onChange={(e) => setSupportMessage(e.target.value)}
+                                                            className="supportTextarea"
+                                                        />
+                                                    </div>
+
+                                                    <div className="supportModalFooter">
+                                                        <button
+                                                            type="button"
+                                                            className="supportCancelBtn"
+                                                            onClick={() => setActiveModal(null)}
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                        <button
+                                                            type="submit"
+                                                            className="supportSubmitBtn"
+                                                        >
+                                                            Submit Ticket &rarr;
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Interactive Modal: Cancel Order (24-Hour Policy) */}
+                                {activeModal?.type === 'cancel' && activeModal.order && (
+                                    <div
+                                        className="orderModalOverlay"
+                                        onClick={() => !cancelSubmitting && setActiveModal(null)}
+                                        role="dialog"
+                                        aria-modal="true"
+                                        aria-labelledby="modal-cancel-title"
+                                    >
+                                        <div className="orderModalContent cancelModalContent" onClick={(e) => e.stopPropagation()}>
+                                            <div className="orderModalHeader">
+                                                <div>
+                                                    <h3 id="modal-cancel-title" className="cancelModalTitle">CANCEL DROP ALLOCATION</h3>
+                                                    <span className="cancelModalSub">Order {activeModal.order.id} &bull; 24-Hour Cancellation Window</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="orderModalCloseBtn"
+                                                    onClick={() => !cancelSubmitting && setActiveModal(null)}
+                                                    aria-label="Close cancel modal"
+                                                    disabled={cancelSubmitting}
+                                                >
+                                                    <X size={18} />
+                                                </button>
+                                            </div>
+
+                                            {cancelSuccess ? (
+                                                <div className="cancelSuccessState">
+                                                    <CheckCircle2 size={42} className="cancelSuccessIcon" />
+                                                    <h4>ORDER CANCELLED</h4>
+                                                    <p>{cancelSuccess}</p>
+                                                    <p className="cancelSuccessNote">
+                                                        Your allocation has been released back to the archive. If online payment was captured, your refund will reflect in your account within 3-5 business days.
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        className="commerceButton"
+                                                        onClick={() => setActiveModal(null)}
+                                                    >
+                                                        Done
+                                                    </button>
+                                                </div>
+                                            ) : !canCancelOrder(activeModal.order) ? (
+                                                <div className="cancelExpiredState">
+                                                    <AlertCircle size={40} className="cancelExpiredIcon" />
+                                                    <h4>CANCELLATION WINDOW EXPIRED</h4>
+                                                    <p>
+                                                        Orders can only be cancelled within 24 hours of placement. Order {activeModal.order.id} is now locked in our warehouse queue for physical authentication and dispatch.
+                                                    </p>
+                                                    <div className="cancelModalFooter">
+                                                        <button
+                                                            type="button"
+                                                            className="closeModalBtn"
+                                                            onClick={() => setActiveModal(null)}
+                                                        >
+                                                            Close
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="commerceButton"
+                                                            onClick={() => {
+                                                                setSupportSubmitted(false);
+                                                                setSupportMessage(`Inquiry regarding Order ${activeModal.order.id} cancellation.`);
+                                                                setActiveModal({ type: 'support', order: activeModal.order });
+                                                            }}
+                                                        >
+                                                            Contact Concierge
+                                                        </button>
                                                     </div>
                                                 </div>
-                                            </article>
-                                        ))}
+                                            ) : (
+                                                <form
+                                                    className="cancelModalForm"
+                                                    onSubmit={(e) => {
+                                                        e.preventDefault();
+                                                        handleConfirmCancelOrder(activeModal.order.id);
+                                                    }}
+                                                >
+                                                    <div className="cancelWarningNotice">
+                                                        <div className="cancelNoticeHeader">
+                                                            <AlertCircle size={16} aria-hidden="true" />
+                                                            <strong>ORDER CANCELLATION</strong>
+                                                        </div>
+                                                        <p>
+                                                            Orders are eligible for self-service cancellation within 24 hours of placement. Cancelling will immediately void this allocation and release your reserved pairs back to the archive queue.
+                                                        </p>
+                                                    </div>
+
+                                                    {cancelError && (
+                                                        <div className="accountFeedback isError" role="alert" style={{ margin: 0 }}>
+                                                            <AlertCircle size={16} />
+                                                            <span>{cancelError}</span>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="cancelField">
+                                                        <label htmlFor="cancelReasonSelect">Reason for Cancellation</label>
+                                                        <select
+                                                            id="cancelReasonSelect"
+                                                            value={cancelReason}
+                                                            onChange={(e) => setCancelReason(e.target.value)}
+                                                            className="cancelSelect"
+                                                            disabled={cancelSubmitting}
+                                                        >
+                                                            <option value="Changed mind">Changed mind / No longer needed</option>
+                                                            <option value="Ordered wrong size">Ordered wrong size / silhouette</option>
+                                                            <option value="Incorrect shipping address">Need to change delivery address</option>
+                                                            <option value="Ordered duplicate pair">Ordered duplicate pair accidentally</option>
+                                                            <option value="Found alternative drop">Found alternative drop</option>
+                                                            <option value="Other">Other reason</option>
+                                                        </select>
+                                                    </div>
+
+                                                    {cancelReason === 'Other' && (
+                                                        <div className="cancelField">
+                                                            <label htmlFor="cancelCustomNotes">Additional Details (Optional)</label>
+                                                            <textarea
+                                                                id="cancelCustomNotes"
+                                                                rows={3}
+                                                                placeholder="Let us know why you'd like to cancel this order..."
+                                                                value={cancelCustomNotes}
+                                                                onChange={(e) => setCancelCustomNotes(e.target.value)}
+                                                                className="cancelTextarea"
+                                                                disabled={cancelSubmitting}
+                                                            />
+                                                        </div>
+                                                    )}
+
+                                                    <div className="cancelModalFooter">
+                                                        <button
+                                                            type="button"
+                                                            className="cancelDismissBtn"
+                                                            onClick={() => setActiveModal(null)}
+                                                            disabled={cancelSubmitting}
+                                                        >
+                                                            Keep My Order
+                                                        </button>
+                                                        <button
+                                                            type="submit"
+                                                            className="cancelConfirmBtn"
+                                                            disabled={cancelSubmitting}
+                                                        >
+                                                            {cancelSubmitting ? 'Cancelling Allocation...' : 'Confirm Cancellation'}
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </section>

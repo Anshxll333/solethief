@@ -37,3 +37,7 @@ LOCK
 LOG
 LOG.old
 MANIFEST-*
+
+# Claude and local temp assets
+.claude/
+test image/

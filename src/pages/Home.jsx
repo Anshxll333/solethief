@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import Matter from 'matter-js';
 import Navbar from '../components/Navbar';
@@ -9,12 +9,14 @@ import OpeningCurtain from '../components/OpeningCurtain';
 import { createPhysicsWorld } from '../physics/PhysicsWorld';
 import { createShoeBody } from '../physics/ShoePhysics';
 import { createMouseInteraction } from '../physics/MousePhysics';
-import { shoesData } from '../data/shoes';
+import { getHomeShowcaseShoes, subscribeHomeShowcase } from '../services/homeShowcase';
+import Shoe from '../components/Shoe';
 import { useNavigate } from 'react-router-dom';
 
 
 export default function Home() {
   const navigate = useNavigate();
+  const [shoes, setShoes] = useState(() => getHomeShowcaseShoes());
   const titleRef = useRef(null);
   const subtitleRef = useRef(null);
   const descRef = useRef(null);
@@ -22,10 +24,18 @@ export default function Home() {
   const shoeAreaRef = useRef(null);
   const heroSectionRef = useRef(null);
 
-  // Array of refs for all 4 shoes
+  // Array of refs for all showcase shoes
   const physicsShoesRefs = useRef([]);
 
   useEffect(() => {
+    return subscribeHomeShowcase((updated) => {
+      setShoes(updated);
+    });
+  }, []);
+
+  useEffect(() => {
+    physicsShoesRefs.current = physicsShoesRefs.current.slice(0, shoes.length);
+
     const media = gsap.matchMedia();
     media.add({
       desktop: "(min-width: 769px) and (any-pointer: fine)",
@@ -68,11 +78,18 @@ export default function Home() {
       let mousePhysicsCleanup = null;
 
       // Only initialize if our refs array is populated
-      if (desktop && !reduceMotion && physicsShoesRefs.current.filter(Boolean).length === shoesData.length && hero) {
+      if (desktop && !reduceMotion && physicsShoesRefs.current.filter(Boolean).length === shoes.length && hero && shoes.length > 0) {
 
         const elements = physicsShoesRefs.current.filter(Boolean);
+        // Ensure elements don't flash on screen before physics and entrance are initialized
+        gsap.set(elements, { opacity: 0 });
+
         let entrance;
         let frame;
+        let hasInitialized = false;
+        let resizeTimeout = null;
+        const scaleState = { value: 0.2 };
+
         const stopPhysics = () => {
           entrance?.kill();
           if (handleHeroClick) hero.removeEventListener('click', handleHeroClick);
@@ -82,11 +99,14 @@ export default function Home() {
           mousePhysicsCleanup = null;
           physicsCleanup = null;
           elements.forEach(el => { el.style.transform = ''; });
-          gsap.set(elements, { clearProps: 'transform,opacity' });
         };
+
         const initialize = () => {
-          stopPhysics();
           if (elements.some(image => !image.complete || !image.naturalWidth)) return;
+          if (hasInitialized) return;
+          hasInitialized = true;
+
+          stopPhysics();
           const { engine, world, destroy: destroyPhysics } = createPhysicsWorld();
           physicsCleanup = destroyPhysics;
 
@@ -116,9 +136,16 @@ export default function Home() {
             const shoeY = shoeElement.offsetTop + height / 2;
 
             // Deep clone config so we don't mutate the static array
-            const shoeDataObj = shoesData[index];
-            const config = { ...shoeDataObj.physics };
-            const initialRotation = config.initialRotation * (Math.PI / 180);
+            const shoeDataObj = shoes[index];
+            if (!shoeDataObj) return;
+            const config = {
+              mass: 1.2,
+              frictionAir: 0.05,
+              restitution: 0.4,
+              initialRotation: 0,
+              ...(shoeDataObj.physics || {}),
+            };
+            const initialRotation = (config.initialRotation || 0) * (Math.PI / 180);
 
             const { shoeBody } = createShoeBody(world, shoeX, shoeY, width, height, initialRotation, config);
 
@@ -135,21 +162,33 @@ export default function Home() {
           // Mouse and click positions share the hero-local physics coordinates.
           mousePhysicsCleanup = createMouseInteraction(engine, bodies, hero);
 
-          // Sync DOM elements directly via hardware-accelerated 3D transforms for max FPS
+          // Sync DOM elements directly via hardware-accelerated 3D transforms with RAF coalescing
+          // Unified with entrance scaleState to prevent GSAP and Matter.js transform fighting on Windows
+          let syncRafId = null;
           const syncShoes = () => {
-            for (let i = 0; i < shoeData.length; i++) {
-              const data = shoeData[i];
-              const { position, angle } = data.body;
+            if (syncRafId) return;
+            syncRafId = requestAnimationFrame(() => {
+              syncRafId = null;
+              const curScale = scaleState.value;
+              for (let i = 0; i < shoeData.length; i++) {
+                const data = shoeData[i];
+                if (!data.el) continue;
+                const { position, angle } = data.body;
 
-              const dx = position.x - data.baseX;
-              const dy = position.y - data.baseY;
-              const rotDeg = angle * (180 / Math.PI);
+                const dx = position.x - data.baseX;
+                const dy = position.y - data.baseY;
+                const rotDeg = angle * (180 / Math.PI);
 
-              data.el.style.transform = `translate3d(${dx.toFixed(2)}px, ${dy.toFixed(2)}px, 0) rotate(${rotDeg.toFixed(2)}deg)`;
-            }
+                data.el.style.transform = `translate3d(${dx.toFixed(2)}px, ${dy.toFixed(2)}px, 0) rotate(${rotDeg.toFixed(2)}deg) scale(${curScale.toFixed(3)})`;
+              }
+            });
           };
           Matter.Events.on(engine, 'afterUpdate', syncShoes);
           physicsCleanup = () => {
+            if (syncRafId) {
+              cancelAnimationFrame(syncRafId);
+              syncRafId = null;
+            }
             Matter.Events.off(engine, 'afterUpdate', syncShoes);
             destroyPhysics();
           };
@@ -175,32 +214,59 @@ export default function Home() {
 
           heroSectionRef.current.addEventListener('click', handleHeroClick);
 
-          // GSAP Entrance animation for shoes (opacity and scale ONLY)
-          entrance = gsap.fromTo(elements,
-            { scale: 0, opacity: 0 },
+          // Smooth entrance without transform collision
+          const hasCurtainPlayed = typeof window !== 'undefined' && Boolean(window.__solethief_noren_played);
+          const entranceDelay = hasCurtainPlayed ? 0.05 : 0.45;
+          entrance = gsap.timeline({ delay: entranceDelay });
+          entrance.fromTo(elements,
+            { opacity: 0 },
             {
-              scale: 1,
               opacity: 1,
-              duration: 1.2,
-              stagger: 0.2,
-              ease: "elastic.out(1, 0.7)",
-              delay: 0.5
-            }
+              duration: 0.8,
+              stagger: 0.1,
+              ease: "power2.out"
+            },
+            0
+          ).fromTo(scaleState,
+            { value: 0.2 },
+            {
+              value: 1,
+              duration: 1.1,
+              ease: "elastic.out(1, 0.75)"
+            },
+            0
           );
         };
+
         const schedule = () => {
+          if (hasInitialized) return;
           cancelAnimationFrame(frame);
           frame = requestAnimationFrame(initialize);
         };
+
         elements.forEach(image => image.addEventListener('load', schedule));
-        const observer = new ResizeObserver(schedule);
+        const handleResize = () => {
+          if (!hasInitialized) {
+            schedule();
+            return;
+          }
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(() => {
+            hasInitialized = false;
+            schedule();
+          }, 250);
+        };
+        const observer = new ResizeObserver(handleResize);
         observer.observe(hero);
         schedule();
+
         layoutCleanup = () => {
           cancelAnimationFrame(frame);
+          clearTimeout(resizeTimeout);
           observer.disconnect();
           elements.forEach(image => image.removeEventListener('load', schedule));
           stopPhysics();
+          gsap.set(elements, { clearProps: 'transform,opacity' });
         };
       }
 
@@ -209,7 +275,7 @@ export default function Home() {
       if (mobile && !reduceMotion) {
         physicsShoesRefs.current.filter(Boolean).forEach((shoe, index) => {
           let feedback;
-          const tilt = shoesData[index].physics.initialRotation;
+          const tilt = shoes[index]?.physics?.initialRotation || 0;
           const animateShoe = () => {
             feedback?.kill();
             feedback = gsap.timeline()
@@ -238,7 +304,7 @@ export default function Home() {
       };
     });
     return () => media.revert();
-  }, [navigate]);
+  }, [navigate, shoes]);
 
   return (
     <div className="pageContainer">
@@ -247,12 +313,11 @@ export default function Home() {
 
       <section className="homeHero" ref={heroSectionRef}>
         <div className="heroShoeArea" ref={shoeAreaRef}>
-          {shoesData.map((shoe, index) => (
-            <img
-              key={shoe.id}
-              src={shoe.frontImage}
-              alt={shoe.name}
-              className={`floatingShoe shoe${shoe.id}`}
+          {shoes.map((shoe, index) => (
+            <Shoe
+              key={shoe.id || index}
+              shoe={shoe}
+              index={index}
               ref={el => physicsShoesRefs.current[index] = el}
             />
           ))}
@@ -264,7 +329,7 @@ export default function Home() {
           <p className="heroDescription" ref={descRef}>
             Rare silhouettes with a past.<br />Made for your next step.
           </p>
-          <button className="heroButton" ref={buttonRef} onClick={() => document.getElementById('new-drops').scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })}>EXPLORE THE ARCHIVE</button>
+          <button className="heroButton" ref={buttonRef} onClick={() => navigate('/shop')}>FIND YOUR SOLE</button>
         </div>
       </section>
 

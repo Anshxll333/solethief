@@ -1,0 +1,1948 @@
+/* ==========================================================================
+   SoleThief Streetwear Luxury - Account & Archive Order Vault Styles
+   Warm Cream & Ivory Editorial Aesthetic (#F1EBDD / #FAF7F2 / #151B2B)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Animations
+   -------------------------------------------------------------------------- */
+@keyframes vaultPulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(200, 169, 110, 0.7);
+    }
+
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 7px rgba(200, 169, 110, 0);
+    }
+
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(200, 169, 110, 0);
+    }
+}
+
+@keyframes vaultSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Main Order Vault Section
+   -------------------------------------------------------------------------- */
+.accountOrdersSection {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+}
+
+/* --------------------------------------------------------------------------
+   Section Header & Vault Metrics
+   -------------------------------------------------------------------------- */
+.accountOrdersHeaderWrap {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #151b2b;
+}
+
+.accountOrdersHeaderEyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #8a857c;
+    margin-bottom: 0.4rem;
+}
+
+.accountOrdersHeaderEyebrow svg {
+    color: #c8a96e;
+}
+
+.accountOrdersHeading {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: clamp(2rem, 3.5vw, 2.75rem);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #151b2b;
+    margin: 0 0 0.35rem 0;
+    line-height: 1.05;
+}
+
+.accountOrdersSubtitle {
+    font-size: 0.95rem;
+    color: #5a554c;
+    max-width: 580px;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.accountOrdersVaultMetrics {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+}
+
+.vaultMetricCard {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    background: #faf7f2;
+    border: 1px solid rgba(21, 27, 43, 0.14);
+    border-radius: 6px;
+    padding: 0.75rem 1.15rem;
+    min-width: 125px;
+    box-shadow: 0 2px 6px rgba(21, 27, 43, 0.03);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.vaultMetricCard:hover {
+    transform: translateY(-2px);
+    border-color: #151b2b;
+}
+
+.vaultMetricLabel {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8a857c;
+    font-weight: 700;
+}
+
+.vaultMetricValue {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 1.5rem;
+    color: #151b2b;
+    letter-spacing: 0.02em;
+    line-height: 1;
+}
+
+.vaultMetricValue.gold {
+    color: #c8a96e;
+}
+
+/* --------------------------------------------------------------------------
+   Order Controls Bar: Filter Pills & Search Input
+   -------------------------------------------------------------------------- */
+.accountOrdersControls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    background: #faf7f2;
+    padding: 0.85rem 1.15rem;
+    border-radius: 8px;
+    border: 1px solid rgba(21, 27, 43, 0.12);
+    box-shadow: 0 2px 8px rgba(21, 27, 43, 0.03);
+}
+
+.accountOrdersFilterTabs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.orderFilterPill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    color: #5a554c;
+    padding: 0.45rem 0.95rem;
+    border-radius: 9999px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.orderFilterPill:hover {
+    background: rgba(21, 27, 43, 0.06);
+    color: #151b2b;
+    border-color: #151b2b;
+}
+
+.orderFilterPill.isActive {
+    background: #151b2b;
+    color: #f1ebdd;
+    border-color: #151b2b;
+    box-shadow: 0 2px 8px rgba(21, 27, 43, 0.25);
+}
+
+.filterCountBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 0.35rem;
+    border-radius: 9999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    background: rgba(21, 27, 43, 0.1);
+    color: inherit;
+}
+
+.orderFilterPill.isActive .filterCountBadge {
+    background: #c8a96e;
+    color: #151b2b;
+}
+
+.accountOrdersSearchWrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 260px;
+    flex: 1;
+    max-width: 380px;
+}
+
+.accountOrdersSearchWrap .searchIcon {
+    position: absolute;
+    left: 0.85rem;
+    color: #8a857c;
+    pointer-events: none;
+}
+
+.accountOrdersSearchInput {
+    width: 100%;
+    padding: 0.6rem 2.2rem 0.6rem 2.4rem;
+    background: #ffffff;
+    border: 1px solid rgba(21, 27, 43, 0.18);
+    border-radius: 9999px;
+    font-family: var(--font-body, 'Inter', sans-serif);
+    font-size: 0.85rem;
+    color: #151b2b;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.accountOrdersSearchInput:focus {
+    outline: none;
+    border-color: #151b2b;
+    box-shadow: 0 0 0 2px rgba(21, 27, 43, 0.15);
+}
+
+.accountOrdersSearchInput::placeholder {
+    color: #8a857c;
+    font-size: 0.82rem;
+}
+
+.clearSearchBtn {
+    position: absolute;
+    right: 0.75rem;
+    background: transparent;
+    border: none;
+    color: #8a857c;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem;
+    border-radius: 50%;
+    transition: color 0.2s;
+}
+
+.clearSearchBtn:hover {
+    color: #151b2b;
+}
+
+/* --------------------------------------------------------------------------
+   Loading & Feedback States
+   -------------------------------------------------------------------------- */
+.ordersLoadingState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 4rem 2rem;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.82rem;
+    letter-spacing: 0.12em;
+    color: #5a554c;
+    text-transform: uppercase;
+}
+
+.ordersLoadingSpinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(21, 27, 43, 0.15);
+    border-top-color: #151b2b;
+    border-radius: 50%;
+    animation: vaultSpin 0.8s linear infinite;
+}
+
+/* --------------------------------------------------------------------------
+   Empty Vault States
+   -------------------------------------------------------------------------- */
+.accountOrdersEmptyVault {
+    background: #faf7f2;
+    border: 1px dashed rgba(21, 27, 43, 0.25);
+    border-radius: 10px;
+    padding: 4rem 2rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 650px;
+    margin: 2rem auto;
+}
+
+.emptyVaultIconWrap {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #eae5dc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    color: #151b2b;
+    border: 1px solid rgba(21, 27, 43, 0.12);
+}
+
+.emptyVaultEyebrow {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    color: #c8a96e;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+}
+
+.emptyVaultHeading {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 2.2rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #151b2b;
+    margin-bottom: 0.75rem;
+}
+
+.emptyVaultDesc {
+    font-size: 0.95rem;
+    color: #5a554c;
+    line-height: 1.6;
+    max-width: 480px;
+    margin-bottom: 2rem;
+}
+
+.emptyVaultActions {
+    display: flex;
+    justify-content: center;
+}
+
+.emptyVaultCtaBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    background: #151b2b;
+    color: #f1ebdd;
+    padding: 0.85rem 1.85rem;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.emptyVaultCtaBtn:hover {
+    background: #000000;
+    transform: translateY(-2px);
+}
+
+.ordersFilterEmpty {
+    padding: 3.5rem 1.5rem;
+    text-align: center;
+    background: #faf7f2;
+    border: 1px solid rgba(21, 27, 43, 0.12);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    color: #5a554c;
+}
+
+.ordersFilterEmpty svg {
+    color: #8a857c;
+}
+
+.ordersFilterEmpty h4 {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 1.4rem;
+    letter-spacing: 0.04em;
+    color: #151b2b;
+    margin: 0.25rem 0 0;
+}
+
+.ordersFilterEmpty p {
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.resetFilterBtn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.55rem 1.25rem;
+    background: #151b2b;
+    color: #f1ebdd;
+    border: none;
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 0.5rem;
+    transition: background 0.2s;
+}
+
+.resetFilterBtn:hover {
+    background: #000000;
+}
+
+/* --------------------------------------------------------------------------
+   Modernized Order Card List & Order Vault Card
+   -------------------------------------------------------------------------- */
+.accountOrdersListModern {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin-top: 0.5rem;
+}
+
+.orderVaultCard {
+    background: #ffffff;
+    border: 1px solid rgba(21, 27, 43, 0.16);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 18px rgba(21, 27, 43, 0.04);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.orderVaultCard:hover {
+    border-color: rgba(21, 27, 43, 0.35);
+    box-shadow: 0 8px 26px rgba(21, 27, 43, 0.08);
+}
+
+.orderVaultCard.isExpanded {
+    border-color: #151b2b;
+}
+
+/* --------------------------------------------------------------------------
+   Order Card Header
+   -------------------------------------------------------------------------- */
+.orderVaultCardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    padding: 1.15rem 1.4rem;
+    background: #faf7f2;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.1);
+}
+
+.orderHeaderLeft {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.orderIdRow {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.orderIdSerial {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #151b2b;
+}
+
+.orderCopyIdBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.6rem;
+    background: #eae5dc;
+    border: 1px solid rgba(21, 27, 43, 0.15);
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #151b2b;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.orderCopyIdBtn:hover {
+    background: #151b2b;
+    color: #f1ebdd;
+}
+
+.orderCopyIdBtn .copySuccessIcon {
+    color: #10b981;
+}
+
+.orderCopyIdBtn .copyLabel {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+}
+
+.orderMetaRow {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+}
+
+.orderMetaDate {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: #6e6960;
+    font-family: var(--font-body, 'Inter', sans-serif);
+}
+
+.orderPaymentPill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    background: rgba(21, 27, 43, 0.06);
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #5a554c;
+    text-transform: uppercase;
+}
+
+.orderHeaderRight {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+}
+
+/* --------------------------------------------------------------------------
+   Streetwear Luxury Status Badges
+   -------------------------------------------------------------------------- */
+.orderStatusBadgeModern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 9999px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+}
+
+.orderStatusBadgeModern .statusDot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Delivered & Authenticated */
+.orderStatusBadgeModern.delivered {
+    background: rgba(16, 185, 129, 0.12);
+    color: #065f46;
+    border-color: rgba(16, 185, 129, 0.28);
+}
+
+.orderStatusBadgeModern.delivered .statusDot {
+    background: #10b981;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+/* Shipped / Express Transit */
+.orderStatusBadgeModern.shipped {
+    background: rgba(59, 130, 246, 0.12);
+    color: #1e40af;
+    border-color: rgba(59, 130, 246, 0.28);
+}
+
+.orderStatusBadgeModern.shipped .statusDot {
+    background: #3b82f6;
+    box-shadow: 0 0 6px rgba(59, 130, 246, 0.6);
+}
+
+/* Processing & Packing */
+.orderStatusBadgeModern.processing,
+.orderStatusBadgeModern.paid {
+    background: rgba(200, 169, 110, 0.18);
+    color: #8c6827;
+    border-color: rgba(200, 169, 110, 0.38);
+}
+
+.orderStatusBadgeModern.processing .statusDot,
+.orderStatusBadgeModern.paid .statusDot {
+    background: #c8a96e;
+    box-shadow: 0 0 6px rgba(200, 169, 110, 0.6);
+}
+
+/* Cancelled / Refunded / Expired */
+.orderStatusBadgeModern.cancelled,
+.orderStatusBadgeModern.refunded,
+.orderStatusBadgeModern.expired {
+    background: rgba(239, 68, 68, 0.12);
+    color: #991b1b;
+    border-color: rgba(239, 68, 68, 0.28);
+}
+
+.orderStatusBadgeModern.cancelled .statusDot,
+.orderStatusBadgeModern.refunded .statusDot,
+.orderStatusBadgeModern.expired .statusDot {
+    background: #ef4444;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+}
+
+/* Pending Payment / Default */
+.orderStatusBadgeModern.pending,
+.orderStatusBadgeModern.pending_payment {
+    background: rgba(100, 116, 139, 0.12);
+    color: #334155;
+    border-color: rgba(100, 116, 139, 0.28);
+}
+
+.orderStatusBadgeModern.pending .statusDot,
+.orderStatusBadgeModern.pending_payment .statusDot {
+    background: #64748b;
+}
+
+.orderLiveTrackerBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.85rem;
+    background: #151b2b;
+    color: #f1ebdd;
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.orderLiveTrackerBtn:hover {
+    background: #000000;
+    transform: translateX(2px);
+}
+
+/* --------------------------------------------------------------------------
+   Delivery Stepper & Timeline Progress Tracker
+   -------------------------------------------------------------------------- */
+.orderProgressTrackerWrap {
+    padding: 1.25rem 1.4rem;
+    background: #fbf9f5;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.08);
+}
+
+.trackerStepsGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    position: relative;
+}
+
+.trackerStepNode {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+}
+
+.trackerStepIndicator {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    position: relative;
+    justify-content: center;
+    margin-bottom: 0.65rem;
+}
+
+.trackerStepDot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eae5dc;
+    color: #8a857c;
+    border: 2px solid #ffffff;
+    z-index: 2;
+    transition: all 0.25s ease;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.trackerStepLine {
+    position: absolute;
+    left: 50%;
+    right: -50%;
+    top: 50%;
+    height: 2px;
+    background: #e2ddd2;
+    transform: translateY(-50%);
+    z-index: 1;
+    transition: background 0.25s ease;
+}
+
+/* Completed Step */
+.trackerStepNode.completed .trackerStepDot {
+    background: #151b2b;
+    color: #f1ebdd;
+    border-color: #151b2b;
+}
+
+.trackerStepNode.completed .trackerStepLine {
+    background: #151b2b;
+}
+
+/* Current / Active Step */
+.trackerStepNode.current .trackerStepDot,
+.trackerStepNode.active .trackerStepDot {
+    background: #c8a96e;
+    color: #151b2b;
+    border-color: #151b2b;
+}
+
+.trackerStepNode.current .pulseRing,
+.trackerStepNode.active .pulseRing {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    animation: vaultPulse 2s infinite ease-in-out;
+}
+
+/* Upcoming Step */
+.trackerStepNode.upcoming .trackerStepDot {
+    background: #eae5dc;
+    color: #a9a399;
+}
+
+/* Cancelled Step */
+.trackerStepNode.cancelled .trackerStepDot {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    border-color: #ef4444;
+}
+
+.trackerStepNode.cancelled .trackerStepLine {
+    background: rgba(239, 68, 68, 0.25);
+}
+
+/* Content Text */
+.trackerStepContent {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.trackerStepLabel {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #151b2b;
+    text-transform: uppercase;
+}
+
+.trackerStepSub {
+    font-size: 0.7rem;
+    color: #8a857c;
+    font-weight: 500;
+}
+
+.trackerStepNode.current .trackerStepLabel,
+.trackerStepNode.active .trackerStepLabel {
+    color: #b8934a;
+}
+
+.trackerStepNode.current .trackerStepSub,
+.trackerStepNode.active .trackerStepSub {
+    color: #151b2b;
+    font-weight: 600;
+}
+
+/* Cancelled Alert Banner */
+.orderCancelledBanner {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.85rem 1.25rem;
+    background: rgba(239, 68, 68, 0.08);
+    border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+    color: #991b1b;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+/* --------------------------------------------------------------------------
+   Sneaker Items Container & STRICTLY CONSTRAINED Image Thumbnails
+   -------------------------------------------------------------------------- */
+.orderItemsContainer {
+    padding: 1.25rem 1.4rem;
+}
+
+.orderItemsGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.orderSneakerCard {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+    padding: 0.95rem;
+    background: #faf7f2;
+    border: 1px solid rgba(21, 27, 43, 0.09);
+    border-radius: 8px;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.orderSneakerCard:hover {
+    background: #f5efe6;
+    border-color: rgba(21, 27, 43, 0.18);
+}
+
+/* Sneaker Thumbnail: Crisp, strictly fixed container preventing image explosion! */
+.orderSneakerThumb {
+    width: 96px;
+    height: 96px;
+    min-width: 96px;
+    max-width: 96px;
+    min-height: 96px;
+    max-height: 96px;
+    background: #eae5dc;
+    border: 1px solid rgba(21, 27, 43, 0.12);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.orderSneakerThumb img {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 96px !important;
+    max-height: 96px !important;
+    object-fit: contain !important;
+    padding: 6px;
+    display: block;
+    box-sizing: border-box;
+    transition: transform 0.25s ease;
+}
+
+.orderSneakerCard:hover .orderSneakerThumb img {
+    transform: scale(1.08) rotate(-2deg);
+}
+
+.orderSneakerPlaceholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8a857c;
+    width: 100%;
+    height: 100%;
+}
+
+.orderVerifiedPill {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    background: rgba(21, 27, 43, 0.9);
+    backdrop-filter: blur(4px);
+    color: #f1ebdd;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 2px 4px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    text-transform: uppercase;
+}
+
+.orderSneakerDetails {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.orderSneakerBrand {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #8a857c;
+    text-transform: uppercase;
+}
+
+.orderSneakerNameLink {
+    font-family: var(--font-body, 'Inter', sans-serif);
+    font-size: 1rem;
+    font-weight: 700;
+    color: #151b2b;
+    text-decoration: none;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+}
+
+.orderSneakerNameLink:hover {
+    color: #c8a96e;
+    text-decoration: underline;
+}
+
+.orderSneakerPills {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.2rem;
+}
+
+.orderSpecPill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    background: #eae5dc;
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #4a453c;
+    letter-spacing: 0.03em;
+}
+
+.orderSpecPill.unitPrice {
+    background: rgba(21, 27, 43, 0.08);
+    color: #151b2b;
+    font-weight: 700;
+}
+
+.orderSneakerLineTotal {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
+.lineTotalLabel {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    color: #8a857c;
+    text-transform: uppercase;
+}
+
+.lineTotalValue {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 1.35rem;
+    color: #151b2b;
+    letter-spacing: 0.02em;
+}
+
+/* --------------------------------------------------------------------------
+   Expandable Dossier & Financial Ledger Drawer
+   -------------------------------------------------------------------------- */
+.orderDetailsDrawer {
+    padding: 1.25rem 1.4rem;
+    background: #f6f2eb;
+    border-top: 1px solid rgba(21, 27, 43, 0.1);
+    border-bottom: 1px solid rgba(21, 27, 43, 0.1);
+}
+
+.drawerSectionGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.drawerColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.drawerColHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #151b2b;
+}
+
+.drawerColHeader h4 {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+.drawerInfoBox {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    background: #ffffff;
+    padding: 1rem 1.15rem;
+    border-radius: 6px;
+    border: 1px solid rgba(21, 27, 43, 0.1);
+}
+
+.drawerInfoRow {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.infoLabel {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    color: #8a857c;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.infoValue {
+    font-size: 0.88rem;
+    color: #151b2b;
+    line-height: 1.4;
+}
+
+.infoValue.highlight {
+    font-weight: 700;
+}
+
+.infoValue.mono {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.82rem;
+}
+
+.drawerLedgerBox {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    background: #ffffff;
+    padding: 1rem 1.15rem;
+    border-radius: 6px;
+    border: 1px solid rgba(21, 27, 43, 0.1);
+}
+
+.ledgerRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.88rem;
+    color: #5a554c;
+    font-family: var(--font-body, 'Inter', sans-serif);
+}
+
+.ledgerDivider {
+    height: 1px;
+    background: rgba(21, 27, 43, 0.12);
+    margin: 0.25rem 0;
+}
+
+.ledgerRow.ledgerGrandTotal {
+    font-weight: 700;
+    color: #151b2b;
+    margin-top: 0.25rem;
+}
+
+.grandTotalValue {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 1.35rem;
+    letter-spacing: 0.02em;
+    color: #151b2b;
+}
+
+/* --------------------------------------------------------------------------
+   Card Action Bar Footer
+   -------------------------------------------------------------------------- */
+.orderVaultCardFooter {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.85rem 1.4rem;
+    background: #faf7f2;
+    border-top: 1px solid rgba(21, 27, 43, 0.08);
+}
+
+.orderFooterLeft {
+    display: flex;
+    align-items: center;
+}
+
+.orderExpandToggleBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.85rem;
+    background: transparent;
+    border: 1px solid rgba(21, 27, 43, 0.18);
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #151b2b;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+}
+
+.orderExpandToggleBtn:hover {
+    background: rgba(21, 27, 43, 0.06);
+    border-color: #151b2b;
+}
+
+.orderFooterRightActions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.orderActionBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.85rem;
+    background: #151b2b;
+    color: #f1ebdd;
+    border: 1px solid #151b2b;
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+}
+
+.orderActionBtn:hover {
+    background: #000000;
+    border-color: #000000;
+}
+
+/* Cancel Order Action Button */
+.orderCancelBtn {
+    background: transparent;
+    color: #b91c1c;
+    border: 1px solid rgba(185, 28, 28, 0.4);
+}
+
+.orderCancelBtn:hover:not(:disabled) {
+    background: #b91c1c;
+    color: #ffffff;
+    border-color: #b91c1c;
+}
+
+.orderCancelBtn:disabled {
+    background: transparent;
+    color: #9ca3af;
+    border: 1px solid rgba(156, 163, 175, 0.35);
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.orderCancelBtn:disabled:hover {
+    background: transparent;
+    color: #9ca3af;
+    border-color: rgba(156, 163, 175, 0.35);
+    cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------------------
+   Interactive Modals: Digital Invoice & Support Concierge
+   -------------------------------------------------------------------------- */
+.orderModalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 13, 20, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+.orderModalContent {
+    background: #ffffff;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    border-radius: 10px;
+    width: 100%;
+    max-width: 680px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    color: #151b2b;
+}
+
+.orderModalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.1);
+    background: #faf7f2;
+}
+
+.orderModalCloseBtn {
+    background: transparent;
+    border: none;
+    color: #6e6960;
+    cursor: pointer;
+    padding: 0.35rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+}
+
+.orderModalCloseBtn:hover {
+    color: #151b2b;
+}
+
+/* Invoice Modal Details */
+.invoiceBranding {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.invoiceBrandLogo {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 1.6rem;
+    letter-spacing: 0.05em;
+    color: #151b2b;
+    line-height: 1;
+}
+
+.invoiceSubLogo {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    color: #8a857c;
+    text-transform: uppercase;
+}
+
+.invoiceDossierHeader {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    background: #fbf9f5;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.08);
+}
+
+.invoiceDossierCol {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.invoiceLabel {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    color: #8a857c;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.invoiceValue {
+    font-size: 0.85rem;
+    color: #151b2b;
+    line-height: 1.4;
+}
+
+.invoiceValue.highlight {
+    font-weight: 700;
+}
+
+.invoiceValue.mono {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.8rem;
+}
+
+.invoiceItemsTable {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.invoiceItemsTable th {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    color: #8a857c;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 0.65rem 1.5rem;
+    background: #faf7f2;
+    border-top: 1px solid rgba(21, 27, 43, 0.08);
+    border-bottom: 1px solid rgba(21, 27, 43, 0.08);
+}
+
+.invoiceItemsTable td {
+    padding: 0.85rem 1.5rem;
+    font-size: 0.85rem;
+    border-bottom: 1px solid rgba(21, 27, 43, 0.06);
+    color: #151b2b;
+    vertical-align: top;
+}
+
+.invoiceItemTitle {
+    font-weight: 700;
+    color: #151b2b;
+}
+
+.invoiceItemAuthenticity {
+    font-size: 0.72rem;
+    color: #065f46;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-weight: 600;
+    margin-top: 0.15rem;
+}
+
+.invoiceTotalsBreakdown {
+    padding: 1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 340px;
+    margin-left: auto;
+}
+
+.invoiceTotalsRow {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #5a554c;
+}
+
+.invoiceTotalsRow.invoiceTotalFinal {
+    font-weight: 700;
+    color: #151b2b;
+    border-top: 2px solid #151b2b;
+    padding-top: 0.5rem;
+    margin-top: 0.25rem;
+    font-size: 1rem;
+}
+
+.finalTotalValue {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 1.4rem;
+    color: #151b2b;
+}
+
+.invoiceModalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.85rem;
+    padding: 1.25rem 1.5rem;
+    background: #faf7f2;
+    border-top: 1px solid rgba(21, 27, 43, 0.1);
+}
+
+.printInvoiceBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.25rem;
+    background: #151b2b;
+    color: #f1ebdd;
+    border: none;
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.printInvoiceBtn:hover {
+    background: #000000;
+}
+
+.closeModalBtn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.65rem 1.25rem;
+    background: transparent;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #151b2b;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.closeModalBtn:hover {
+    background: rgba(21, 27, 43, 0.06);
+}
+
+/* Support Concierge Modal */
+.supportModalContent {
+    max-width: 520px;
+}
+
+.supportModalTitle {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 1.6rem;
+    letter-spacing: 0.04em;
+    color: #151b2b;
+    margin: 0;
+    line-height: 1.1;
+}
+
+.supportModalSub {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    color: #8a857c;
+}
+
+.supportSuccessState {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.supportSuccessIcon {
+    color: #10b981;
+}
+
+.supportSuccessState h4 {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 1.5rem;
+    letter-spacing: 0.03em;
+    color: #151b2b;
+    margin: 0;
+}
+
+.supportSuccessState p {
+    font-size: 0.9rem;
+    color: #5a554c;
+    line-height: 1.5;
+    max-width: 400px;
+}
+
+.supportSuccessState code {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-weight: 700;
+    color: #151b2b;
+    background: #eae5dc;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+}
+
+.supportSuccessState .commerceButton {
+    margin-top: 0.75rem;
+    min-width: 140px;
+}
+
+.supportModalForm {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.supportField {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.supportField label {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #151b2b;
+    text-transform: uppercase;
+}
+
+.supportSelect,
+.supportTextarea {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    background: #faf7f2;
+    border: 1px solid rgba(21, 27, 43, 0.18);
+    border-radius: 4px;
+    font-family: var(--font-body, 'Inter', sans-serif);
+    font-size: 0.88rem;
+    color: #151b2b;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.supportSelect:focus,
+.supportTextarea:focus {
+    outline: none;
+    border-color: #151b2b;
+    box-shadow: 0 0 0 2px rgba(21, 27, 43, 0.12);
+}
+
+.supportTextarea {
+    resize: vertical;
+}
+
+.supportModalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.supportCancelBtn {
+    padding: 0.65rem 1.25rem;
+    background: transparent;
+    border: 1px solid rgba(21, 27, 43, 0.2);
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #5a554c;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.supportCancelBtn:hover {
+    background: rgba(21, 27, 43, 0.06);
+}
+
+.supportSubmitBtn {
+    padding: 0.65rem 1.35rem;
+    background: #151b2b;
+    color: #f1ebdd;
+    border: none;
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.supportSubmitBtn:hover {
+    background: #000000;
+    transform: translateY(-1px);
+}
+
+/* --------------------------------------------------------------------------
+   Order Cancellation Modal (24-Hour Policy)
+   -------------------------------------------------------------------------- */
+.cancelModalContent {
+    max-width: 540px;
+}
+
+.cancelModalTitle {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 1.55rem;
+    letter-spacing: 0.04em;
+    color: #151b2b;
+    margin: 0;
+    line-height: 1.1;
+}
+
+.cancelModalSub {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    color: #8a857c;
+}
+
+.cancelModalForm {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.cancelWarningNotice {
+    background: rgba(220, 38, 38, 0.06);
+    border: 1px solid rgba(220, 38, 38, 0.22);
+    border-radius: 6px;
+    padding: 1rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.cancelNoticeHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #b91c1c;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+}
+
+.cancelWarningNotice p {
+    font-size: 0.88rem;
+    color: #4a453c;
+    line-height: 1.45;
+    margin: 0;
+}
+
+.cancelWarningNotice strong {
+    color: #151b2b;
+}
+
+.cancelField {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.cancelField label {
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #151b2b;
+    text-transform: uppercase;
+}
+
+.cancelSelect,
+.cancelTextarea {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    background: #faf7f2;
+    border: 1px solid rgba(21, 27, 43, 0.18);
+    border-radius: 4px;
+    font-family: var(--font-body, 'Inter', sans-serif);
+    font-size: 0.88rem;
+    color: #151b2b;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.cancelSelect:focus,
+.cancelTextarea:focus {
+    outline: none;
+    border-color: #151b2b;
+    box-shadow: 0 0 0 2px rgba(21, 27, 43, 0.12);
+}
+
+.cancelTextarea {
+    resize: vertical;
+}
+
+.cancelModalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.85rem;
+    margin-top: 0.5rem;
+}
+
+.cancelDismissBtn {
+    padding: 0.65rem 1.25rem;
+    background: transparent;
+    border: 1px solid rgba(21, 27, 43, 0.22);
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #5a554c;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.cancelDismissBtn:hover:not(:disabled) {
+    background: rgba(21, 27, 43, 0.06);
+    color: #151b2b;
+}
+
+.cancelConfirmBtn {
+    padding: 0.65rem 1.35rem;
+    background: #b91c1c;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    font-family: var(--font-mono, 'Space Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.cancelConfirmBtn:hover:not(:disabled) {
+    background: #991b1b;
+    transform: translateY(-1px);
+}
+
+.cancelConfirmBtn:disabled,
+.cancelDismissBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.cancelSuccessState,
+.cancelExpiredState {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.cancelSuccessIcon {
+    color: #10b981;
+}
+
+.cancelExpiredIcon {
+    color: #d97706;
+}
+
+.cancelSuccessState h4,
+.cancelExpiredState h4 {
+    font-family: var(--font-heading, 'Anton', sans-serif);
+    font-size: 1.5rem;
+    letter-spacing: 0.03em;
+    color: #151b2b;
+    margin: 0;
+}
+
+.cancelSuccessState p,
+.cancelExpiredState p {
+    font-size: 0.9rem;
+    color: #5a554c;
+    line-height: 1.5;
+    max-width: 420px;
+    margin: 0;
+}
+
+.cancelSuccessNote {
+    font-size: 0.8rem !important;
+    color: #8a857c !important;
+}
+
+.cancelSuccessState .commerceButton,
+.cancelExpiredState .commerceButton {
+    margin-top: 0.75rem;
+    min-width: 140px;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Layout Breakpoints
+   -------------------------------------------------------------------------- */
+@media (max-width: 860px) {
+    .accountOrdersHeaderWrap {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .accountOrdersVaultMetrics {
+        width: 100%;
+    }
+
+    .vaultMetricCard {
+        flex: 1;
+        min-width: 110px;
+    }
+
+    .accountOrdersControls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .accountOrdersSearchWrap {
+        max-width: 100%;
+        min-width: 100%;
+    }
+
+    .trackerStepsGrid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem 0.5rem;
+    }
+
+    .trackerStepLine {
+        display: none;
+    }
+
+    .orderSneakerCard {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .orderSneakerDetails {
+        width: 100%;
+    }
+
+    .orderSneakerLineTotal {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px dashed rgba(21, 27, 43, 0.12);
+        padding-top: 0.6rem;
+    }
+
+    .drawerSectionGrid {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .invoiceDossierHeader {
+        grid-template-columns: 1fr;
+    }
+
+    .orderVaultCardFooter {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .orderFooterLeft,
+    .orderFooterRightActions {
+        width: 100%;
+    }
+
+    .orderExpandToggleBtn,
+    .orderActionBtn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Print Rules for Clean Invoice Dossier PDF Output
+   -------------------------------------------------------------------------- */
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+
+    .printInvoiceDoc,
+    .printInvoiceDoc * {
+        visibility: visible !important;
+    }
+
+    .printInvoiceDoc {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 2cm !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Backward-Compatibility Aliases
+   -------------------------------------------------------------------------- */
+.accountOrderModernCard {
+    background: #ffffff;
+    border: 1px solid rgba(21, 27, 43, 0.16);
+    border-radius: 10px;
+}
+
+.accountOrderItemThumbBox {
+    width: 96px;
+    height: 96px;
+    min-width: 96px;
+    max-width: 96px;
+    background: #eae5dc;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.accountOrderItemThumbBox img {
+    max-width: 96px;
+    max-height: 96px;
+    object-fit: contain;
+}

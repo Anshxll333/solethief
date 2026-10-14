@@ -12,7 +12,7 @@ import {
     WISHLIST_KEY,
 } from '../src/commerce/wishlist.js';
 import { validateAddress, validateProfile } from '../src/commerce/address.js';
-import { MOCK_ACCOUNTS } from '../src/auth/authConstants.js';
+import { MOCK_ACCOUNTS, isAllowedAuthReturnPath, sanitizeAuthReturnPath } from '../src/auth/authConstants.js';
 import { createCatalogService } from '../src/services/catalog.js';
 
 const preview = await createCatalogService(() => ({ status: 'missing', client: null })).list({ allowPreview: true });
@@ -155,3 +155,40 @@ test('mock accounts provide instant preview accounts with valid addresses', () =
         assert.equal(validateAddress(addr).valid, true);
     }
 });
+
+test('auth return path validation and sanitization protects against open redirects and supports checkout', () => {
+    assert.equal(isAllowedAuthReturnPath('/checkout'), true);
+    assert.equal(isAllowedAuthReturnPath('/cart'), true);
+    assert.equal(isAllowedAuthReturnPath('/admin'), true);
+    assert.equal(isAllowedAuthReturnPath('/shop'), true);
+    assert.equal(isAllowedAuthReturnPath('/account'), true);
+
+    // Malicious or invalid paths
+    assert.equal(isAllowedAuthReturnPath('https://evil.com'), false);
+    assert.equal(isAllowedAuthReturnPath('//evil.com'), false);
+    assert.equal(isAllowedAuthReturnPath('/\\evil.com'), false);
+    assert.equal(isAllowedAuthReturnPath('/unknown-path'), false);
+    assert.equal(isAllowedAuthReturnPath(''), false);
+    assert.equal(isAllowedAuthReturnPath(null), false);
+
+    // Sanitization
+    assert.equal(sanitizeAuthReturnPath('/checkout'), '/checkout');
+    assert.equal(sanitizeAuthReturnPath('/checkout?step=review'), '/checkout?step=review');
+    assert.equal(sanitizeAuthReturnPath('https://evil.com'), '/account');
+    assert.equal(sanitizeAuthReturnPath('//evil.com', '/checkout'), '/checkout');
+    assert.equal(sanitizeAuthReturnPath(null), '/account');
+});
+
+test('Account.jsx integrates 24-hour order cancellation option and modal', async () => {
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+    const accountCode = await fs.readFile(path.resolve('src/pages/Account.jsx'), 'utf8');
+
+    assert.ok(accountCode.includes('canCancelOrder'), 'Account.jsx must import and use canCancelOrder');
+    assert.ok(accountCode.includes('orderCancelBtn'), 'Account.jsx must include orderCancelBtn');
+    assert.ok(accountCode.includes('cancelModalContent'), 'Account.jsx must render cancelModalContent');
+    assert.ok(accountCode.includes('handleConfirmCancelOrder'), 'Account.jsx must have cancel confirmation handler');
+    assert.ok(accountCode.includes('ordersService.cancelOrder'), 'Account.jsx must delegate to ordersService.cancelOrder');
+});
+
+

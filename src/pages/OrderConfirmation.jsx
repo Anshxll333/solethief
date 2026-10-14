@@ -7,6 +7,8 @@ import {
     Truck,
     ArrowRight,
     ShoppingBag,
+    Clock,
+    AlertCircle,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -15,13 +17,6 @@ import { createOrdersService } from '../services/orders.js';
 import { getSupabaseRuntime } from '../lib/supabase.js';
 
 const ordersService = createOrdersService(getSupabaseRuntime);
-
-const TRACKING_STEPS = [
-    { key: 'confirmed', label: 'Order Confirmed', icon: CheckCircle2 },
-    { key: 'authenticating', label: 'Authenticating & Packaging', icon: ShieldCheck },
-    { key: 'shipped', label: 'Shipped via Express', icon: Truck },
-    { key: 'delivery', label: 'Out for Delivery', icon: Package },
-];
 
 export default function OrderConfirmation() {
     const { orderId } = useParams();
@@ -64,6 +59,20 @@ export default function OrderConfirmation() {
         })
         : 'Recently';
 
+    const isPendingPayment = order?.status === 'pending_payment';
+    const isCancelled = order?.status === 'cancelled' || order?.status === 'refunded';
+
+    const trackingSteps = [
+        {
+            key: 'confirmed',
+            label: isPendingPayment ? 'Awaiting Payment' : 'Order Confirmed',
+            icon: isPendingPayment ? Clock : CheckCircle2,
+        },
+        { key: 'authenticating', label: 'Authenticating & Packaging', icon: ShieldCheck },
+        { key: 'shipped', label: 'Shipped via Express', icon: Truck },
+        { key: 'delivery', label: 'Out for Delivery', icon: Package },
+    ];
+
     return (
         <div className="pageContainer">
             <Navbar />
@@ -89,14 +98,30 @@ export default function OrderConfirmation() {
                             {/* Receipt Top Header */}
                             <header className="confirmReceiptHeader">
                                 <div>
-                                    <div className="confirmStatusBadge">
-                                        <CheckCircle2 size={16} aria-hidden="true" />
-                                        <span>Order Confirmed & Allocated</span>
-                                    </div>
+                                    {isPendingPayment ? (
+                                        <div className="confirmStatusBadge isPending">
+                                            <Clock size={16} aria-hidden="true" />
+                                            <span>Payment Pending / Awaiting Confirmation</span>
+                                        </div>
+                                    ) : isCancelled ? (
+                                        <div className="confirmStatusBadge isCancelled">
+                                            <AlertCircle size={16} aria-hidden="true" />
+                                            <span>Order {order.status === 'refunded' ? 'Refunded' : 'Cancelled'}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="confirmStatusBadge">
+                                            <CheckCircle2 size={16} aria-hidden="true" />
+                                            <span>Order Confirmed & Allocated</span>
+                                        </div>
+                                    )}
                                     <h1 className="confirmOrderIdTitle">{order.id}</h1>
                                     <p className="confirmTimestamp">
                                         Placed on {formattedDate} • Payment:{' '}
-                                        {order.payment_method === 'cod' ? 'Archive Reserve (Cash on Delivery)' : 'Online Payment (Razorpay)'}
+                                        {order.payment_method === 'cod'
+                                            ? 'Archive Reserve (Cash on Delivery)'
+                                            : isPendingPayment
+                                                ? 'Online Payment (Razorpay - Pending Verification)'
+                                                : 'Online Payment (Razorpay - Captured)'}
                                     </p>
                                 </div>
                                 <div className="confirmHeaderRight">
@@ -107,13 +132,33 @@ export default function OrderConfirmation() {
                                 </div>
                             </header>
 
+                            {isPendingPayment && (
+                                <div
+                                    className="accountPreviewNotice"
+                                    style={{
+                                        borderColor: 'rgba(234, 179, 8, 0.45)',
+                                        background: 'rgba(234, 179, 8, 0.08)',
+                                        marginBottom: '1.5rem',
+                                    }}
+                                    role="status"
+                                >
+                                    <div className="accountPreviewNoticeHeader">
+                                        <Clock size={18} color="#eab308" aria-hidden="true" />
+                                        <strong style={{ color: '#eab308' }}>PAYMENT CONFIRMATION PENDING</strong>
+                                    </div>
+                                    <p style={{ color: '#cbd5e1', fontSize: '0.88rem', margin: '4px 0 0' }}>
+                                        Your order allocation is reserved for 15 minutes. Once payment gateway cryptographic confirmation is verified by our servers, this receipt will automatically reflect completed allocation.
+                                    </p>
+                                </div>
+                            )}
+
                             {/* Tracking Timeline */}
                             <section className="confirmTrackerSection" aria-label="Fulfillment Status Tracker">
                                 <h3>Fulfillment Status</h3>
                                 <div className="confirmTrackerSteps">
-                                    {TRACKING_STEPS.map((step, idx) => {
-                                        const isCompleted = idx === 0;
-                                        const isActive = idx === 1;
+                                    {trackingSteps.map((step, idx) => {
+                                        const isCompleted = !isPendingPayment && !isCancelled && idx === 0;
+                                        const isActive = (isPendingPayment && idx === 0) || (!isPendingPayment && !isCancelled && idx === 1);
                                         const StepIcon = step.icon;
 
                                         return (
@@ -150,7 +195,9 @@ export default function OrderConfirmation() {
                                         <strong>Payment:</strong>{' '}
                                         {order.payment_method === 'cod'
                                             ? 'Archive Reserve (COD on delivery verification)'
-                                            : 'Razorpay Online Gateway (Verified)'}
+                                            : isPendingPayment
+                                                ? 'Razorpay Gateway (Awaiting Settlement)'
+                                                : 'Razorpay Online Gateway (Verified)'}
                                     </p>
                                     <p>
                                         <strong>Shipping:</strong>{' '}
@@ -174,25 +221,36 @@ export default function OrderConfirmation() {
 
                             {/* Order Items List */}
                             <section className="confirmItemsSection">
-                                <h4>Allocated Drop Items ({order.items?.length || 0})</h4>
+                                <h4>
+                                    Allocated Drop Items (
+                                    {(order.items || []).reduce((s, i) => s + (i.quantity || 1), 0)}{' '}
+                                    {(order.items || []).reduce((s, i) => s + (i.quantity || 1), 0) === 1 ? 'pair' : 'pairs'}
+                                    )
+                                </h4>
                                 <ul className="checkoutLineItemsList">
-                                    {(order.items || []).map((item, idx) => (
-                                        <li key={item.product_id || idx} className="checkoutLineItem">
-                                            <img
-                                                src={item.front_image}
-                                                alt={`${item.name}, ${item.size}`}
-                                                className="checkoutLineThumb"
-                                            />
-                                            <div className="checkoutLineDetails">
-                                                <h3>{item.name}</h3>
-                                                <p>{item.brand} • Size: {item.size}</p>
-                                                <p>Single Pair (Qty: 1) • Physical verification passed</p>
-                                            </div>
-                                            <span className="checkoutLinePrice">
-                                                {formatMoney(item.unit_price_minor)}
-                                            </span>
-                                        </li>
-                                    ))}
+                                    {(order.items || []).map((item, idx) => {
+                                        const qty = Number.isInteger(item.quantity) && item.quantity > 0 ? item.quantity : 1;
+                                        const lineTotal = (item.unit_price_minor || 0) * qty;
+                                        return (
+                                            <li key={item.product_id || idx} className="checkoutLineItem">
+                                                <img
+                                                    src={item.front_image}
+                                                    alt={`${item.name}, ${item.size}`}
+                                                    className="checkoutLineThumb"
+                                                />
+                                                <div className="checkoutLineDetails">
+                                                    <h3>{item.name}</h3>
+                                                    <p>{item.brand} • Size: {item.size}</p>
+                                                    <p>
+                                                        {qty === 1 ? 'Single Pair (Qty: 1)' : `${qty} Pairs (Qty: ${qty})`} • Physical verification passed
+                                                    </p>
+                                                </div>
+                                                <span className="checkoutLinePrice">
+                                                    {formatMoney(lineTotal)}
+                                                </span>
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
 
                                 <div className="checkoutBreakdown">

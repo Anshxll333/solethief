@@ -75,7 +75,6 @@ export function createShopCategoriesService(runtimeProvider = getSupabaseRuntime
                 categoryRows = categoryRows.filter(row => row.is_visible);
                 const visible = new Set(categoryRows.map(row => row.id));
                 memberships = memberships.filter(row => visible.has(row.category_id));
-                // Empty category lists must not depend on catalog availability.
                 if (memberships.length) {
                     const active = new Set((await products(value)).filter(row => row.active).map(row => row.id));
                     memberships = memberships.filter(row => active.has(row.product_id));

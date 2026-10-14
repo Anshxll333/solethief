@@ -35,6 +35,7 @@ export default function OpeningCurtain() {
     tlRef.current = gsap.timeline({
       onComplete: () => {
         norenHasPlayed = true;
+        if (typeof window !== 'undefined') window.__solethief_noren_played = true;
         setIsVisible(false);
       }
     });

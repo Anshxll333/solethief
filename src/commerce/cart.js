@@ -29,9 +29,41 @@ export function addPair(cart, product, source) {
 }
 
 export function resolveCart(cart, catalog) {
-    return cart.ids.map(id => {
+    if (Array.isArray(cart?.items) && cart.items.length > 0) {
+        return cart.items.map(item => {
+            const baseProduct = cart.source === catalog.source
+                ? catalog.products.find(p => p.id === item.id)
+                : null;
+            const quantity = Number.isInteger(item.quantity) && item.quantity > 0 ? item.quantity : 1;
+            const size = item.size || baseProduct?.size;
+            const product = baseProduct ? { ...baseProduct, size: size || baseProduct.size } : baseProduct;
+            const lineId = item.lineId || (size ? `${item.id}:${size}` : String(item.id));
+            return {
+                lineId,
+                id: item.id,
+                size: size || product?.size,
+                product,
+                eligible: canAddPair(baseProduct, catalog.source),
+                quantity,
+            };
+        });
+    }
+
+    return (cart?.ids || []).map(id => {
         const product = cart.source === catalog.source ? catalog.products.find(item => item.id === id) : null;
-        return { id, product, eligible: canAddPair(product, catalog.source) };
+        const quantity = (cart.quantities && Number.isInteger(cart.quantities[id]) && cart.quantities[id] > 0)
+            ? cart.quantities[id]
+            : (cart.quantities && Number.isInteger(cart.quantities[String(id)]) && cart.quantities[String(id)] > 0)
+                ? cart.quantities[String(id)]
+                : 1;
+        return {
+            lineId: String(id),
+            id,
+            size: product?.size || null,
+            product,
+            eligible: canAddPair(product, catalog.source),
+            quantity,
+        };
     });
 }
 
@@ -39,8 +71,9 @@ export function subtotalMinor(lines) {
     return lines.reduce((sum, line) => {
         if (!line.product) return sum;
         const price = line.product.priceMinor;
-        if (!Number.isSafeInteger(price) || price < 0 || !Number.isSafeInteger(sum + price)) throw new Error('Invalid cart price.');
-        return sum + price;
+        const qty = Number.isInteger(line.quantity) && line.quantity > 0 ? line.quantity : 1;
+        if (!Number.isSafeInteger(price) || price < 0 || !Number.isSafeInteger(sum + price * qty)) throw new Error('Invalid cart price.');
+        return sum + price * qty;
     }, 0);
 }
 

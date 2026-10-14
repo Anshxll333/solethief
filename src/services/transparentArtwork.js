@@ -13,12 +13,25 @@ const artworkInFlight = new Map();
 export const TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 /**
+ * Normalizes legacy or un-prefixed shoe asset paths to their transparent variants.
+ */
+export function normalizeShoeAssetPath(src) {
+    if (typeof src !== 'string') return src;
+    // Map any /shoes/shoe-N-(front|side).png to /shoes/transparent/shoe-N-(front|side).png
+    const match = src.match(/(?:^|\/)(?:shoes\/)?(shoe-[1-5]-(?:front|side)\.png)$/i);
+    if (match) {
+        return `/shoes/transparent/${match[1]}`;
+    }
+    return src;
+}
+
+/**
  * Generate a deterministic storage key for URL or Base64 data URL artwork.
  */
 export function getArtworkStorageKey(src) {
     if (typeof src !== 'string') return '';
     if (src.length <= 120 && !src.startsWith('data:')) {
-        return `solethief.clean_art.${src}`;
+        return `solethief.clean_art.v3.${src}`;
     }
     let h1 = 0xdeadbeef;
     let h2 = 0x41c64e6d;
@@ -30,7 +43,7 @@ export function getArtworkStorageKey(src) {
     h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
     h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
     const hash = (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
-    return `solethief.clean_art.${hash}_${src.length}`;
+    return `solethief.clean_art.v3.${hash}_${src.length}`;
 }
 
 /**
@@ -38,20 +51,26 @@ export function getArtworkStorageKey(src) {
  */
 export function getCachedCleanArtwork(src) {
     if (!src || typeof src !== 'string') return null;
+    const normalized = normalizeShoeAssetPath(src);
+    // Static assets that already reside in /transparent/ or SVG are already clean
+    if (normalized.includes('/transparent/') || normalized.startsWith('data:image/svg+xml') || normalized.endsWith('.svg')) {
+        artworkMemoryCache.set(src, normalized);
+        artworkMemoryCache.set(normalized, normalized);
+        return normalized;
+    }
     if (artworkMemoryCache.has(src)) {
         return artworkMemoryCache.get(src);
     }
-    // Static assets that already reside in /transparent/ or SVG are already clean
-    if (src.includes('/transparent/') || src.startsWith('data:image/svg+xml') || src.endsWith('.svg')) {
-        artworkMemoryCache.set(src, src);
-        return src;
+    if (artworkMemoryCache.has(normalized)) {
+        return artworkMemoryCache.get(normalized);
     }
     if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
         try {
-            const key = getArtworkStorageKey(src);
+            const key = getArtworkStorageKey(normalized);
             const cached = sessionStorage.getItem(key);
             if (cached) {
                 artworkMemoryCache.set(src, cached);
+                artworkMemoryCache.set(normalized, cached);
                 return cached;
             }
         } catch {
@@ -90,6 +109,13 @@ export function stripWhiteFromDataUrl(src) {
         return Promise.resolve(src);
     }
 
+    const normalized = normalizeShoeAssetPath(src);
+    if (normalized.includes('/transparent/') || normalized.startsWith('data:image/svg+xml') || normalized.endsWith('.svg')) {
+        setCachedCleanArtwork(src, normalized);
+        setCachedCleanArtwork(normalized, normalized);
+        return Promise.resolve(normalized);
+    }
+
     const cached = getCachedCleanArtwork(src);
     if (cached) {
         return Promise.resolve(cached);
@@ -106,7 +132,7 @@ export function stripWhiteFromDataUrl(src) {
     const processPromise = new Promise((resolve) => {
         const finalize = (result) => {
             artworkInFlight.delete(src);
-            setCachedCleanArtwork(src, result);
+            if (result !== src) setCachedCleanArtwork(src, result);
             resolve(result);
         };
 
@@ -127,11 +153,13 @@ export function stripWhiteFromDataUrl(src) {
                 let renderW = w;
                 let renderH = h;
                 const maxDim = 900;
-                if (renderW > maxDim || renderH > maxDim) {
-                    if (renderW > renderH) {
+                if (renderW > renderH) {
+                    if (renderW > maxDim) {
                         renderH = Math.round((renderH * maxDim) / renderW);
                         renderW = maxDim;
-                    } else {
+                    }
+                } else {
+                    if (renderH > maxDim) {
                         renderW = Math.round((renderW * maxDim) / renderH);
                         renderH = maxDim;
                     }
@@ -231,6 +259,7 @@ export function stripWhiteFromDataUrl(src) {
                             }
                         };
 
+                        // Enqueue perimeter border
                         for (let x = 0; x < renderW; x++) {
                             checkAndEnqueue(x, 0);
                             checkAndEnqueue(x, renderH - 1);
@@ -257,73 +286,71 @@ export function stripWhiteFromDataUrl(src) {
                                 const nx = neighbors[i][0];
                                 const ny = neighbors[i][1];
                                 if (nx >= 0 && nx < renderW && ny >= 0 && ny < renderH) {
-                                    const nIdx = ny * renderW + nx;
-                                    if (!visited[nIdx]) {
-                                        const ndIdx = nIdx * 4;
-                                        const nr = data[ndIdx];
-                                        const ng = data[ndIdx + 1];
-                                        const nb = data[ndIdx + 2];
-                                        const d = colorDist(nr, ng, nb, bgR, bgG, bgB);
-                                        if (d <= tolerance) {
-                                            visited[nIdx] = 1;
-                                            queue[qTail++] = nIdx;
-                                        }
-                                    }
+                                    checkAndEnqueue(nx, ny);
                                 }
                             }
                         }
 
-                        // Make flood-filled background transparent
+                        // Only proceed if not an entirely blank/uniform image
+                        let nonBgCount = 0;
                         for (let p = 0; p < totalPixels; p++) {
-                            if (visited[p]) {
-                                data[p * 4 + 3] = 0;
-                                modified = true;
-                            }
+                            if (!visited[p]) nonBgCount++;
                         }
 
-                        // Soft feathering on boundary pixels to eliminate jagged edges
-                        for (let y = 1; y < renderH - 1; y++) {
-                            for (let x = 1; x < renderW - 1; x++) {
-                                const pIdx = y * renderW + x;
-                                if (!visited[pIdx] && data[pIdx * 4 + 3] > 0) {
-                                    const hasNeighborBg = visited[pIdx - 1] || visited[pIdx + 1] || visited[pIdx - renderW] || visited[pIdx + renderW];
-                                    if (hasNeighborBg) {
-                                        const dIdx = pIdx * 4;
-                                        const r = data[dIdx];
-                                        const g = data[dIdx + 1];
-                                        const b = data[dIdx + 2];
-                                        const d = colorDist(r, g, b, bgR, bgG, bgB);
-                                        if (d <= tolerance * 1.35) {
-                                            const factor = Math.max(0, Math.min(1, (d - tolerance * 0.75) / (tolerance * 0.6)));
-                                            data[dIdx + 3] = Math.round(data[dIdx + 3] * factor);
-                                            modified = true;
+                        if (nonBgCount > 0) {
+                            // Make flood-filled background transparent
+                            for (let p = 0; p < totalPixels; p++) {
+                                if (visited[p]) {
+                                    data[p * 4 + 3] = 0;
+                                    modified = true;
+                                }
+                            }
+
+                            // Soft feathering on boundary pixels to eliminate jagged edges
+                            for (let y = 1; y < renderH - 1; y++) {
+                                for (let x = 1; x < renderW - 1; x++) {
+                                    const pIdx = y * renderW + x;
+                                    if (!visited[pIdx] && data[pIdx * 4 + 3] > 0) {
+                                        const hasNeighborBg = visited[pIdx - 1] || visited[pIdx + 1] || visited[pIdx - renderW] || visited[pIdx + renderW];
+                                        if (hasNeighborBg) {
+                                            const dIdx = pIdx * 4;
+                                            const r = data[dIdx];
+                                            const g = data[dIdx + 1];
+                                            const b = data[dIdx + 2];
+                                            const d = colorDist(r, g, b, bgR, bgG, bgB);
+                                            if (d <= tolerance * 1.35) {
+                                                const factor = Math.max(0, Math.min(1, (d - tolerance * 0.75) / (tolerance * 0.6)));
+                                                data[dIdx + 3] = Math.round(data[dIdx + 3] * factor);
+                                                modified = true;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Neutralize residual near-white fringe along the background boundary
+                            for (let y = 1; y < renderH - 1; y++) {
+                                for (let x = 1; x < renderW - 1; x++) {
+                                    const pIdx = y * renderW + x;
+                                    if (!visited[pIdx] && data[pIdx * 4 + 3] > 0) {
+                                        const hasNeighborBg = visited[pIdx - 1] || visited[pIdx + 1] || visited[pIdx - renderW] || visited[pIdx + renderW];
+                                        if (hasNeighborBg) {
+                                            const dIdx = pIdx * 4;
+                                            const r = data[dIdx];
+                                            const g = data[dIdx + 1];
+                                            const b = data[dIdx + 2];
+                                            const minChannel = Math.min(r, g, b);
+                                            const maxChannel = Math.max(r, g, b);
+                                            const chroma = maxChannel - minChannel;
+                                            if (minChannel >= 240 && chroma <= 18) {
+                                                data[dIdx + 3] = 0;
+                                                modified = true;
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
-                }
-
-                // 2. Secondary pass: Neutralize any residual near-white/light-paper pixels
-                for (let i = 0; i < data.length; i += 4) {
-                    const a = data[i + 3];
-                    if (a === 0) continue;
-
-                    const r = data[i];
-                    const g = data[i + 1];
-                    const b = data[i + 2];
-                    const minChannel = Math.min(r, g, b);
-                    const maxChannel = Math.max(r, g, b);
-                    const chroma = maxChannel - minChannel;
-
-                    if (minChannel >= 240) {
-                        data[i + 3] = 0;
-                        modified = true;
-                    } else if (minChannel >= 222 && chroma <= 14) {
-                        const factor = (240 - minChannel) / (240 - 222);
-                        data[i + 3] = Math.round(a * Math.min(1, Math.max(0, factor)));
-                        modified = true;
                     }
                 }
 

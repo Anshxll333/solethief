@@ -18,7 +18,7 @@ import {
     Loader2,
 } from 'lucide-react';
 import { shopCategoriesService, subscribeShopUpdates } from '../services/shopCategories.js';
-import { downloadImageAsDataUrl, isPinterestPageUrl } from '../services/remoteImage.js';
+import { downloadImageAsDataUrl } from '../services/remoteImage.js';
 import { resolveCollectionArtwork } from './shopGroups.js';
 import './ShopCollectionsAdmin.css';
 
@@ -446,17 +446,6 @@ export default function ShopCollectionsAdmin({ onOpenCreateDrop, refreshTrigger 
             setAssigningProductId(null);
         }
     };
-
-    // Filter products for searchable assignment list
-    const filteredProducts = useMemo(() => {
-        if (!productSearchQuery.trim()) return products;
-        const q = productSearchQuery.toLowerCase();
-        return products.filter((p) =>
-            (p.name || '').toLowerCase().includes(q) ||
-            (p.brand || '').toLowerCase().includes(q) ||
-            String(p.id).includes(q)
-        );
-    }, [products, productSearchQuery]);
 
     // Separate assigned products from available catalog products
     const assignedProducts = useMemo(() => {

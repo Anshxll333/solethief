@@ -3,37 +3,116 @@ import { parsePrice } from './catalog.js';
 import { validPairId } from './cart.js';
 import { ALLOWED_ORDER_STATUSES } from './orders.js';
 import { notifyShopUpdated } from './shopCategories.js';
+import { normalizeShoeAssetPath } from '../services/transparentArtwork.js';
 
 export const ADMIN_STORAGE_DROPS_KEY = 'solethief.admin.drops.v1';
 export const ADMIN_STORAGE_INVENTORY_KEY = 'solethief.admin.inventory.v1';
 export const ADMIN_STORAGE_OPERATOR_KEY = 'solethief.admin.operator.v1';
+export const ADMIN_IDB_DATABASE_NAME = 'solethief_admin_db';
+export const ADMIN_IDB_STORE_NAME = 'preview_drops_store';
+export const ADMIN_IDB_KEY = 'solethief.admin.drops.v1';
+
+let memoryDropsCache = null;
+
+export function openAdminIndexedDB() {
+    if (typeof indexedDB === 'undefined') return Promise.resolve(null);
+    return new Promise((resolve) => {
+        try {
+            const req = indexedDB.open(ADMIN_IDB_DATABASE_NAME, 1);
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(ADMIN_IDB_STORE_NAME)) {
+                    db.createObjectStore(ADMIN_IDB_STORE_NAME);
+                }
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => resolve(null);
+        } catch {
+            resolve(null);
+        }
+    });
+}
+
+export async function saveDropsToIndexedDB(drops) {
+    try {
+        const db = await openAdminIndexedDB();
+        if (!db) return false;
+        return new Promise((resolve) => {
+            try {
+                const tx = db.transaction(ADMIN_IDB_STORE_NAME, 'readwrite');
+                const store = tx.objectStore(ADMIN_IDB_STORE_NAME);
+                store.put(drops, ADMIN_IDB_KEY);
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => resolve(false);
+                tx.onabort = () => resolve(false);
+            } catch {
+                resolve(false);
+            }
+        });
+    } catch {
+        return false;
+    }
+}
+
+export async function getDropsFromIndexedDB() {
+    try {
+        const db = await openAdminIndexedDB();
+        if (!db) return null;
+        return new Promise((resolve) => {
+            try {
+                const tx = db.transaction(ADMIN_IDB_STORE_NAME, 'readonly');
+                const store = tx.objectStore(ADMIN_IDB_STORE_NAME);
+                const req = store.get(ADMIN_IDB_KEY);
+                req.onsuccess = () => resolve(req.result || null);
+                req.onerror = () => resolve(null);
+            } catch {
+                resolve(null);
+            }
+        });
+    } catch {
+        return null;
+    }
+}
+
+if (typeof window !== 'undefined' && typeof indexedDB !== 'undefined') {
+    getDropsFromIndexedDB().then((idbDrops) => {
+        if (Array.isArray(idbDrops) && idbDrops.length > 0) {
+            memoryDropsCache = idbDrops;
+        }
+    }).catch(() => { });
+}
+
+export {
+    compressImage,
+    compressImageFile,
+    isOnlineImageUrl,
+    downloadAndOptimizeRemoteImage,
+    fetchAndOptimizeRemoteImage,
+} from '../services/remoteImage.js';
 
 export const INVENTORY_STATES = ['available', 'reserved', 'sold', 'archived', 'unavailable'];
 export const VERIFICATION_STATUSES = ['unverified', 'authenticating', 'verified', 'rejected'];
 
 export const ADMIN_ORDER_STATUSES = [
-    'pending_payment',
-    'paid',
-    'confirmed',
-    'authenticating',
-    'processing',
-    'shipped',
-    'delivered',
-    'cancelled',
-    'refunded',
+    'pending_payment', 'paid', 'confirmed', 'authenticating', 'processing',
+    'shipped', 'delivered', 'returned', 'replaced', 'cancelled', 'refunded',
 ];
 
+export const ADMIN_ORDER_FILTERS = ['pending', 'packed', 'shipped', 'delivered', 'returned'];
+
+export function normalizeAdminOrderFilter(status) {
+    if (status === 'pending') return ['pending_payment', 'paid', 'confirmed', 'authenticating', 'processing'];
+    if (status === 'packed') return ['confirmed', 'authenticating', 'processing'];
+    if (status === 'returned') return ['returned', 'replaced', 'refunded'];
+    return status === 'all' ? null : [status];
+}
+
 export const ADMIN_FULFILLMENT_TRANSITIONS = {
-    pending_payment: ['confirmed', 'paid', 'cancelled'],
-    paid: ['confirmed', 'authenticating', 'processing', 'cancelled'],
-    confirmed: ['authenticating', 'shipped', 'cancelled'],
-    authenticating: ['shipped', 'cancelled'],
-    processing: ['authenticating', 'shipped', 'cancelled'],
-    shipped: ['delivered', 'cancelled'],
-    delivered: ['refunded'],
-    cancelled: [],
-    expired: [],
-    refunded: [],
+    pending_payment: ['confirmed', 'paid', 'cancelled', 'returned', 'replaced'], paid: ['confirmed', 'authenticating', 'processing', 'cancelled', 'returned', 'replaced'],
+    confirmed: ['authenticating', 'shipped', 'cancelled', 'returned', 'replaced'], authenticating: ['shipped', 'cancelled', 'returned', 'replaced'],
+    processing: ['authenticating', 'shipped', 'cancelled', 'returned', 'replaced'], shipped: ['delivered', 'cancelled', 'returned', 'replaced'],
+    delivered: ['returned', 'replaced', 'refunded'], returned: ['replaced', 'refunded'], replaced: [],
+    cancelled: [], expired: [], refunded: [],
 };
 
 export function isValidAdminStatusTransition(currentStatus, nextStatus) {
@@ -71,12 +150,11 @@ export function getDefaultSeedDrops() {
             price: shoe.price,
             priceMinor,
             currency: 'INR',
-            frontImage: shoe.frontImage,
-            sideImage: shoe.sideImage,
+            frontImage: normalizeShoeAssetPath(shoe.frontImage),
+            sideImage: normalizeShoeAssetPath(shoe.sideImage),
             active: true,
             dropBatch: `SHIBUYA-DROP-0${shoe.id}`,
             releaseDate: '2026-10-10',
-            description: `${shoe.brand} ${shoe.name}. Limited archive pair in ${shoe.size}. Authenticated Tokyo street division.`,
         };
     });
 }
@@ -141,6 +219,8 @@ function validateStoredDrops(drops) {
             || ['name', 'brand', 'size', 'frontImage', 'sideImage'].some(key => typeof drop[key] !== 'string' || !drop[key].trim())) {
             throw new Error('Invalid preview product store.');
         }
+        if (drop.images !== undefined && (!Array.isArray(drop.images) || drop.images.some((image) => typeof image !== 'string'))) throw new Error('Invalid preview product images.');
+        if (drop.sizes !== undefined && (!Array.isArray(drop.sizes) || drop.sizes.some((size) => !size.value))) throw new Error('Invalid preview product sizes.');
         ids.add(drop.id);
     }
     return drops;
@@ -150,24 +230,166 @@ export function getPreviewDrops() {
     const storage = getProductStorage();
     if (!storage) {
         if (typeof window !== 'undefined') throw new Error('Preview product storage is unavailable.');
+        if (Array.isArray(memoryDropsCache)) return memoryDropsCache;
         return getDefaultSeedDrops();
     }
     const raw = storage.getItem(ADMIN_STORAGE_DROPS_KEY);
     if (raw === null) {
+        memoryDropsCache = null;
         const defaults = getDefaultSeedDrops();
         storage.setItem(ADMIN_STORAGE_DROPS_KEY, JSON.stringify(defaults));
         return defaults;
     }
-    return validateStoredDrops(JSON.parse(raw));
+    // Preserve legacy stored objects; storefront adapters add rendering fallbacks.
+    const drops = JSON.parse(raw);
+    if (Array.isArray(memoryDropsCache) && Array.isArray(drops) && memoryDropsCache.length === drops.length) {
+        for (let i = 0; i < drops.length; i++) {
+            if (drops[i]?.id === memoryDropsCache[i]?.id) {
+                if (memoryDropsCache[i]?.frontImage?.startsWith('data:') && (!drops[i]?.frontImage || !drops[i].frontImage.startsWith('data:'))) {
+                    drops[i].frontImage = memoryDropsCache[i].frontImage;
+                }
+                if (memoryDropsCache[i]?.sideImage?.startsWith('data:') && (!drops[i]?.sideImage || !drops[i].sideImage.startsWith('data:'))) {
+                    drops[i].sideImage = memoryDropsCache[i].sideImage;
+                }
+                if (Array.isArray(memoryDropsCache[i]?.images) && memoryDropsCache[i].images.length > (drops[i].images?.length || 0)) {
+                    drops[i].images = memoryDropsCache[i].images;
+                }
+            }
+        }
+    }
+    let healed = false;
+    if (Array.isArray(drops)) {
+        for (const drop of drops) {
+            if (drop && typeof drop === 'object') {
+                if (drop.status === 'active' && drop.active === false) {
+                    drop.active = true;
+                    healed = true;
+                }
+                if (!['active', 'sold_out', 'draft'].includes(drop.status)) {
+                    drop.status = drop.active ? 'active' : 'draft';
+                    healed = true;
+                }
+                const normFront = normalizeShoeAssetPath(drop.frontImage);
+                if (normFront !== drop.frontImage) {
+                    drop.frontImage = normFront;
+                    healed = true;
+                }
+                const normSide = normalizeShoeAssetPath(drop.sideImage);
+                if (normSide !== drop.sideImage) {
+                    drop.sideImage = normSide;
+                    healed = true;
+                }
+                if (Array.isArray(drop.images)) {
+                    const nextImages = drop.images.map((img) => normalizeShoeAssetPath(img));
+                    if (JSON.stringify(nextImages) !== JSON.stringify(drop.images)) {
+                        drop.images = nextImages;
+                        healed = true;
+                    }
+                }
+            }
+        }
+        if (healed) {
+            storage.setItem(ADMIN_STORAGE_DROPS_KEY, JSON.stringify(drops));
+        }
+    }
+    return validateStoredDrops(drops);
 }
 
 export function savePreviewDrops(drops) {
+    if (Array.isArray(drops)) {
+        for (const drop of drops) {
+            if (drop && typeof drop === 'object') {
+                drop.frontImage = normalizeShoeAssetPath(drop.frontImage);
+                drop.sideImage = normalizeShoeAssetPath(drop.sideImage);
+                if (Array.isArray(drop.images)) {
+                    drop.images = drop.images.map((img) => normalizeShoeAssetPath(img));
+                }
+                if (drop.active === false && (!drop.status || drop.status === 'active')) {
+                    drop.status = 'draft';
+                } else if (drop.status === 'draft') {
+                    drop.active = false;
+                } else if (!['active', 'sold_out', 'draft'].includes(drop.status)) {
+                    drop.status = drop.active ? 'active' : 'draft';
+                }
+            }
+        }
+    }
     validateStoredDrops(drops);
+    memoryDropsCache = drops;
+    if (typeof indexedDB !== 'undefined') {
+        saveDropsToIndexedDB(drops).catch(() => { });
+    }
     const storage = getProductStorage();
     if (!storage) throw new Error('Preview product storage is unavailable.');
-    storage.setItem(ADMIN_STORAGE_DROPS_KEY, JSON.stringify(drops));
+    const serializedDrops = JSON.stringify(drops);
+    try {
+        storage.setItem(ADMIN_STORAGE_DROPS_KEY, serializedDrops);
+    } catch (err) {
+        const isQuota = err?.name === 'QuotaExceededError'
+            || err?.name === 'NS_ERROR_DOM_QUOTA_REACHED'
+            || err?.code === 22
+            || err?.code === 1014
+            || String(err?.message || '').toLowerCase().includes('quota');
+        if (isQuota) {
+            // Resilient fallback: Persist in IndexedDB if available
+            if (typeof indexedDB !== 'undefined') {
+                try {
+                    saveDropsToIndexedDB(drops).catch(() => { });
+                    const compactDrops = drops.map((d) => {
+                        const copy = { ...d };
+                        if (Array.isArray(copy.images) && copy.images.length > 2) {
+                            copy.images = [copy.frontImage, copy.sideImage];
+                        }
+                        return copy;
+                    });
+                    try {
+                        storage.setItem(ADMIN_STORAGE_DROPS_KEY, JSON.stringify(compactDrops));
+                    } catch {
+                        // Even if compact storage fails in localStorage, IndexedDB and memory hold data
+                    }
+                    notifyShopUpdated();
+                    return drops;
+                } catch {
+                    // Fall through to quota error if indexedDB fails
+                }
+            }
+            const hasBase64 = drops.some((d) =>
+                (typeof d?.frontImage === 'string' && d.frontImage.startsWith('data:')) ||
+                (typeof d?.sideImage === 'string' && d.sideImage.startsWith('data:')) ||
+                (Array.isArray(d?.images) && d.images.some((img) => typeof img === 'string' && img.startsWith('data:')))
+            );
+            if (hasBase64) {
+                throw new Error('Storage quota exceeded. Base64 images are too large for browser preview storage. Please use image URLs or smaller images.', { cause: err });
+            }
+            throw new Error('Storage quota exceeded. Browser storage is full. Please remove some preview drops or use image URLs.', { cause: err });
+        }
+        throw err;
+    }
     notifyShopUpdated();
     return drops;
+}
+
+export function deletePreviewDrop(id) {
+    const drops = getPreviewDrops();
+    const next = drops.filter((drop) => drop.id !== Number(id));
+    if (next.length === drops.length) throw new Error(`Drop with ID ${id} not found.`);
+    savePreviewDrops(next);
+    return next;
+}
+
+export function decrementPreviewStock(productId, size, quantity = 1) {
+    if (!Number.isInteger(quantity) || quantity <= 0) throw new Error('Quantity must be positive.');
+    const drops = getPreviewDrops();
+    const index = drops.findIndex((drop) => drop.id === Number(productId));
+    if (index === -1) throw new Error(`Drop with ID ${productId} not found.`);
+    const sizes = (drops[index].sizes || []).map((item) => ({ ...item }));
+    const variant = sizes.find((item) => item.value === size);
+    if (!variant || variant.sold || variant.quantity < quantity) throw new Error('Insufficient stock.');
+    variant.quantity -= quantity;
+    if (variant.quantity === 0) variant.sold = true;
+    drops[index] = { ...drops[index], sizes };
+    savePreviewDrops(drops);
+    return variant.quantity;
 }
 
 export function getPreviewInventory() {
@@ -228,13 +450,47 @@ export function validateDropInput(drop, isUpdate = false) {
     }
 
     let priceMinor = drop.priceMinor;
-    if (priceMinor === undefined && drop.price !== undefined) {
+    if (drop.price !== undefined && drop.price !== '') {
+        const parsed = parsePrice(String(drop.price).replace(/,/g, ''));
+        if (Number.isSafeInteger(parsed)) {
+            priceMinor = parsed;
+        }
+    } else if (priceMinor === undefined && drop.price !== undefined) {
         priceMinor = parsePrice(String(drop.price).replace(/,/g, ''));
     }
 
     if (!Number.isSafeInteger(priceMinor) || priceMinor <= 0 || priceMinor > 2147483647) {
         errors.price = 'Valid price in INR (paise minor <= 2,147,483,647) is required.';
     }
+
+    let comparePriceMinor = drop.comparePriceMinor;
+    if (drop.comparePrice !== undefined) {
+        const trimmed = String(drop.comparePrice).trim();
+        comparePriceMinor = trimmed ? parsePrice(trimmed.replace(/,/g, '')) : null;
+    } else if (comparePriceMinor === undefined && drop.originalPrice !== undefined) {
+        const trimmed = String(drop.originalPrice).trim();
+        comparePriceMinor = trimmed ? parsePrice(trimmed.replace(/,/g, '')) : null;
+    }
+    if (comparePriceMinor !== undefined && comparePriceMinor !== null && comparePriceMinor !== '' &&
+        (!Number.isSafeInteger(comparePriceMinor) || comparePriceMinor < priceMinor || comparePriceMinor > 2147483647)) {
+        errors.comparePrice = 'Compare price must be greater than or equal to the sale price.';
+    }
+
+    let status = drop.status;
+    let active = drop.active !== false;
+    if (status === 'draft') {
+        active = false;
+    } else if (status === 'active') {
+        active = true;
+    } else if (status === 'sold_out') {
+        active = drop.active !== false;
+    } else {
+        status = active ? 'active' : 'draft';
+    }
+    const tags = Array.isArray(drop.tags)
+        ? [...new Set(drop.tags.map((tag) => String(tag).trim().toLowerCase()).filter(Boolean))].slice(0, 20)
+        : [];
+    const categoryId = drop.categoryId ? String(drop.categoryId) : '';
 
     const frontImage = typeof drop.frontImage === 'string' ? drop.frontImage.trim() : '';
     if (!frontImage || (!frontImage.startsWith('/') && !frontImage.startsWith('http') && !frontImage.startsWith('data:'))) {
@@ -246,6 +502,50 @@ export function validateDropInput(drop, isUpdate = false) {
         errors.sideImage = 'Side image path or URL is required.';
     }
 
+    const resolvedFrontImage = normalizeShoeAssetPath(frontImage);
+    const resolvedSideImage = normalizeShoeAssetPath(sideImage);
+
+    let parsedAdditional = [];
+    if (typeof drop.additionalImages === 'string') {
+        parsedAdditional = drop.additionalImages
+            .split('\n')
+            .map((url) => url.trim())
+            .filter(Boolean);
+    } else if (Array.isArray(drop.additionalImages)) {
+        parsedAdditional = drop.additionalImages
+            .map((url) => (typeof url === 'string' ? url.trim() : ''))
+            .filter(Boolean);
+    }
+
+    let rawImagesList = [];
+    if (Array.isArray(drop.images) && drop.images.length > 0) {
+        rawImagesList = drop.images
+            .map((image) => (typeof image === 'string' ? image.trim() : ''))
+            .filter(Boolean);
+    } else {
+        rawImagesList = [resolvedFrontImage, resolvedSideImage, ...parsedAdditional].filter(Boolean);
+    }
+
+    if (rawImagesList.length === 0) {
+        rawImagesList = [resolvedFrontImage, resolvedSideImage].filter(Boolean);
+    }
+
+    const images = rawImagesList.map((img) => normalizeShoeAssetPath(img));
+    const invalidImage = images.find(
+        (img) => !img.startsWith('/') && !img.startsWith('http://') && !img.startsWith('https://') && !img.startsWith('data:')
+    );
+    if (invalidImage) {
+        errors.images = `Invalid image URL or path: "${invalidImage.slice(0, 50)}". Links must start with /, http://, https://, or data:`;
+    }
+
+    const sizes = Array.isArray(drop.sizes) && drop.sizes.length
+        ? drop.sizes.map((item) => ({
+            value: String(item.value || '').trim(),
+            quantity: Math.max(0, Number(item.quantity) || 0),
+            sold: Boolean(item.sold),
+        })).filter((item) => item.value)
+        : [{ value: size, quantity: 1, sold: false }];
+
     return {
         valid: Object.keys(errors).length === 0,
         errors,
@@ -256,12 +556,21 @@ export function validateDropInput(drop, isUpdate = false) {
             size,
             priceMinor,
             currency: 'INR',
-            frontImage,
-            sideImage,
-            active: drop.active !== false,
+            frontImage: resolvedFrontImage,
+            sideImage: resolvedSideImage,
+            images: images.length ? images : [resolvedFrontImage, resolvedSideImage],
+            active,
+            status,
+            comparePriceMinor: comparePriceMinor === '' || comparePriceMinor === undefined ? null : comparePriceMinor,
+            tags,
+            categoryId,
             dropBatch: drop.dropBatch?.trim() || `DROP-${Date.now().toString().slice(-4)}`,
             releaseDate: drop.releaseDate || new Date().toISOString().slice(0, 10),
             description: drop.description?.trim() || '',
+            upperMaterial: drop.upperMaterial?.trim() || '',
+            soleMaterial: drop.soleMaterial?.trim() || '',
+            careInstructions: drop.careInstructions?.trim() || '',
+            sizes,
         },
     };
 }

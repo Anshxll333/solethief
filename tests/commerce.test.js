@@ -64,9 +64,42 @@ test('price inputs use exact decimal parsing; routes reject partial or unsafe ID
     for (const value of ['1abc', '1.2', '01', '-1', '0', '2147483648', undefined]) assert.equal(parseProductId(value), null);
 });
 
-test('adapter fails closed on malformed presentation, money and duplicate responses', async () => {
+test('adapter accepts Admin preview image data URLs but rejects unsafe image schemes', async () => {
+    const dataImage = 'data:image/png;base64,AAAA';
+    const row = { id: 1, name: 'Pair', brand: 'Brand', size: 'US 9', price_minor: 100, currency: 'INR', front_image: dataImage, side_image: dataImage };
+    assert.equal(adaptCatalogRow(row).frontImage, dataImage);
+    for (const bad of [null, { ...row, name: null }, { ...row, front_image: 'javascript:bad' }, { ...row, front_image: 'data:text/html;base64,AAAA' }, { ...row, id: 2147483648 }, { ...row, price_minor: 2147483648 }]) assert.throws(() => adaptCatalogRow(bad), /Invalid catalog/);
+});
+
+test('adapter fails closed on duplicate responses', async () => {
     const row = { id: 1, name: 'Pair', brand: 'Brand', size: 'US 9', price_minor: 100, currency: 'INR', front_image: '/front.png', side_image: '/side.png' };
-    for (const bad of [null, { ...row, name: null }, { ...row, front_image: 'javascript:bad' }, { ...row, id: 2147483648 }, { ...row, price_minor: 2147483648 }]) assert.throws(() => adaptCatalogRow(bad), /Invalid catalog/);
     const service = createCatalogService(() => ({ client: { from: () => ({ select: () => ({ eq: () => ({ order: async () => ({ data: [row, row], error: null }) }) }) }) } }));
     await assert.rejects(service.list({ allowPreview: true }), /duplicate pair IDs/);
+});
+
+test('cart supports multiple size variants of the same silhouette', () => {
+    const multiSizeCart = {
+        version: 1,
+        source: 'preview',
+        ids: [1],
+        items: [
+            { lineId: '1:US 10', id: 1, size: 'US 10', quantity: 1 },
+            { lineId: '1:US 9', id: 1, size: 'US 9', quantity: 2 },
+        ],
+    };
+    const lines = resolveCart(multiSizeCart, preview);
+    assert.equal(lines.length, 2);
+    assert.equal(lines[0].lineId, '1:US 10');
+    assert.equal(lines[0].size, 'US 10');
+    assert.equal(lines[0].quantity, 1);
+    assert.equal(lines[0].product.size, 'US 10');
+
+    assert.equal(lines[1].lineId, '1:US 9');
+    assert.equal(lines[1].size, 'US 9');
+    assert.equal(lines[1].quantity, 2);
+    assert.equal(lines[1].product.size, 'US 9');
+
+    const totalQty = lines.reduce((sum, l) => sum + l.quantity, 0);
+    assert.equal(totalQty, 3);
+    assert.equal(subtotalMinor(lines), products[0].priceMinor * 3);
 });

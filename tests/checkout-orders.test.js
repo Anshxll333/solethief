@@ -28,6 +28,9 @@ const {
     parsePreviewOrders,
     savePreviewOrder,
     getPreviewOrderById,
+    canCancelOrder,
+    getCancellationRemainingTime,
+    CANCELLATION_WINDOW_MS,
 } = await import('../src/commerce/orders.js');
 
 const { validateAddress } = await import('../src/commerce/address.js');
@@ -246,3 +249,138 @@ test('createOrdersService handles preview order flow, ID generation, and retriev
     assert.equal(orderList.length, 1);
     assert.equal(orderList[0].id, order.id);
 });
+
+test('24-hour order cancellation helpers strictly enforce the 24-hour window', () => {
+    const now = 1776000000000; // Reference timestamp
+    assert.equal(CANCELLATION_WINDOW_MS, 24 * 60 * 60 * 1000);
+
+    // Eligible orders within 24 hours
+    const freshOrder = {
+        id: 'ST-2026-0001',
+        status: 'placed',
+        created_at: new Date(now - 1000).toISOString(),
+    };
+    assert.equal(canCancelOrder(freshOrder, now), true);
+
+    const midWindowOrder = {
+        id: 'ST-2026-0002',
+        status: 'processing',
+        created_at: new Date(now - 12 * 60 * 60 * 1000).toISOString(),
+    };
+    assert.equal(canCancelOrder(midWindowOrder, now), true);
+    const remMid = getCancellationRemainingTime(midWindowOrder, now);
+    assert.ok(remMid);
+    assert.equal(remMid.hours, 12);
+    assert.equal(remMid.minutes, 0);
+    assert.equal(remMid.formatted, '12h 0m remaining');
+
+    const boundaryOrder = {
+        id: 'ST-2026-0003',
+        status: 'paid',
+        created_at: new Date(now - (24 * 60 * 60 * 1000 - 60000)).toISOString(), // 23h 59m ago
+    };
+    assert.equal(canCancelOrder(boundaryOrder, now), true);
+    const remBoundary = getCancellationRemainingTime(boundaryOrder, now);
+    assert.equal(remBoundary.hours, 0);
+    assert.equal(remBoundary.minutes, 1);
+    assert.equal(remBoundary.formatted, '1m remaining');
+
+    // Ineligible: Exceeded 24 hours
+    const expiredOrder = {
+        id: 'ST-2026-0004',
+        status: 'processing',
+        created_at: new Date(now - (24 * 60 * 60 * 1000 + 1000)).toISOString(), // 24 hours and 1 second ago
+    };
+    assert.equal(canCancelOrder(expiredOrder, now), false);
+    assert.equal(getCancellationRemainingTime(expiredOrder, now), null);
+
+    const oldOrder = {
+        id: 'ST-2026-0005',
+        status: 'paid',
+        created_at: new Date(now - 48 * 60 * 60 * 1000).toISOString(), // 48 hours ago
+    };
+    assert.equal(canCancelOrder(oldOrder, now), false);
+    assert.equal(getCancellationRemainingTime(oldOrder, now), null);
+
+    // Ineligible: Terminal or already delivered/cancelled statuses
+    assert.equal(canCancelOrder({ ...freshOrder, status: 'cancelled' }, now), false);
+    assert.equal(canCancelOrder({ ...freshOrder, status: 'refunded' }, now), false);
+    assert.equal(canCancelOrder({ ...freshOrder, status: 'delivered' }, now), false);
+    assert.equal(canCancelOrder({ ...freshOrder, status: 'expired' }, now), false);
+
+    // Invalid or missing timestamps
+    assert.equal(canCancelOrder(null), false);
+    assert.equal(canCancelOrder({}), false);
+    assert.equal(canCancelOrder({ status: 'paid', created_at: null }), false);
+    assert.equal(canCancelOrder({ status: 'paid', created_at: 'invalid-date' }), false);
+});
+
+test('createOrdersService.cancelOrder successfully cancels orders within 24 hours and rejects invalid ones', async () => {
+    mockStore.clear();
+    const ordersService = createOrdersService(() => ({ previewMode: true }));
+
+    // 1. Create a fresh order
+    const { data: freshOrder } = await ordersService.createOrder({
+        items: [{ id: 1, name: 'Air Jordan 1 High', brand: 'Nike', size: 'UK 9', priceMinor: 1800000 }],
+        shippingAddress: {
+            recipient: 'Abhi X',
+            phone: '9876543210',
+            line1: 'Connaught Place',
+            city: 'New Delhi',
+            region: 'Delhi',
+            postal_code: '110001',
+        },
+        paymentMethod: 'razorpay',
+    });
+
+    assert.ok(freshOrder);
+    assert.equal(freshOrder.status, 'paid');
+
+    // 2. Successfully cancel the fresh order
+    const cancelRes = await ordersService.cancelOrder(freshOrder.id, { reason: 'Changed mind' });
+    assert.equal(cancelRes.success, true);
+    assert.equal(cancelRes.order.status, 'cancelled');
+    assert.equal(cancelRes.order.cancel_reason, 'Changed mind');
+    assert.ok(cancelRes.order.cancelled_at);
+
+    // Check persistence
+    const { data: cancelledOrder } = await ordersService.getOrder(freshOrder.id);
+    assert.equal(cancelledOrder.status, 'cancelled');
+
+    // 3. Attempt to cancel an already-cancelled order should throw
+    await assert.rejects(
+        () => ordersService.cancelOrder(freshOrder.id, { reason: 'Try again' }),
+        /already been cancelled/
+    );
+
+    // 4. Create an old order (> 24 hours ago) and assert rejection
+    const oldOrder = {
+        id: 'ST-2026-OLD1',
+        status: 'paid',
+        total_amount_minor: 1200000,
+        created_at: new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString(), // 30 hours ago
+        items: [],
+    };
+    savePreviewOrder(oldOrder);
+
+    await assert.rejects(
+        () => ordersService.cancelOrder(oldOrder.id),
+        /Orders can only be cancelled within 24 hours of placement/
+    );
+
+    // 5. Create a delivered order and assert rejection
+    const deliveredOrder = {
+        id: 'ST-2026-DLV1',
+        status: 'delivered',
+        total_amount_minor: 1500000,
+        created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+        items: [],
+    };
+    savePreviewOrder(deliveredOrder);
+
+    await assert.rejects(
+        () => ordersService.cancelOrder(deliveredOrder.id),
+        /Delivered orders cannot be cancelled/
+    );
+});
+

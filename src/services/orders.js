@@ -4,6 +4,8 @@ import {
     getPreviewOrders,
     getPreviewOrderById,
     savePreviewOrder,
+    canCancelOrder,
+    updatePreviewOrderStatus,
 } from '../commerce/orders.js';
 import { validateAddress } from '../commerce/address.js';
 
@@ -46,7 +48,10 @@ export function createOrdersService(getRuntime) {
                 }
 
                 // Subtotal
-                const subtotalMinor = items.reduce((sum, item) => sum + item.priceMinor, 0);
+                const subtotalMinor = items.reduce((sum, item) => {
+                    const q = Number.isInteger(item?.quantity) && item.quantity > 0 ? item.quantity : 1;
+                    return sum + (item?.priceMinor || 0) * q;
+                }, 0);
                 const totals = calculateOrderTotals({
                     subtotalMinor,
                     shippingOptionId,
@@ -85,17 +90,20 @@ export function createOrdersService(getRuntime) {
                     payment_provider: 'razorpay',
                     provider_order_id: paymentMethod === 'online' || paymentMethod === 'razorpay' ? `order_rzp_mock_${Date.now()}` : null,
                     provider_payment_id: paymentMethod === 'online' || paymentMethod === 'razorpay' ? `pay_rzp_mock_${Date.now()}` : null,
-                    items: items.map(item => ({
-                        product_id: item.id,
-                        name: item.name,
-                        brand: item.brand,
-                        size: item.size,
-                        front_image: item.frontImage,
-                        image_url: item.frontImage,
-                        quantity: 1,
-                        unit_price_minor: item.priceMinor,
-                        line_total_minor: item.priceMinor,
-                    })),
+                    items: items.map(item => {
+                        const qty = Number.isInteger(item.quantity) && item.quantity > 0 ? item.quantity : 1;
+                        return {
+                            product_id: item.id,
+                            name: item.name,
+                            brand: item.brand,
+                            size: item.size,
+                            front_image: item.frontImage,
+                            image_url: item.frontImage,
+                            quantity: qty,
+                            unit_price_minor: item.priceMinor,
+                            line_total_minor: item.priceMinor * qty,
+                        };
+                    }),
                     created_at: nowIso,
                     paid_at: (paymentMethod === 'cod' || paymentMethod === 'archive_cod') ? null : nowIso,
                     expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
@@ -119,6 +127,10 @@ export function createOrdersService(getRuntime) {
 
             const payload = {
                 product_ids: items.map(item => item.id),
+                items: items.map(item => ({
+                    product_id: item.id,
+                    quantity: Number.isInteger(item.quantity) && item.quantity > 0 ? item.quantity : 1,
+                })),
                 shipping_address: addrValidation.clean,
                 shipping_option_id: shippingOptionId,
                 payment_method: paymentMethod,
@@ -225,6 +237,89 @@ export function createOrdersService(getRuntime) {
                 data: results,
                 error: null,
             };
+        },
+
+        async cancelOrder(orderId, { reason = '', user = null, allowPreview = undefined } = {}) {
+            if (!orderId) {
+                throw new Error('Order ID is required to cancel an order.');
+            }
+
+            const runtime = getRuntime ? getRuntime() : { status: 'missing', client: null };
+            const isLive = runtime.status === 'configured' && Boolean(runtime.client);
+            const canPreview = allowPreview !== undefined ? allowPreview : Boolean(runtime.previewMode);
+
+            // Retrieve order to validate cancellation eligibility
+            const fetched = await this.getOrder(orderId, { allowPreview });
+            const order = fetched?.order || fetched?.data || fetched;
+            if (!order || !order.id) {
+                throw new Error(`Order ${orderId} not found.`);
+            }
+
+            if (['cancelled', 'refunded'].includes(order.status)) {
+                throw new Error(`Order ${orderId} has already been cancelled.`);
+            }
+
+            if (order.status === 'delivered') {
+                throw new Error('Delivered orders cannot be cancelled. Please contact concierge for assistance.');
+            }
+
+            if (!canCancelOrder(order)) {
+                throw new Error('Orders can only be cancelled within 24 hours of placement.');
+            }
+
+            // Preview mode or order found in preview storage
+            if (!isLive || canPreview || getPreviewOrderById(orderId)) {
+                const updated = updatePreviewOrderStatus(orderId, 'cancelled', { reason });
+                return {
+                    success: true,
+                    mode: 'preview',
+                    order: updated,
+                    data: updated,
+                    error: null,
+                };
+            }
+
+            // Live mode with Supabase client
+            if (isLive) {
+                const client = runtime.client;
+                const updatePayload = {
+                    status: 'cancelled',
+                    updated_at: new Date().toISOString(),
+                };
+
+                let query = client.from('orders').update(updatePayload).eq('id', orderId);
+                if (user?.id) {
+                    query = query.eq('user_id', user.id);
+                }
+
+                const { data, error } = await query.select('*, order_items(*)').maybeSingle();
+
+                if (error) {
+                    try {
+                        const { data: rpcData, error: rpcErr } = await client.rpc('cancel_order', {
+                            p_order_id: orderId,
+                            p_reason: reason || 'Cancelled by collector within 24 hours',
+                        });
+                        if (!rpcErr && rpcData) {
+                            return { success: true, mode: 'live', order: rpcData, data: rpcData, error: null };
+                        }
+                    } catch {
+                        // ignore fallback error
+                    }
+                    throw new Error(`Failed to cancel order: ${error.message}`);
+                }
+
+                const formatted = data ? { ...data, items: data.order_items || [] } : { ...order, status: 'cancelled' };
+                return {
+                    success: true,
+                    mode: 'live',
+                    order: formatted,
+                    data: formatted,
+                    error: null,
+                };
+            }
+
+            throw new Error('Unable to cancel order: service environment not configured.');
         },
     };
 }
