@@ -64,9 +64,26 @@ export function createShopCategoriesService(runtimeProvider = getSupabaseRuntime
                 categoryRows = store.categories;
                 memberships = store.memberships;
             } else {
-                categoryRows = await categories(value);
-                memberships = rows(await result(value.client.from('shop_category_products').select('category_id,product_id')));
-                memberships.forEach(row => { assertCategoryId(row?.category_id); assertProductId(row.product_id); });
+                try {
+                    const fetchPromise = (async () => {
+                        const cat = await categories(value);
+                        const mem = rows(await result(value.client.from('shop_category_products').select('category_id,product_id')));
+                        mem.forEach(row => { assertCategoryId(row?.category_id); assertProductId(row.product_id); });
+                        return { cat, mem };
+                    })();
+                    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Shop categories request timeout')), 2500));
+                    const res = await Promise.race([fetchPromise, timeoutPromise]);
+                    categoryRows = res.cat;
+                    memberships = res.mem;
+                } catch (err) {
+                    if (!admin && (err.message.includes('timeout') || err.message.includes('network') || err.message.includes('fetch') || err.message.includes('Failed to fetch'))) {
+                        const store = readPreviewShopCategories();
+                        categoryRows = store.categories;
+                        memberships = store.memberships;
+                        return { categories: sortCategories(categoryRows), memberships, source: 'preview' };
+                    }
+                    throw err;
+                }
             }
             if (!admin) {
                 categoryRows = categoryRows.filter(row => row.is_visible);

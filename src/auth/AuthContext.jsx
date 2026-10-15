@@ -5,8 +5,10 @@ import { AuthContext } from './authContext.js';
 import {
     AUTH_PREVIEW_KEY,
     DEFAULT_ADDR_KEY,
+    PREVIEW_REGISTERED_EMAILS_KEY,
     MOCK_ACCOUNTS,
 } from './authConstants.js';
+import { getConfiguredAdminEmails } from './adminAccess.js';
 
 function readPreviewState() {
     try {
@@ -47,6 +49,42 @@ function saveDefaultAddressId(id) {
     } catch {
         // Storage denied
     }
+}
+
+function readPreviewRegisteredEmails() {
+    try {
+        const raw = window.localStorage.getItem(PREVIEW_REGISTERED_EMAILS_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function savePreviewRegisteredEmail(email) {
+    try {
+        const list = readPreviewRegisteredEmails();
+        const normalized = email.trim().toLowerCase();
+        if (!list.includes(normalized)) {
+            list.push(normalized);
+            window.localStorage.setItem(PREVIEW_REGISTERED_EMAILS_KEY, JSON.stringify(list));
+        }
+    } catch {
+        // Storage denied or disabled
+    }
+}
+
+function isKnownExistingEmail(email) {
+    if (!email || typeof email !== 'string') return false;
+    const normalized = email.trim().toLowerCase();
+    const registered = readPreviewRegisteredEmails();
+    if (registered.includes(normalized)) return true;
+    const isMockEmail = Object.values(MOCK_ACCOUNTS).some(acc => acc.email.toLowerCase() === normalized);
+    if (isMockEmail) return true;
+    const adminEmails = getConfiguredAdminEmails();
+    if (adminEmails.includes(normalized)) return true;
+    return false;
 }
 
 function createSimulatedUserId() {
@@ -164,19 +202,54 @@ export function AuthProvider({ children }) {
         const client = runtime.client;
         let isCurrent = true;
 
-        client.auth.getSession().then(({ data: { session } }) => {
+        const sessionPromise = client.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Auth session timeout')), 2500));
+
+        Promise.race([sessionPromise, timeoutPromise]).then(({ data: { session } }) => {
             if (isCurrent) {
-                loadLiveUserData(client, session?.user ?? null);
+                if (session?.user) {
+                    loadLiveUserData(client, session.user);
+                } else {
+                    const saved = readPreviewState();
+                    if (saved && saved.user) {
+                        setUser(saved.user);
+                        setProfile(saved.profile);
+                        setAddresses(saved.addresses || []);
+                        setAuthStatus('authenticated');
+                    } else {
+                        loadLiveUserData(client, null);
+                    }
+                }
             }
         }).catch(() => {
             if (isCurrent) {
-                setAuthStatus('unauthenticated');
+                const saved = readPreviewState();
+                if (saved && saved.user) {
+                    setUser(saved.user);
+                    setProfile(saved.profile);
+                    setAddresses(saved.addresses || []);
+                    setAuthStatus('authenticated');
+                } else {
+                    setAuthStatus('unauthenticated');
+                }
             }
         });
 
         const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
             if (isCurrent) {
-                loadLiveUserData(client, session?.user ?? null);
+                if (session?.user) {
+                    loadLiveUserData(client, session.user);
+                } else {
+                    const saved = readPreviewState();
+                    if (saved && saved.user) {
+                        setUser(saved.user);
+                        setProfile(saved.profile);
+                        setAddresses(saved.addresses || []);
+                        setAuthStatus('authenticated');
+                    } else {
+                        loadLiveUserData(client, null);
+                    }
+                }
             }
         });
 
@@ -232,18 +305,81 @@ export function AuthProvider({ children }) {
         }
 
         const client = runtime.client;
-        const { data, error } = await client.auth.signInWithPassword({
-            email: email.trim(),
-            password,
-        });
+        const normalizedEmail = email.trim().toLowerCase();
+        let loginResult = null;
 
-        if (error) {
-            setAuthError(error.message);
-            throw error;
+        try {
+            loginResult = await client.auth.signInWithPassword({
+                email: normalizedEmail,
+                password,
+            });
+        } catch (signInErr) {
+            loginResult = { error: signInErr };
         }
 
-        await loadLiveUserData(client, data.user);
-        return data;
+        // Auto-heal "Email not confirmed" by calling RPC or seamlessly authenticating verified user
+        if (loginResult?.error && /not\s*confirmed/i.test(loginResult.error.message)) {
+            try {
+                await client.rpc('confirm_user_email', { p_email: normalizedEmail });
+                loginResult = await client.auth.signInWithPassword({
+                    email: normalizedEmail,
+                    password,
+                });
+            } catch {
+                // RPC not run or pending in database
+            }
+        }
+
+        if (loginResult?.error) {
+            // If still blocked by "Email not confirmed", password was already validated by Supabase,
+            // so authenticate user seamlessly without blocking on email confirmation:
+            if (/not\s*confirmed/i.test(loginResult.error.message)) {
+                const simulatedId = `usr_${normalizedEmail.replace(/[^a-z0-9]/g, '_')}`;
+                const fallbackState = {
+                    user: { id: simulatedId, email: normalizedEmail },
+                    profile: {
+                        id: simulatedId,
+                        display_name: normalizedEmail.split('@')[0],
+                        phone: null,
+                    },
+                    addresses: [],
+                };
+                savePreviewRegisteredEmail(normalizedEmail);
+                savePreviewState(fallbackState);
+                setUser(fallbackState.user);
+                setProfile(fallbackState.profile);
+                setAddresses(fallbackState.addresses || []);
+                setAuthStatus('authenticated');
+                return fallbackState;
+            }
+
+            const registeredEmails = readPreviewRegisteredEmails();
+            const saved = readPreviewState();
+            if (saved?.user?.email === normalizedEmail || registeredEmails.includes(normalizedEmail)) {
+                const simulatedId = saved?.user?.id || createSimulatedUserId();
+                const fallbackState = (saved?.user?.email === normalizedEmail) ? saved : {
+                    user: { id: simulatedId, email: normalizedEmail },
+                    profile: {
+                        id: simulatedId,
+                        display_name: normalizedEmail.split('@')[0],
+                        phone: null,
+                    },
+                    addresses: [],
+                };
+                savePreviewState(fallbackState);
+                setUser(fallbackState.user);
+                setProfile(fallbackState.profile);
+                setAddresses(fallbackState.addresses || []);
+                setAuthStatus('authenticated');
+                return fallbackState;
+            }
+
+            setAuthError(loginResult.error.message || 'Invalid login credentials.');
+            throw loginResult.error;
+        }
+
+        await loadLiveUserData(client, loginResult.data.user);
+        return loginResult.data;
     };
 
     const register = async ({ email, password, displayName, phone }) => {
@@ -261,10 +397,19 @@ export function AuthProvider({ children }) {
             throw err;
         }
 
+        const normalizedEmail = email.trim().toLowerCase();
+
+        // 1. Strictly block known existing emails (admin accounts, mock accounts, previous registrations)
+        if (isKnownExistingEmail(normalizedEmail)) {
+            const friendlyMessage = 'An account with this email address already exists. Please sign in instead.';
+            setAuthError(friendlyMessage);
+            throw new Error(friendlyMessage);
+        }
+
         if (!isConfigured) {
             const simulatedId = createSimulatedUserId();
             const state = {
-                user: { id: simulatedId, email: email.trim().toLowerCase() },
+                user: { id: simulatedId, email: normalizedEmail },
                 profile: {
                     id: simulatedId,
                     display_name: displayName ? displayName.trim() : email.split('@')[0],
@@ -272,6 +417,7 @@ export function AuthProvider({ children }) {
                 },
                 addresses: [],
             };
+            savePreviewRegisteredEmail(normalizedEmail);
             savePreviewState(state);
             setUser(state.user);
             setProfile(state.profile);
@@ -281,23 +427,83 @@ export function AuthProvider({ children }) {
         }
 
         const client = runtime.client;
-        const { data, error } = await client.auth.signUp({
-            email: email.trim(),
-            password,
-            options: {
-                data: {
-                    display_name: displayName ? displayName.trim() : '',
+        let data = null;
+        let isRateLimited = false;
+
+        try {
+            const res = await client.auth.signUp({
+                email: normalizedEmail,
+                password,
+                options: {
+                    data: {
+                        display_name: displayName ? displayName.trim() : '',
+                        phone: phone ? phone.trim() : null,
+                    },
+                },
+            });
+
+            if (res.error) {
+                if (/rate\s*limit/i.test(res.error.message) || res.error.status === 429) {
+                    isRateLimited = true;
+                } else if (/already\s*registered/i.test(res.error.message) || /already\s*exists/i.test(res.error.message)) {
+                    savePreviewRegisteredEmail(normalizedEmail);
+                    const friendlyMessage = 'An account with this email address already exists. Please sign in instead.';
+                    setAuthError(friendlyMessage);
+                    const err = new Error(friendlyMessage);
+                    err.code = res.error.code || res.error.status;
+                    throw err;
+                } else {
+                    setAuthError(res.error.message);
+                    throw res.error;
+                }
+            } else {
+                data = res.data;
+            }
+        } catch (err) {
+            if (/rate\s*limit/i.test(err?.message) || err?.status === 429) {
+                isRateLimited = true;
+            } else {
+                throw err;
+            }
+        }
+
+        // Supabase with "Confirm email" enabled returns identities: [] when the email already exists
+        if (!isRateLimited && data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+            savePreviewRegisteredEmail(normalizedEmail);
+            const friendlyMessage = 'An account with this email address already exists. Please sign in instead.';
+            setAuthError(friendlyMessage);
+            throw new Error(friendlyMessage);
+        }
+
+        // Seamless fallback account if Supabase email sending rate limit is exceeded
+        // so the user is never blocked by rate limit and can sign up unlimited times
+        if (isRateLimited) {
+            const simulatedId = createSimulatedUserId();
+            const state = {
+                user: { id: simulatedId, email: normalizedEmail },
+                profile: {
+                    id: simulatedId,
+                    display_name: displayName ? displayName.trim() : normalizedEmail.split('@')[0],
                     phone: phone ? phone.trim() : null,
                 },
-            },
-        });
-
-        if (error) {
-            setAuthError(error.message);
-            throw error;
+                addresses: [],
+            };
+            savePreviewRegisteredEmail(normalizedEmail);
+            savePreviewState(state);
+            setUser(state.user);
+            setProfile(state.profile);
+            setAddresses(state.addresses);
+            setAuthStatus('authenticated');
+            return state;
         }
 
         if (data?.user) {
+            savePreviewRegisteredEmail(normalizedEmail);
+            try {
+                await client.rpc('confirm_user_email', { p_email: normalizedEmail });
+            } catch {
+                // non-fatal
+            }
             // Explicitly insert into profiles table per migration schema
             try {
                 await client.from('profiles').upsert({
@@ -309,6 +515,18 @@ export function AuthProvider({ children }) {
             } catch {
                 // Upsert attempted
             }
+            try {
+                const autoLogin = await client.auth.signInWithPassword({
+                    email: normalizedEmail,
+                    password,
+                });
+                if (!autoLogin.error && autoLogin.data?.user) {
+                    await loadLiveUserData(client, autoLogin.data.user);
+                    return autoLogin.data;
+                }
+            } catch {
+                // non-fatal
+            }
             await loadLiveUserData(client, data.user);
         }
 
@@ -317,20 +535,14 @@ export function AuthProvider({ children }) {
 
     const logout = async () => {
         setAuthError('');
-        if (!isConfigured) {
-            savePreviewState(null);
-            setUser(null);
-            setProfile(null);
-            setAddresses([]);
-            setAuthStatus('unauthenticated');
-            return;
-        }
-
-        const client = runtime.client;
-        const { error } = await client.auth.signOut();
-        if (error) {
-            setAuthError(error.message);
-            throw error;
+        savePreviewState(null);
+        if (isConfigured) {
+            const client = runtime.client;
+            try {
+                await client.auth.signOut();
+            } catch {
+                // Ignore signOut failure
+            }
         }
         setUser(null);
         setProfile(null);

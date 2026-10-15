@@ -1,5 +1,6 @@
 export const AUTH_PREVIEW_KEY = 'solethief.auth.preview.v1';
 export const DEFAULT_ADDR_KEY = 'solethief.default_address.v1';
+export const PREVIEW_REGISTERED_EMAILS_KEY = 'solethief.auth.registered_emails.v1';
 
 export const MOCK_ACCOUNTS = {
     collector: {

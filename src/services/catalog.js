@@ -71,6 +71,21 @@ export function previewDropToRow(drop) {
     return row;
 }
 
+export function getLocalCatalogProducts() {
+    try {
+        const drops = getPreviewDrops();
+        const filtered = Array.isArray(drops)
+            ? drops.filter(drop => drop && drop.active !== false && drop.status !== 'draft')
+            : [];
+        if (filtered.length > 0) {
+            return filtered.map(previewDropToRow).map(adaptCatalogRow);
+        }
+    } catch {
+        // Storage or parsing fallback
+    }
+    return [];
+}
+
 export function createCatalogService(runtimeProvider = getSupabaseRuntime) {
     return {
         async list({ allowPreview = false } = {}) {
@@ -85,12 +100,26 @@ export function createCatalogService(runtimeProvider = getSupabaseRuntime) {
                     products: filtered.map(previewDropToRow).map(adaptCatalogRow),
                 };
             }
-            const { data, error } = await runtime.client.from('products').select(columns).eq('active', true).order('id');
-            if (error) throw new Error('Live catalog request failed.', { cause: error });
-            if (!Array.isArray(data)) throw new Error('Invalid live catalog response.');
-            const products = data.map(adaptCatalogRow);
-            if (new Set(products.map(product => product.id)).size !== products.length) throw new Error('Invalid live catalog: duplicate pair IDs.');
-            return { source: 'supabase', checkoutEnabled: false, products };
+            try {
+                const queryPromise = runtime.client.from('products').select(columns).eq('active', true).order('id');
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 2500));
+                const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+                if (error) throw new Error('Live catalog request failed.', { cause: error });
+                if (!Array.isArray(data)) throw new Error('Invalid live catalog response.');
+                const products = data.map(adaptCatalogRow);
+                if (new Set(products.map(product => product.id)).size !== products.length) throw new Error('Invalid live catalog: duplicate pair IDs.');
+                return { source: 'supabase', checkoutEnabled: false, products };
+            } catch (err) {
+                if (allowPreview && (err.message.includes('timeout') || err.message.includes('network') || err.message.includes('fetch') || err.message.includes('Failed to fetch'))) {
+                    const drops = getPreviewDrops();
+                    const filtered = drops.filter(drop => drop.active);
+                    return {
+                        source: 'preview', checkoutEnabled: false,
+                        products: filtered.map(previewDropToRow).map(adaptCatalogRow),
+                    };
+                }
+                throw err;
+            }
         },
     };
 }

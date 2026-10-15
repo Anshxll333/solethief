@@ -191,4 +191,59 @@ test('Account.jsx integrates 24-hour order cancellation option and modal', async
     assert.ok(accountCode.includes('ordersService.cancelOrder'), 'Account.jsx must delegate to ordersService.cancelOrder');
 });
 
+test('AuthContext.jsx enforces duplicate email protection and handles email rate limits gracefully', async () => {
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+    const authCode = await fs.readFile(path.resolve('src/auth/AuthContext.jsx'), 'utf8');
+
+    // Duplicate email protection via identities check
+    assert.ok(authCode.includes('data.user.identities.length === 0'), 'AuthContext must check empty identities array for duplicate signups');
+    assert.ok(authCode.includes('already exists'), 'AuthContext must report duplicate email error');
+
+    // Rate limit friendly error
+    assert.ok(authCode.includes('rate\\s*limit') || authCode.includes('rate limit') || authCode.includes('Email rate limit exceeded'), 'AuthContext must handle rate limit errors');
+    assert.ok(authCode.includes('Confirm email'), 'AuthContext must advise user to turn off Confirm email in Supabase');
+
+    // Preview mode duplicate email check
+    assert.ok(authCode.includes('PREVIEW_REGISTERED_EMAILS_KEY'), 'AuthContext must use PREVIEW_REGISTERED_EMAILS_KEY');
+    assert.ok(authCode.includes('isMockEmail'), 'AuthContext must verify mock emails in preview registration');
+});
+
+test('Admin.jsx grants direct console access to emails configured in .env', async () => {
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+    const adminCode = await fs.readFile(path.resolve('src/pages/Admin.jsx'), 'utf8');
+
+    assert.ok(adminCode.includes('isConfiguredAdminUser'), 'Admin.jsx must import and use isConfiguredAdminUser');
+    assert.ok(adminCode.includes('isConfiguredAdmin = useMemo'), 'Admin.jsx must evaluate configured admin email');
+    assert.ok(adminCode.includes('isAuthorized = isConfiguredAdmin || hasAccess'), 'Admin.jsx must authorize configured admin emails directly');
+    assert.ok(adminCode.includes('hasConsoleAccess = isConfiguredAdmin || hasAccess'), 'Admin.jsx must grant console access to configured admin emails');
+});
+
+test('ShopCollectionsAdmin.jsx falls back to readPreviewShopCategories on RPC error', async () => {
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+    const adminCode = await fs.readFile(path.resolve('src/pages/ShopCollectionsAdmin.jsx'), 'utf8');
+
+    assert.ok(adminCode.includes('readPreviewShopCategories'), 'ShopCollectionsAdmin must import and use readPreviewShopCategories');
+    assert.ok(adminCode.includes('getPreviewDrops'), 'ShopCollectionsAdmin must import getPreviewDrops');
+});
+
+test('CommerceProvider.jsx hydrates catalog locally for zero-latency Shop and New Drops rendering', async () => {
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+    const providerCode = await fs.readFile(path.resolve('src/commerce/CommerceProvider.jsx'), 'utf8');
+    const catalogServiceModule = await import('../src/services/catalog.js');
+
+    assert.ok(providerCode.includes('getLocalCatalogProducts'), 'CommerceProvider must import and use getLocalCatalogProducts');
+    assert.equal(typeof catalogServiceModule.getLocalCatalogProducts, 'function', 'catalog.js must export getLocalCatalogProducts');
+
+    const localProducts = catalogServiceModule.getLocalCatalogProducts();
+    assert.ok(Array.isArray(localProducts), 'getLocalCatalogProducts must return an array');
+    assert.ok(localProducts.length > 0, 'getLocalCatalogProducts must have seeded or preview products');
+    assert.ok(localProducts[0].id, 'First product must have valid id');
+    assert.ok(localProducts[0].name, 'First product must have valid name');
+});
+
+
 

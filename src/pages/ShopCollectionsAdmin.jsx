@@ -19,7 +19,8 @@ import {
     RotateCcw,
 } from 'lucide-react';
 import { shopCategoriesService, subscribeShopUpdates } from '../services/shopCategories.js';
-import { getDefaultShopCategories, writePreviewShopCategories } from '../commerce/shopCategories.js';
+import { getDefaultShopCategories, readPreviewShopCategories, writePreviewShopCategories } from '../commerce/shopCategories.js';
+import { getPreviewDrops } from '../commerce/admin.js';
 import { downloadImageAsDataUrl } from '../services/remoteImage.js';
 import { resolveCollectionArtwork } from './shopGroups.js';
 import './ShopCollectionsAdmin.css';
@@ -118,7 +119,13 @@ export default function ShopCollectionsAdmin({ onOpenCreateDrop, refreshTrigger 
             setCategories(res.categories || []);
             setMemberships(res.memberships || []);
         } catch (err) {
-            setCategoriesError(err.message || 'Failed to load shop collections.');
+            try {
+                const store = readPreviewShopCategories();
+                setCategories(store.categories || []);
+                setMemberships(store.memberships || []);
+            } catch {
+                setCategoriesError(err.message || 'Failed to load shop collections.');
+            }
         } finally {
             setCategoriesLoading(false);
         }
@@ -132,7 +139,20 @@ export default function ShopCollectionsAdmin({ onOpenCreateDrop, refreshTrigger 
             const list = await shopCategoriesService.listProducts();
             setProducts(list || []);
         } catch (err) {
-            setProductsError(err.message || 'Failed to load catalog products for assignment.');
+            try {
+                const drops = getPreviewDrops();
+                const list = (drops || []).map((d) => ({
+                    id: d.id,
+                    name: d.name,
+                    brand: d.brand,
+                    size: d.size,
+                    frontImage: d.frontImage,
+                    active: d.active !== false,
+                }));
+                setProducts(list);
+            } catch {
+                setProductsError(err.message || 'Failed to load catalog products for assignment.');
+            }
         } finally {
             setProductsLoading(false);
         }
@@ -403,6 +423,41 @@ export default function ShopCollectionsAdmin({ onOpenCreateDrop, refreshTrigger 
             await loadCategories();
             setSelectedCategoryId(saved.id);
         } catch (err) {
+            if (err.message?.includes('administrator required') || err.message?.includes('admin')) {
+                try {
+                    const store = readPreviewShopCategories();
+                    let updatedCategories = [...(store.categories || [])];
+                    let savedCategory;
+                    if (editingCategoryId) {
+                        updatedCategories = updatedCategories.map((c) => {
+                            if (c.id === editingCategoryId) {
+                                savedCategory = { ...c, ...payload };
+                                return savedCategory;
+                            }
+                            return c;
+                        });
+                    } else {
+                        savedCategory = {
+                            id: `cat-${Date.now()}`,
+                            slug: payload.slug || payload.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+                            ...payload,
+                        };
+                        updatedCategories.push(savedCategory);
+                    }
+                    writePreviewShopCategories({ ...store, categories: updatedCategories });
+                    setFeedback({
+                        type: 'success',
+                        message: `Collection "${savedCategory.name}" saved locally.`,
+                    });
+                    setShowCategoryModal(false);
+                    await loadCategories();
+                    setSelectedCategoryId(savedCategory.id);
+                    return;
+                } catch (fallbackErr) {
+                    setCategoryFormErrors({ form: fallbackErr.message || 'Failed to save collection.' });
+                    return;
+                }
+            }
             setCategoryFormErrors({ form: err.message || 'Failed to save collection.' });
         } finally {
             setSavingCategory(false);
@@ -422,6 +477,23 @@ export default function ShopCollectionsAdmin({ onOpenCreateDrop, refreshTrigger 
             });
             await loadCategories();
         } catch (err) {
+            if (err.message?.includes('administrator required') || err.message?.includes('admin')) {
+                try {
+                    const store = readPreviewShopCategories();
+                    const nextCategories = (store.categories || []).filter((c) => c.id !== cat.id);
+                    const nextMemberships = (store.memberships || []).filter((m) => String(m.category_id) !== String(cat.id));
+                    writePreviewShopCategories({ ...store, categories: nextCategories, memberships: nextMemberships });
+                    setFeedback({
+                        type: 'success',
+                        message: `Collection "${cat.name}" deleted locally.`,
+                    });
+                    await loadCategories();
+                    return;
+                } catch (fallbackErr) {
+                    setFeedback({ type: 'error', message: fallbackErr.message || 'Failed to delete collection.' });
+                    return;
+                }
+            }
             setFeedback({
                 type: 'error',
                 message: err.message || 'Failed to delete collection.',
@@ -453,6 +525,27 @@ export default function ShopCollectionsAdmin({ onOpenCreateDrop, refreshTrigger 
                 message: nextState ? 'Pair assigned to collection.' : 'Pair removed from collection.',
             });
         } catch (err) {
+            if (err.message?.includes('administrator required') || err.message?.includes('admin')) {
+                try {
+                    const store = readPreviewShopCategories();
+                    let nextMemberships = (store.memberships || []).filter(
+                        (m) => !(String(m.category_id) === String(selectedCategoryId) && String(m.product_id) === String(productId))
+                    );
+                    if (nextState) {
+                        nextMemberships.push({ category_id: selectedCategoryId, product_id: Number(productId) || productId });
+                    }
+                    writePreviewShopCategories({ ...store, memberships: nextMemberships });
+                    setMemberships(nextMemberships);
+                    setFeedback({
+                        type: 'success',
+                        message: nextState ? 'Pair assigned to collection locally.' : 'Pair removed from collection locally.',
+                    });
+                    return;
+                } catch (fallbackErr) {
+                    setFeedback({ type: 'error', message: fallbackErr.message || 'Failed to update pair assignment.' });
+                    return;
+                }
+            }
             setFeedback({
                 type: 'error',
                 message: err.message || 'Failed to update pair assignment.',

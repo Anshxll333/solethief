@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { catalogService } from '../services/catalog.js';
+import { catalogService, getLocalCatalogProducts } from '../services/catalog.js';
 import { CART_KEY, emptyCart, parseCart } from './cart.js';
 import { CommerceContext } from './context.js';
 import { subscribeShopUpdates } from './shopCategories.js';
@@ -53,7 +53,22 @@ export default function CommerceProvider({ children }) {
     const [cart, setCart] = useState(initial.cart);
     const cartRef = useRef(initial.cart);
     const [storageWarning, setStorageWarning] = useState(initial.warning);
-    const [catalog, setCatalog] = useState({ status: 'loading', source: null, products: [] });
+    const [catalog, setCatalog] = useState(() => {
+        try {
+            const localProducts = getLocalCatalogProducts();
+            if (Array.isArray(localProducts) && localProducts.length > 0) {
+                return {
+                    status: 'ready',
+                    source: 'local',
+                    products: localProducts,
+                    checkoutEnabled: false,
+                };
+            }
+        } catch {
+            // fallback to loading
+        }
+        return { status: 'loading', source: null, products: [] };
+    });
     const [revision, setRevision] = useState(0);
 
     useEffect(() => subscribeShopUpdates(() => setRevision(value => value + 1)), []);
@@ -61,9 +76,48 @@ export default function CommerceProvider({ children }) {
     useEffect(() => {
         let active = true;
         catalogService.list({ allowPreview: true }).then(result => {
-            if (active) setCatalog({ ...result, status: 'ready' });
+            if (!active) return;
+            const liveProducts = result?.products || [];
+            const localProducts = getLocalCatalogProducts();
+
+            // Merge local products (which preserves newly added drops) with live products
+            const productMap = new Map();
+            for (const p of localProducts) {
+                productMap.set(Number(p.id), p);
+            }
+            for (const p of liveProducts) {
+                const existing = productMap.get(Number(p.id)) || {};
+                productMap.set(Number(p.id), { ...existing, ...p });
+            }
+            const mergedProducts = Array.from(productMap.values()).sort((a, b) => Number(a.id) - Number(b.id));
+
+            setCatalog({
+                ...result,
+                status: 'ready',
+                products: mergedProducts.length > 0 ? mergedProducts : (liveProducts.length > 0 ? liveProducts : localProducts),
+            });
         }).catch(() => {
-            if (active) setCatalog({ status: 'error', source: null, products: [], message: 'The catalog could not be loaded. Check your connection or configuration and try again. No preview has replaced this error.' });
+            if (!active) return;
+            setCatalog(prev => {
+                if (prev?.products && prev.products.length > 0) {
+                    return { ...prev, status: 'ready' };
+                }
+                const fallbackProducts = getLocalCatalogProducts();
+                if (fallbackProducts.length > 0) {
+                    return {
+                        status: 'ready',
+                        source: 'preview',
+                        products: fallbackProducts,
+                        checkoutEnabled: false,
+                    };
+                }
+                return {
+                    status: 'error',
+                    source: null,
+                    products: [],
+                    message: 'The catalog could not be loaded. Check your connection or configuration and try again.',
+                };
+            });
         });
         return () => { active = false; };
     }, [revision]);

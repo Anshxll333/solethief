@@ -15,11 +15,26 @@ export default function Shop() {
   const { catalog } = useCommerce();
   const [searchParams] = useSearchParams();
   const selectedSlug = searchParams.get('group');
-  const [directory, setDirectory] = useState({
-    status: 'loading',
-    categories: [],
-    memberships: [],
-    source: null,
+  const [directory, setDirectory] = useState(() => {
+    try {
+      const store = readPreviewShopCategories();
+      if (Array.isArray(store?.categories) && store.categories.length > 0) {
+        return {
+          status: 'ready',
+          categories: store.categories,
+          memberships: store.memberships || [],
+          source: 'preview',
+        };
+      }
+    } catch {
+      // fallback to loading
+    }
+    return {
+      status: 'loading',
+      categories: [],
+      memberships: [],
+      source: null,
+    };
   });
   const heading = useRef(null);
   const previousSlug = useRef(selectedSlug);
@@ -44,11 +59,27 @@ export default function Shop() {
         }
       }).catch(() => {
         if (active) {
-          setDirectory({
-            status: 'error',
-            categories: [],
-            memberships: [],
-            source: null,
+          setDirectory(prev => {
+            if (prev.categories && prev.categories.length > 0) {
+              return prev;
+            }
+            try {
+              const store = readPreviewShopCategories();
+              if (store?.categories?.length > 0) {
+                return {
+                  status: 'ready',
+                  categories: store.categories,
+                  memberships: store.memberships || [],
+                  source: 'preview',
+                };
+              }
+            } catch {}
+            return {
+              status: 'error',
+              categories: [],
+              memberships: [],
+              source: null,
+            };
           });
         }
       });
